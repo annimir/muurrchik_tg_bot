@@ -382,3 +382,21 @@ def get_all_aliases():
         WHERE c.is_active = TRUE
     '''
     return db(query).all()
+
+def unsubscribe_all(tg_id):
+    query = '''
+        DELETE FROM subscriptions
+        WHERE user_id = (SELECT id FROM users WHERE tg_id = %s)
+    '''
+    db(query, (tg_id,)).close()
+
+
+def count_user_subscriptions(tg_id) -> int:
+    query = '''
+        SELECT COUNT(*) AS cnt
+        FROM subscriptions s
+        JOIN users u ON u.id = s.user_id
+        WHERE u.tg_id = %s
+    '''
+    row = db(query, (tg_id,)).one()
+    return row['cnt']

@@ -17,6 +17,7 @@ from handlers.birthday import set_birthday_command, my_birthday_command, delete_
 from handlers.birthday_job import check_birthdays
 from handlers.chat_tracking import track_bot_membership
 from handlers.subscriptions import my_subscriptions, subscribe, unsubscribe
+from handlers.unsuball import unsuball_command, unsuball_confirm_callback
 from handlers.characters_admin import list_all_characters, delete_character_command, rename_character_command
 from handlers.user_profile import update_me
 from handlers.tagging import photo_tag_handler, tag_command
@@ -119,6 +120,8 @@ tag_storage.load_aliases([(row['alias'], row['name']) for row in alias_rows])
 application.add_handler(CommandHandler('mysub', my_subscriptions))
 application.add_handler(CommandHandler('sub', subscribe))
 application.add_handler(CommandHandler('unsub', unsubscribe))
+application.add_handler(CommandHandler('unsuball', unsuball_command))
+application.add_handler(CallbackQueryHandler(unsuball_confirm_callback, pattern=r'^unsuballconfirm:'))
 
 # персонажи (админ)
 application.add_handler(CommandHandler('all', list_all_characters))
