@@ -369,3 +369,16 @@ def count_user_characters(user_id) -> int:
 
 def get_user_by_id(user_id):
     return db('SELECT * FROM users WHERE id = %s', (user_id,)).one()
+
+def add_character_alias(character_id, alias):
+    query = 'INSERT INTO character_aliases (character_id, alias) VALUES (%s, %s)'
+    db(query, (character_id, alias)).close()
+
+def get_all_aliases():
+    query = '''
+        SELECT ca.alias, c.name
+        FROM character_aliases ca
+        JOIN character c ON c.id = ca.character_id
+        WHERE c.is_active = TRUE
+    '''
+    return db(query).all()

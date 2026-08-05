@@ -75,3 +75,9 @@ CREATE TABLE IF NOT EXISTS pending_owner_links (
     character_id   INTEGER NOT NULL REFERENCES character(id) ON DELETE CASCADE,
     PRIMARY KEY (tg_username, character_id)
 );
+
+CREATE TABLE IF NOT EXISTS character_aliases (
+    id            SERIAL PRIMARY KEY,
+    character_id  INTEGER NOT NULL REFERENCES character(id) ON DELETE CASCADE,
+    alias         TEXT NOT NULL UNIQUE
+);

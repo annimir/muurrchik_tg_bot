@@ -13,13 +13,24 @@ class TagStorage:
         return text.strip()
 
     def load_from(self, existing_tags: list[str]):
-        """Заполняет кэш из БД при старте бота."""
         for tag in existing_tags:
             self.tags[self.normalize(tag)] = tag
 
+    def load_aliases(self, alias_pairs: list[tuple[str, str]]):
+        """alias_pairs: список (alias, основное_имя_персонажа)."""
+        for alias, main_name in alias_pairs:
+            self.tags[self.normalize(alias)] = main_name
+
     def add_to_cache(self, tag: str):
-        """Только обновляет in-memory кэш, без записи в БД."""
         self.tags[self.normalize(tag)] = tag
+
+    def add_alias_to_cache(self, alias: str, main_name: str):
+        """Алиас указывает на основное имя — подписчики ищутся по main_name, не по alias."""
+        self.tags[self.normalize(alias)] = main_name
+
+    def is_taken(self, tag: str) -> bool:
+        """Точная (не fuzzy) проверка занятости — для защиты от дублей алиасов."""
+        return self.normalize(tag) in self.tags
 
     def find(self, tag: str) -> dict:
         norm = self.normalize(tag)

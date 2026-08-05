@@ -8,6 +8,9 @@ from telegram.ext import (
 from config.logging_config import setup_logging
 from config import config
 
+from database.queries import get_all_characters, get_all_aliases
+from services.tag_storage import tag_storage
+
 from handlers.welcome import welcome_new_member
 from handlers.language import language_command
 from handlers.birthday import set_birthday_command, my_birthday_command, delete_birthday_command
@@ -17,6 +20,7 @@ from handlers.subscriptions import my_subscriptions, subscribe, unsubscribe
 from handlers.characters_admin import list_all_characters, delete_character_command, rename_character_command
 from handlers.user_profile import update_me
 from handlers.tagging import photo_tag_handler, tag_command
+from handlers.addtag import addtag_command, addtag_confirm_callback
 from handlers.inline_search import inline_search
 from handlers.callbacks import callback_router
 from handlers.birthday_admin_dm import (
@@ -33,8 +37,7 @@ from handlers.admin_requests import (
     request_action_callback, choose_edit_field, receive_edit_value, EDITING_FIELD, EDITING_VALUE,
 )
 from handlers.admin_assign import (
-    start_assign, start_unassign, receive_target_forward, pick_character,
-    CHOOSING_ACTION, WAITING_FORWARD, CHOOSING_CHARACTER,
+    start_assign, start_unassign, receive_target_forward, pick_character, WAITING_FORWARD, CHOOSING_CHARACTER,
 )
 from handlers.admin_edit_character import (
     start_edit_character, choose_character_to_edit, choose_field, receive_new_value,
@@ -106,6 +109,12 @@ application.job_queue.run_daily(
     time=time(hour=4, minute=0, tzinfo=MOSCOW_TZ),  # ночью, вне пиковой активности
 )
 
+all_characters = get_all_characters()
+tag_storage.load_from([c['name'] for c in all_characters])
+
+alias_rows = get_all_aliases()
+tag_storage.load_aliases([(row['alias'], row['name']) for row in alias_rows])
+
 # подписки
 application.add_handler(CommandHandler('mysub', my_subscriptions))
 application.add_handler(CommandHandler('sub', subscribe))
@@ -122,6 +131,8 @@ application.add_handler(CommandHandler('updateme', update_me))
 # тэги
 application.add_handler(CommandHandler('tag', tag_command))
 application.add_handler(MessageHandler(filters.PHOTO & filters.CAPTION, photo_tag_handler))
+application.add_handler(CommandHandler('addtag', addtag_command))
+application.add_handler(CallbackQueryHandler(addtag_confirm_callback, pattern=r'^addtagconfirm:'))
 
 # inline
 application.add_handler(InlineQueryHandler(inline_search))
