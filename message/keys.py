@@ -153,3 +153,5 @@ unsuball_confirm_no = 'unsuball.confirmNo'
 unsuball_cancelled = 'unsuball.cancelled'
 unsuball_done = 'unsuball.done'
 unsuball_no_pending = 'unsuball.noPending'
+
+retention_warning_message = 'retention.warningMessage'

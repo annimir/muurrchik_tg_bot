@@ -400,3 +400,75 @@ def count_user_subscriptions(tg_id) -> int:
     '''
     row = db(query, (tg_id,)).one()
     return row['cnt']
+
+def upsert_membership(user_id, chat_id, is_member: bool):
+    query = '''
+        INSERT INTO user_chat_memberships (user_id, chat_id, is_member, updated_at)
+        VALUES (%s, %s, %s, now())
+        ON CONFLICT (user_id, chat_id)
+        DO UPDATE SET is_member = EXCLUDED.is_member, updated_at = now()
+    '''
+    db(query, (user_id, chat_id, is_member)).close()
+
+
+def has_any_active_membership(user_id) -> bool:
+    row = db(
+        'SELECT 1 FROM user_chat_memberships WHERE user_id = %s AND is_member = TRUE LIMIT 1',
+        (user_id,),
+    ).one()
+    return row is not None
+
+
+def mark_user_left_all(user_id):
+    db(
+        'UPDATE users SET left_at = now(), deletion_warned_at = NULL WHERE id = %s AND left_at IS NULL',
+        (user_id,),
+    ).close()
+
+
+def mark_user_returned(user_id):
+    db(
+        'UPDATE users SET left_at = NULL, deletion_warned_at = NULL WHERE id = %s',
+        (user_id,),
+    ).close()
+
+
+def get_users_pending_warning():
+    query = '''
+        SELECT id, tg_id, language
+        FROM users
+        WHERE left_at IS NOT NULL
+          AND deletion_warned_at IS NULL
+          AND left_at <= now() - interval '6 months'
+    '''
+    return db(query).all()
+
+
+def mark_user_warned(user_id):
+    db('UPDATE users SET deletion_warned_at = now() WHERE id = %s', (user_id,)).close()
+
+
+def get_users_pending_deletion():
+    query = '''
+        SELECT id, tg_id
+        FROM users
+        WHERE deletion_warned_at IS NOT NULL
+          AND deletion_warned_at <= now() - interval '7 days'
+    '''
+    return db(query).all()
+
+
+def delete_orphaned_bot_characters(user_id):
+    """Персонажи source='bot', привязанные ТОЛЬКО к этому пользователю, — удаляем вместе с ним."""
+    query = '''
+        DELETE FROM character
+        WHERE source = 'bot'
+          AND id IN (SELECT character_id FROM user_characters WHERE user_id = %s)
+          AND id NOT IN (SELECT character_id FROM user_characters WHERE user_id != %s)
+    '''
+    db(query, (user_id, user_id)).close()
+
+
+def delete_user_completely(user_id):
+    delete_orphaned_bot_characters(user_id)  # обязательно до удаления users — иначе FK-каскад уже снесёт user_characters
+    db('DELETE FROM users WHERE id = %s', (user_id,)).close()

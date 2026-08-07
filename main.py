@@ -20,6 +20,8 @@ from handlers.subscriptions import my_subscriptions, subscribe, unsubscribe
 from handlers.unsuball import unsuball_command, unsuball_confirm_callback
 from handlers.characters_admin import list_all_characters, delete_character_command, rename_character_command
 from handlers.user_profile import update_me
+from handlers.membership_tracking import track_member_left
+from handlers.retention_job import send_retention_warnings, run_retention_cleanup
 from handlers.tagging import photo_tag_handler, tag_command
 from handlers.addtag import addtag_command, addtag_confirm_callback
 from handlers.inline_search import inline_search
@@ -109,6 +111,8 @@ application.job_queue.run_daily(
     sync_characters_job,
     time=time(hour=4, minute=0, tzinfo=MOSCOW_TZ),  # ночью, вне пиковой активности
 )
+application.job_queue.run_daily(send_retention_warnings, time=time(hour=10, minute=0, tzinfo=MOSCOW_TZ))
+application.job_queue.run_daily(run_retention_cleanup, time=time(hour=10, minute=30, tzinfo=MOSCOW_TZ))
 
 all_characters = get_all_characters()
 tag_storage.load_from([c['name'] for c in all_characters])
@@ -174,6 +178,8 @@ request_review_conv = ConversationHandler(
     per_message=False,
 )
 application.add_handler(request_review_conv)
+application.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, track_member_left))
+
 
 # назначение/отмена персонажа
 assign_conv = ConversationHandler(

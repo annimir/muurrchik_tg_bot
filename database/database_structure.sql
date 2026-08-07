@@ -81,3 +81,14 @@ CREATE TABLE IF NOT EXISTS character_aliases (
     character_id  INTEGER NOT NULL REFERENCES character(id) ON DELETE CASCADE,
     alias         TEXT NOT NULL UNIQUE
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS left_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS deletion_warned_at TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS user_chat_memberships (
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    chat_id    BIGINT NOT NULL,
+    is_member  BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, chat_id)
+);

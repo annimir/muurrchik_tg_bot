@@ -3,6 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from database.queries import get_user_by_tg_id, create_user, upsert_membership, mark_user_returned
 from message.loader import message
 from message.keys import welcome_message
 
@@ -15,6 +16,14 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
     for member in update.message.new_chat_members:
         if member.is_bot:
             continue
+
+        db_user = get_user_by_tg_id(member.id)
+        if not db_user:
+            create_user(member.id, member.username or member.full_name)
+            db_user = get_user_by_tg_id(member.id)
+
+        upsert_membership(db_user['id'], chat_id, is_member=True)
+        mark_user_returned(db_user['id'])  # отменяет отсчёт удаления, если пользователь возвращался
 
         lang = 'RU' if member.language_code == 'ru' else 'EN'
         mention = f'<a href="tg://user?id={member.id}">{member.full_name}</a>'
