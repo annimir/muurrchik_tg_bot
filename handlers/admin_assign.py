@@ -16,6 +16,7 @@ from message.keys import (
     assign_no_characters_to_unassign, assign_choose_character, assign_choose_to_unassign,
     assign_done, assign_unassign_done,
 )
+from services.admin import is_admin
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ async def start_assign(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(message(lang, common_private_only, 'common'))
         return ConversationHandler.END
 
-    if int(update.effective_user.id) != int(config.admin_user_id):
+    if is_admin(update.effective_user.id):
         await update.message.reply_text(message(lang, assign_not_admin, 'assign'))
         return ConversationHandler.END
 
@@ -49,7 +50,7 @@ async def start_unassign(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(message(lang, common_private_only, 'common'))
         return ConversationHandler.END
 
-    if int(update.effective_user.id) != int(config.admin_user_id):
+    if is_admin(update.effective_user.id):
         await update.message.reply_text(message(lang, assign_not_admin, 'assign'))
         return ConversationHandler.END
 

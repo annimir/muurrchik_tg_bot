@@ -92,3 +92,20 @@ CREATE TABLE IF NOT EXISTS user_chat_memberships (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, chat_id)
 );
+
+CREATE TABLE IF NOT EXISTS flavor_roles (
+    id   SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS flavor_role_id INTEGER REFERENCES flavor_roles(id) ON DELETE SET NULL;
+
+-- стартовый набор ролей — админ дополнит своими через /add_role
+INSERT INTO flavor_roles (name) VALUES
+    ('Хиличурл'),
+    ('Застрельщик Фатуи'),
+    ('Стражник Мондштадта'),
+    ('Рыцарь Ордо Фавониус'),
+    ('Искатель сокровищ'),
+    ('Странствующий торговец')
+ON CONFLICT (name) DO NOTHING;

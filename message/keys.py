@@ -7,6 +7,7 @@ common_private_only = 'common.privateOnly'
 
 # Welcome
 welcome_message = 'welcome.message'
+welcome_role_assigned = 'welcome.roleAssigned'
 
 # Language
 language_no_argument_exception = 'language.noArgumentException'
@@ -155,3 +156,18 @@ unsuball_done = 'unsuball.done'
 unsuball_no_pending = 'unsuball.noPending'
 
 retention_warning_message = 'retention.warningMessage'
+
+roles_not_admin = 'roles.notAdmin'
+roles_usage_add = 'roles.usageAdd'
+roles_added = 'roles.added'
+roles_already_exists = 'roles.alreadyExists'
+roles_usage_remove = 'roles.usageRemove'
+roles_not_found = 'roles.notFound'
+roles_removed = 'roles.removed'
+roles_reassigned_count = 'roles.reassignedCount'
+roles_list_header = 'roles.listHeader'
+roles_list_empty = 'roles.listEmpty'
+roles_reroll_prompt = 'roles.rerollPrompt'
+roles_reroll_forward_invalid = 'roles.rerollForwardInvalid'
+roles_reroll_done = 'roles.rerollDone'
+roles_no_roles_available = 'roles.noRolesAvailable'

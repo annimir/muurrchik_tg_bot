@@ -13,6 +13,7 @@ from message.keys import (
     edit_field_name, edit_field_description, edit_field_affiliation,
     edit_field_position, edit_field_photo,
 )
+from services.admin import is_admin
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ async def start_edit_character(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text(message(lang, common_private_only, 'common'))
         return ConversationHandler.END
 
-    if int(update.effective_user.id) != int(config.admin_user_id):
+    if is_admin(update.effective_user.id):
         await update.message.reply_text(message(lang, assign_not_admin, 'assign'))
         return ConversationHandler.END
 

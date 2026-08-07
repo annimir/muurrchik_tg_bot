@@ -7,6 +7,7 @@ from database.queries import (
     get_request_by_id, update_request_status, update_request_field,
     create_bot_character, link_user_character, count_user_characters, get_user_language,
 )
+from services.admin import is_admin
 from services.tag_storage import tag_storage
 from config import config
 from message.loader import message
@@ -38,7 +39,7 @@ async def request_action_callback(update: Update, context: ContextTypes.DEFAULT_
     query = update.callback_query
     await query.answer()
 
-    if int(update.effective_user.id) != int(config.admin_user_id):
+    if is_admin(update.effective_user.id):
         return
 
     lang = _admin_lang()

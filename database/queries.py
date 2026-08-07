@@ -472,3 +472,42 @@ def delete_orphaned_bot_characters(user_id):
 def delete_user_completely(user_id):
     delete_orphaned_bot_characters(user_id)  # обязательно до удаления users — иначе FK-каскад уже снесёт user_characters
     db('DELETE FROM users WHERE id = %s', (user_id,)).close()
+
+def get_all_flavor_roles():
+    return db('SELECT id, name FROM flavor_roles').all()
+
+
+def add_flavor_role(name):
+    query = '''
+        INSERT INTO flavor_roles (name) VALUES (%s)
+        ON CONFLICT (name) DO NOTHING
+        RETURNING id
+    '''
+    row = db(query, (name,)).one()
+    return row['id'] if row else None
+
+
+def get_flavor_role_by_name(name):
+    return db('SELECT id, name FROM flavor_roles WHERE lower(name) = lower(%s)', (name,)).one()
+
+
+def get_users_with_role(role_id):
+    return db('SELECT id, tg_id FROM users WHERE flavor_role_id = %s', (role_id,)).all()
+
+
+def delete_flavor_role(role_id):
+    db('DELETE FROM flavor_roles WHERE id = %s', (role_id,)).close()
+
+
+def set_user_flavor_role(user_id, role_id):
+    db('UPDATE users SET flavor_role_id = %s WHERE id = %s', (role_id, user_id)).close()
+
+
+def get_user_flavor_role(user_id):
+    query = '''
+        SELECT fr.id, fr.name
+        FROM users u
+        JOIN flavor_roles fr ON fr.id = u.flavor_role_id
+        WHERE u.id = %s
+    '''
+    return db(query, (user_id,)).one()

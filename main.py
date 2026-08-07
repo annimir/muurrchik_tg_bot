@@ -46,6 +46,10 @@ from handlers.admin_edit_character import (
     start_edit_character, choose_character_to_edit, choose_field, receive_new_value,
     CHOOSING_FIELD as EDIT_CHOOSING_FIELD, WAITING_VALUE as EDIT_WAITING_VALUE,
 )
+from handlers.admin_roles import (
+    add_role_command, remove_role_command, list_roles_command,
+    start_reroll_role, receive_reroll_forward, WAITING_REROLL_FORWARD,
+)
 
 from datetime import time
 from zoneinfo import ZoneInfo
@@ -205,6 +209,20 @@ edit_character_conv = ConversationHandler(
     fallbacks=[],
 )
 application.add_handler(edit_character_conv)
+
+# Roles
+application.add_handler(CommandHandler('add_role', add_role_command, filters=filters.ChatType.PRIVATE))
+application.add_handler(CommandHandler('remove_role', remove_role_command, filters=filters.ChatType.PRIVATE))
+application.add_handler(CommandHandler('list_roles', list_roles_command, filters=filters.ChatType.PRIVATE))
+
+reroll_conv = ConversationHandler(
+    entry_points=[CommandHandler('reroll_role', start_reroll_role, filters=filters.ChatType.PRIVATE)],
+    states={
+        WAITING_REROLL_FORWARD: [MessageHandler(filters.FORWARDED & ~filters.COMMAND, receive_reroll_forward)],
+    },
+    fallbacks=[],
+)
+application.add_handler(reroll_conv)
 
 logger.info("Бот запущен")
 application.run_polling()
