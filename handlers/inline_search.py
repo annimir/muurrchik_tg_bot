@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes
 
 from services.auth import auth
 from database.queries import (
-    get_all_characters, get_character_subscribers, get_all_users,
+    get_active_tags, get_tag_subscribers, get_all_users,
     get_user_subscriptions, search_characters, get_user_language,
 )
 from handlers.characters_admin import is_admin
@@ -27,11 +27,11 @@ async def inline_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     results = []
 
     characters = search_characters(query.query)[::-1]
-    all_characters = get_all_characters()
+    all_characters = get_active_tags()
 
     top_characters = []
     for character in all_characters:
-        subs = get_character_subscribers(character['name'])
+        subs = get_tag_subscribers(character['name'])
         top_characters.append((character['name'], len(subs)))
     top_characters.sort(key=lambda c: c[1], reverse=True)
 
@@ -62,7 +62,7 @@ async def inline_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ))
 
     for character in characters[:40]:
-        subs = get_character_subscribers(character['name'])
+        subs = get_tag_subscribers(character['name'])
         subs_str = ", ".join(s['tag'] for s in subs)
         if subs_str:
             results.append(InlineQueryResultArticle(

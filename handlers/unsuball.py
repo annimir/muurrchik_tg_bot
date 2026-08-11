@@ -3,7 +3,7 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
-from database.queries import unsubscribe_all, count_user_subscriptions, get_user_language
+from database.queries import unsubscribe_all_tags, count_active_subscriptions, get_user_language
 from message.loader import message
 from message.keys import (
     unsuball_empty, unsuball_confirm, unsuball_confirm_yes, unsuball_confirm_no,
@@ -18,7 +18,7 @@ async def unsuball_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(user.id)
     thread_id = update.message.message_thread_id
 
-    count = count_user_subscriptions(user.id)
+    count = count_active_subscriptions(user.id)
 
     if count == 0:
         await update.message.reply_text(message(lang, unsuball_empty, 'unsuball'), message_thread_id=thread_id)
@@ -47,12 +47,12 @@ async def unsuball_confirm_callback(update: Update, context: ContextTypes.DEFAUL
         return
 
     # повторно проверяем количество на случай гонки (подписки могли измениться между показом кнопок и нажатием)
-    count = count_user_subscriptions(user.id)
+    count = count_active_subscriptions(user.id)
     if count == 0:
         await query.edit_message_text(message(lang, unsuball_empty, 'unsuball'))
         return
 
-    unsubscribe_all(user.id)
+    unsubscribe_all_tags(user.id)
     logger.info("Пользователь %s массово отписался от %d тегов", user.id, count)
 
     await query.edit_message_text(message(lang, unsuball_done, 'unsuball', count))

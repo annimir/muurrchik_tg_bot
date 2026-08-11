@@ -3,7 +3,7 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
-from database.queries import get_character_by_name, add_character_alias, get_user_language
+from database.queries import get_tag_by_name, add_tag_alias, get_user_language
 from services.tag_storage import tag_storage
 from message.loader import message
 from message.keys import (
@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 def _apply_alias(main_name: str, alias: str) -> int:
     """Пишет алиас в БД и кэш, возвращает character_id."""
-    character = get_character_by_name(main_name)
-    add_character_alias(character['id'], alias)
+    character = get_tag_by_name(main_name)
+    add_tag_alias(character['id'], alias)
     tag_storage.add_alias_to_cache(alias, main_name)
     return character['id']
 

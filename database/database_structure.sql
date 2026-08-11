@@ -1,21 +1,64 @@
+-- =============================================================
+-- P.A.I.M.O.N. — консолидированная схема БД
+-- Актуально по состоянию после Этапа A (BRD-выравнивание)
+-- Таблицы под заявки/карточки (Этапы D/E) сюда НЕ включены —
+-- код, который их использует, пока отключён в main.py.
+-- =============================================================
+
+-- ---------- USERS ----------
 CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    tg_id BIGINT NOT NULL UNIQUE,
-    tag TEXT
+    id                   SERIAL PRIMARY KEY,
+    tg_id                BIGINT NOT NULL UNIQUE,
+    tag                  TEXT,
+    language             VARCHAR(2) NOT NULL DEFAULT 'RU',
+    left_at              TIMESTAMPTZ,
+    deletion_warned_at   TIMESTAMPTZ,
+    flavor_role_id       INTEGER  -- FK на flavor_roles ниже, добавляется после её создания
 );
 
-CREATE TABLE IF NOT EXISTS character (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE,
-    description TEXT
+-- ---------- ЧАТЫ, ГДЕ СОСТОИТ БОТ ----------
+CREATE TABLE IF NOT EXISTS chats (
+    chat_id   BIGINT PRIMARY KEY,
+    title     TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-CREATE TABLE IF NOT EXISTS subscriptions (
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    character_id INTEGER NOT NULL REFERENCES character(id) ON DELETE CASCADE,
-    PRIMARY KEY (user_id, character_id)
+-- ---------- ЧЛЕНСТВО ПОЛЬЗОВАТЕЛЕЙ В ЧАТАХ (для автоочистки, Этап 3) ----------
+CREATE TABLE IF NOT EXISTS user_chat_memberships (
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    chat_id    BIGINT NOT NULL,
+    is_member  BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, chat_id)
 );
 
+-- ---------- РОЛИ (Этап 4) ----------
+CREATE TABLE IF NOT EXISTS flavor_roles (
+    id   SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+
+ALTER TABLE users
+    ADD CONSTRAINT fk_users_flavor_role
+    FOREIGN KEY (flavor_role_id) REFERENCES flavor_roles(id) ON DELETE SET NULL;
+
+INSERT INTO flavor_roles (name) VALUES
+    ('Хиличурл'),
+    ('Застрельщик Фатуи'),
+    ('Стражник Мондштадта'),
+    ('Рыцарь Ордо Фавониус'),
+    ('Искатель сокровищ'),
+    ('Странствующий торговец')
+ON CONFLICT (name) DO NOTHING;
+
+-- ---------- ИГРЫ ПОЛЬЗОВАТЕЛЯ (Этап 5) ----------
+CREATE TABLE IF NOT EXISTS user_games (
+    user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    game_code TEXT NOT NULL,
+    PRIMARY KEY (user_id, game_code)
+);
+
+-- ---------- ДНИ РОЖДЕНИЯ ПОЛЬЗОВАТЕЛЕЙ (старая модель — упростится на Этапе D) ----------
 CREATE TABLE IF NOT EXISTS birthdays (
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     chat_id    BIGINT NOT NULL,
@@ -25,87 +68,44 @@ CREATE TABLE IF NOT EXISTS birthdays (
     PRIMARY KEY (user_id, chat_id)
 );
 
-CREATE TABLE IF NOT EXISTS chats (
-    chat_id   BIGINT PRIMARY KEY,
-    title     TEXT,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE
-);
+-- =============================================================
+-- Этап A — TAG / CHARACTER, разделены по BRD
+-- =============================================================
 
-ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR(2) NOT NULL DEFAULT 'RU';
-
--- расширяем character
-ALTER TABLE character ADD COLUMN IF NOT EXISTS description TEXT;
-ALTER TABLE character ADD COLUMN IF NOT EXISTS affiliation TEXT;
-ALTER TABLE character ADD COLUMN IF NOT EXISTS position TEXT;
-ALTER TABLE character ADD COLUMN IF NOT EXISTS photo_file_id TEXT;      -- фото, загруженное через бота
-ALTER TABLE character ADD COLUMN IF NOT EXISTS photo_url TEXT;          -- фото из таблицы (внешняя ссылка)
-ALTER TABLE character ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'bot';  -- 'bot' | 'sheet'
-ALTER TABLE character ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
-ALTER TABLE character ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
-
--- привязка персонажа к пользователю (админ назначает/отменяет), максимум 3 на пользователя
-CREATE TABLE IF NOT EXISTS user_characters (
-    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    character_id INTEGER NOT NULL REFERENCES character(id) ON DELETE CASCADE,
-    assigned_by  BIGINT,           -- tg_id админа, который назначил
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (user_id, character_id)
-);
-
--- заявки на создание персонажа
-CREATE TABLE IF NOT EXISTS character_requests (
-    id             SERIAL PRIMARY KEY,
-    user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    chat_id        BIGINT NOT NULL,          -- групповой чат, куда придёт итог
-    name           TEXT NOT NULL,
-    description    TEXT,
-    affiliation    TEXT,
-    position       TEXT,
-    photo_file_id  TEXT,
-    status         TEXT NOT NULL DEFAULT 'pending',  -- pending | approved | rejected
-    admin_comment  TEXT,
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    resolved_at    TIMESTAMPTZ
-);
-
--- если персонаж в таблице привязан к юзернейму, который ещё не писал боту —
--- сохраняем "отложенную" привязку, довяжем при первом /start этого пользователя
-CREATE TABLE IF NOT EXISTS pending_owner_links (
-    tg_username    TEXT NOT NULL,
-    character_id   INTEGER NOT NULL REFERENCES character(id) ON DELETE CASCADE,
-    PRIMARY KEY (tg_username, character_id)
-);
-
-CREATE TABLE IF NOT EXISTS character_aliases (
+CREATE TABLE IF NOT EXISTS tag (
     id            SERIAL PRIMARY KEY,
-    character_id  INTEGER NOT NULL REFERENCES character(id) ON DELETE CASCADE,
-    alias         TEXT NOT NULL UNIQUE
+    name          TEXT NOT NULL UNIQUE,
+    status        TEXT NOT NULL DEFAULT 'ACTIVE',   -- ACTIVE | DELETED | BLOCKED
+    created_by    BIGINT,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_used_at  TIMESTAMPTZ
 );
 
-ALTER TABLE users ADD COLUMN IF NOT EXISTS left_at TIMESTAMPTZ;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS deletion_warned_at TIMESTAMPTZ;
+CREATE TABLE IF NOT EXISTS tag_alias (
+    id     SERIAL PRIMARY KEY,
+    tag_id INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE,
+    alias  TEXT NOT NULL UNIQUE
+);
 
-CREATE TABLE IF NOT EXISTS user_chat_memberships (
+CREATE TABLE IF NOT EXISTS subscription (
+    id         SERIAL PRIMARY KEY,
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    chat_id    BIGINT NOT NULL,
-    is_member  BOOLEAN NOT NULL DEFAULT TRUE,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (user_id, chat_id)
+    tag_id     INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE,
+    active     BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (user_id, tag_id)
 );
 
-CREATE TABLE IF NOT EXISTS flavor_roles (
-    id   SERIAL PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE
+CREATE TABLE IF NOT EXISTS character (
+    id            SERIAL PRIMARY KEY,
+    owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name          TEXT NOT NULL UNIQUE,
+    birth_date    DATE,
+    photo_file_id TEXT,
+    description   TEXT,
+    is_primary    BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE users ADD COLUMN IF NOT EXISTS flavor_role_id INTEGER REFERENCES flavor_roles(id) ON DELETE SET NULL;
-
--- стартовый набор ролей — админ дополнит своими через /add_role
-INSERT INTO flavor_roles (name) VALUES
-    ('Хиличурл'),
-    ('Застрельщик Фатуи'),
-    ('Стражник Мондштадта'),
-    ('Рыцарь Ордо Фавониус'),
-    ('Искатель сокровищ'),
-    ('Странствующий торговец')
-ON CONFLICT (name) DO NOTHING;
+CREATE UNIQUE INDEX IF NOT EXISTS one_primary_character_per_user
+    ON character (owner_user_id) WHERE is_primary = TRUE;

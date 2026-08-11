@@ -15,9 +15,6 @@ class Config:
             f"host={pg['host']} port={pg['port']} "
             f"dbname={pg['dbname']} user={pg['user']} password={pg['password']}"
         )
-        self.google_sheets_credentials_path = data["google_sheets"]["credentials_path"]
-        self.google_sheets_spreadsheet_id = data["google_sheets"]["spreadsheet_id"]
-        self.google_sheets_sheet_name = data["google_sheets"]["sheet_name"]
 
 
 def load_config() -> Config:

@@ -6,8 +6,8 @@ from telegram.ext import ContextTypes
 from services.auth import auth
 from services.tag_storage import tag_storage
 from database.queries import (
-    get_all_characters, delete_character, get_character_by_name,
-    update_character_name, get_user_language,
+    get_all_tags, get_tag_by_name,
+    rename_tag, get_user_language,
 )
 from message.loader import message
 from message.keys import (
@@ -35,7 +35,7 @@ async def list_all_characters(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.message.reply_text(message(lang, common_not_admin, 'common'), message_thread_id=thread_id)
         return
 
-    all_characters = get_all_characters()
+    all_characters = get_all_tags()
     names = ", ".join(sorted(c['name'] for c in all_characters))
 
     await context.bot.send_message(
@@ -59,7 +59,7 @@ async def delete_character_command(update: Update, context: ContextTypes.DEFAULT
         return
 
     character_name = context.args[0].lower()
-    character = get_character_by_name(character_name)
+    character = get_tag_by_name(character_name)
 
     if not character:
         await context.bot.send_message(
@@ -68,7 +68,7 @@ async def delete_character_command(update: Update, context: ContextTypes.DEFAULT
         )
         return
 
-    delete_character(character_name)
+    ##delete_character(character_name)
     tag_storage.tags.pop(tag_storage.normalize(character_name), None)
     logger.info("Админ %s удалил персонажа %s", user.id, character_name)
 
@@ -95,8 +95,8 @@ async def rename_character_command(update: Update, context: ContextTypes.DEFAULT
     old_name = context.args[0].lower()
     new_name = context.args[1].lower()
 
-    character = get_character_by_name(old_name)
-    existing = get_character_by_name(new_name)
+    character = get_tag_by_name(old_name)
+    existing = get_tag_by_name(new_name)
 
     if not character:
         await context.bot.send_message(
@@ -112,7 +112,7 @@ async def rename_character_command(update: Update, context: ContextTypes.DEFAULT
         )
         return
 
-    update_character_name(character['id'], new_name)
+    rename_tag(character['id'], new_name)
     tag_storage.tags.pop(tag_storage.normalize(old_name), None)
     tag_storage.add_to_cache(new_name)
     logger.info("Админ %s переименовал персонажа %s -> %s", user.id, old_name, new_name)

@@ -5,8 +5,8 @@ from telegram.ext import ContextTypes
 
 from services.auth import auth
 from database.queries import (
-    get_user_subscriptions, get_character_by_name,
-    subscribe_character, unsubscribe_character, get_user_language,
+    get_user_subscriptions, get_tag_by_name,
+    subscribe_tag, unsubscribe_tag, get_user_language,
 )
 from message.loader import message
 from message.keys import (
@@ -60,22 +60,22 @@ async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    character_name = context.args[0].lower()
-    character = get_character_by_name(character_name)
+    tag_name = context.args[0].lower()
+    tag_id = get_tag_by_name(tag_name)
 
-    if not character:
-        logger.warning("Пользователь %s пытался подписаться на несуществующего персонажа %s", user.id, character_name)
+    if not tag_name:
+        logger.warning("Пользователь %s пытался подписаться на несуществующего персонажа %s", user.id, tag_name)
         await context.bot.send_message(
             update.effective_chat.id, message(lang, sub_character_not_found, 'sub'),
             parse_mode='Markdown', message_thread_id=thread_id,
         )
         return
 
-    subscribe_character(character_name, user.id)
-    logger.info("Пользователь %s подписался на %s", user.id, character_name)
+    subscribe_tag(user.id, tag_id)
+    logger.info("Пользователь %s подписался на %s", user.id, tag_name)
     await context.bot.send_message(
         update.effective_chat.id,
-        message(lang, sub_success, 'sub', user.username, character_name),
+        message(lang, sub_success, 'sub', user.username, tag_name),
         parse_mode='Markdown', message_thread_id=thread_id,
     )
 
@@ -93,20 +93,20 @@ async def unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    character_name = context.args[0].lower()
-    character = get_character_by_name(character_name)
+    tag_name = context.args[0].lower()
+    tag_id = get_tag_by_name(tag_name)
 
-    if not character:
+    if not tag_name:
         await context.bot.send_message(
             update.effective_chat.id, message(lang, sub_character_not_found, 'sub'),
             parse_mode='Markdown', message_thread_id=thread_id,
         )
         return
 
-    unsubscribe_character(character_name, user.id)
-    logger.info("Пользователь %s отписался от %s", user.id, character_name)
+    unsubscribe_tag(user.id, tag_id)
+    logger.info("Пользователь %s отписался от %s", user.id, tag_name)
     await context.bot.send_message(
         update.effective_chat.id,
-        message(lang, unsub_success, 'unsub', user.username, character_name),
+        message(lang, unsub_success, 'unsub', user.username, tag_name),
         parse_mode='Markdown', message_thread_id=thread_id,
     )

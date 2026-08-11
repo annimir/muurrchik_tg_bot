@@ -171,3 +171,8 @@ roles_reroll_prompt = 'roles.rerollPrompt'
 roles_reroll_forward_invalid = 'roles.rerollForwardInvalid'
 roles_reroll_done = 'roles.rerollDone'
 roles_no_roles_available = 'roles.noRolesAvailable'
+
+games_prompt = 'games.prompt'
+games_done_button = 'games.doneButton'
+games_saved_none = 'games.savedNone'
+games_saved_list = 'games.savedList'

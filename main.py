@@ -26,6 +26,7 @@ from handlers.tagging import photo_tag_handler, tag_command
 from handlers.addtag import addtag_command, addtag_confirm_callback
 from handlers.inline_search import inline_search
 from handlers.callbacks import callback_router
+from handlers.games import mygames_command, toggle_game_callback, games_done_callback
 from handlers.birthday_admin_dm import (
     start_admin_birthday, choose_chat, main_menu_router, receive_forward,
     select_existing_user, manage_entry_router, go_back, receive_date, cancel,
@@ -39,9 +40,6 @@ from handlers.character_requests import (
 from handlers.admin_requests import (
     request_action_callback, choose_edit_field, receive_edit_value, EDITING_FIELD, EDITING_VALUE,
 )
-from handlers.admin_assign import (
-    start_assign, start_unassign, receive_target_forward, pick_character, WAITING_FORWARD, CHOOSING_CHARACTER,
-)
 from handlers.admin_edit_character import (
     start_edit_character, choose_character_to_edit, choose_field, receive_new_value,
     CHOOSING_FIELD as EDIT_CHOOSING_FIELD, WAITING_VALUE as EDIT_WAITING_VALUE,
@@ -51,23 +49,25 @@ from handlers.admin_roles import (
     start_reroll_role, receive_reroll_forward, WAITING_REROLL_FORWARD,
 )
 
+from database.queries import get_active_tags, get_all_tag_aliases
+from services.tag_storage import tag_storage
+
 from datetime import time
 from zoneinfo import ZoneInfo
-
-from services.character_sync import sync_characters_from_sheet
-import asyncio
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
 application = Application.builder().token(config.bot_token).build()
+active_tags = get_active_tags()
+tag_storage.load_from([t['name'] for t in active_tags])
 
+alias_rows = get_all_tag_aliases()
+tag_storage.load_aliases([(row['alias'], row['name']) for row in alias_rows])
 
 async def error_handler(update, context):
     logger.error("Необработанное исключение: %s", update, exc_info=context.error)
 
-async def sync_characters_job(context):
-    await asyncio.to_thread(sync_characters_from_sheet)
 
 application.add_error_handler(error_handler)
 
@@ -111,10 +111,6 @@ application.add_handler(admin_birthday_conv)
 
 MOSCOW_TZ = ZoneInfo('Europe/Moscow')
 application.job_queue.run_daily(check_birthdays, time=time(hour=9, minute=0, tzinfo=MOSCOW_TZ))
-application.job_queue.run_daily(
-    sync_characters_job,
-    time=time(hour=4, minute=0, tzinfo=MOSCOW_TZ),  # ночью, вне пиковой активности
-)
 application.job_queue.run_daily(send_retention_warnings, time=time(hour=10, minute=0, tzinfo=MOSCOW_TZ))
 application.job_queue.run_daily(run_retention_cleanup, time=time(hour=10, minute=30, tzinfo=MOSCOW_TZ))
 
@@ -184,21 +180,6 @@ request_review_conv = ConversationHandler(
 application.add_handler(request_review_conv)
 application.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, track_member_left))
 
-
-# назначение/отмена персонажа
-assign_conv = ConversationHandler(
-    entry_points=[
-        CommandHandler('assign_character', start_assign, filters=filters.ChatType.PRIVATE),
-        CommandHandler('unassign_character', start_unassign, filters=filters.ChatType.PRIVATE),
-    ],
-    states={
-        WAITING_FORWARD: [MessageHandler(filters.FORWARDED & ~filters.COMMAND, receive_target_forward)],
-        CHOOSING_CHARACTER: [CallbackQueryHandler(pick_character, pattern=r'^pick:')],
-    },
-    fallbacks=[],
-)
-application.add_handler(assign_conv)
-
 # редактирование карточки персонажа
 edit_character_conv = ConversationHandler(
     entry_points=[CommandHandler('edit_character', start_edit_character, filters=filters.ChatType.PRIVATE)],
@@ -223,6 +204,11 @@ reroll_conv = ConversationHandler(
     fallbacks=[],
 )
 application.add_handler(reroll_conv)
+
+# Games
+application.add_handler(CommandHandler('mygames', mygames_command))
+application.add_handler(CallbackQueryHandler(toggle_game_callback, pattern=r'^gametoggle:'))
+application.add_handler(CallbackQueryHandler(games_done_callback, pattern=r'^gamesdone$'))
 
 logger.info("Бот запущен")
 application.run_polling()

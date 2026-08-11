@@ -6,6 +6,94 @@ tables_path = 'database/database_structure.sql'
 db = Database(config.pg_dsn)
 db.execute_file(tables_path)
 
+# ---------- TAG ----------
+def get_tag_by_name(name):
+    return db('SELECT * FROM tag WHERE lower(name) = lower(%s)', (name,)).one()
+
+def create_tag(name, created_by_tg_id=None):
+    query = '''
+        INSERT INTO tag (name, status, created_by)
+        VALUES (%s, 'ACTIVE', %s)
+        RETURNING *
+    '''
+    return db(query, (name, created_by_tg_id)).one()
+
+def get_all_tags():
+    return db('SELECT * FROM tag').all()
+
+def get_active_tags():
+    return db("SELECT * FROM tag WHERE status = 'ACTIVE'").all()
+
+def search_tags(search_line: str):
+    if not search_line:
+        return db("SELECT name, id FROM tag WHERE status = 'ACTIVE'").all()
+
+    query = "SELECT name, id FROM tag WHERE status = 'ACTIVE' AND name LIKE %s"
+    return db(query, (f"{search_line}%",)).all()
+
+def touch_tag_last_used(tag_id):
+    db('UPDATE tag SET last_used_at = now() WHERE id = %s', (tag_id,)).close()
+
+def rename_tag(tag_id, new_name):
+    db('UPDATE tag SET name = %s WHERE id = %s', (new_name, tag_id)).close()
+
+def add_tag_alias(tag_id, alias):
+    db('INSERT INTO tag_alias (tag_id, alias) VALUES (%s, %s)', (tag_id, alias)).close()
+
+def get_all_tag_aliases():
+    query = '''
+        SELECT ta.alias, t.name
+        FROM tag_alias ta
+        JOIN tag t ON t.id = ta.tag_id
+        WHERE t.status = 'ACTIVE'
+    '''
+    return db(query).all()
+
+# ---------- SUBSCRIPTION ----------
+def subscribe_tag(user_id, tag_id):
+    query = '''
+        INSERT INTO subscription (user_id, tag_id, active)
+        VALUES (%s, %s, TRUE)
+        ON CONFLICT (user_id, tag_id)
+        DO UPDATE SET active = TRUE
+    '''
+    db(query, (user_id, tag_id)).close()
+
+def unsubscribe_tag(user_id, tag_id):
+    db(
+        'UPDATE subscription SET active = FALSE WHERE user_id = %s AND tag_id = %s',
+        (user_id, tag_id),
+    ).close()
+
+def unsubscribe_all_tags(user_id):
+    db('UPDATE subscription SET active = FALSE WHERE user_id = %s', (user_id,)).close()
+
+def count_active_subscriptions(user_id) -> int:
+    row = db(
+        "SELECT COUNT(*) AS cnt FROM subscription WHERE user_id = %s AND active = TRUE",
+        (user_id,),
+    ).one()
+    return row['cnt']
+
+def get_user_subscriptions(user_id):
+    query = '''
+        SELECT t.id, t.name
+        FROM subscription s
+        JOIN tag t ON t.id = s.tag_id
+        WHERE s.user_id = %s AND s.active = TRUE AND t.status = 'ACTIVE'
+    '''
+    return db(query, (user_id,)).all()
+
+def get_tag_subscribers(tag_id):
+    query = '''
+        SELECT u.tg_id, u.tag AS username
+        FROM subscription s
+        JOIN users u ON u.id = s.user_id
+        WHERE s.tag_id = %s AND s.active = TRUE
+    '''
+    return db(query, (tag_id,)).all()
+
+
 def get_user_by_tg_id(tg_id):
     query = '''
         SELECT tg_id, tag
@@ -22,10 +110,6 @@ def update_user_tag(tg_id, new_tag):
     query = 'UPDATE users SET tag = %s WHERE tg_id = %s'
     db(query, (new_tag, tg_id)).close()
 
-def create_character(character_name):
-    query = 'INSERT INTO character (name) VALUES (%s)'
-    db(query, (character_name,)).close()
-
 def get_character_by_name(character_name):
     query = '''
         SELECT id, name, description
@@ -34,29 +118,12 @@ def get_character_by_name(character_name):
     '''
     return db(query, (character_name,)).one()
 
-def get_all_characters():
-    query = '''
-        SELECT *
-        FROM character
-    '''
-    return db(query).all()
-
 def get_all_users():
     query = '''
         SELECT *
         FROM users
     '''
     return db(query).all()
-
-def get_character_subscribers(character_name):
-    query = '''
-        SELECT u.tg_id, u.tag
-        FROM users u
-        JOIN subscriptions s ON u.id = s.user_id
-        JOIN character c ON s.character_id = c.id
-        WHERE c.name = %s
-    '''
-    return db(query, (character_name,)).all()
 
 def search_characters(for_character_name_search_line):
     if not for_character_name_search_line:
@@ -111,19 +178,6 @@ def unsubscribe_character(character_name, user_tg_id):
         'DELETE FROM subscriptions WHERE user_id = %s AND character_id = %s',
         (user_id, character_id)
     ).close()
-
-def get_user_subscriptions(user_tg_id):
-    query = '''
-        SELECT c.name, c.description
-        FROM character c
-        JOIN subscriptions s ON c.id = s.character_id
-        JOIN users u ON s.user_id = u.id
-        WHERE u.tg_id = %s
-    '''
-    return db(query, (user_tg_id,)).all()
-
-def delete_character(character_name):
-    db('DELETE FROM character WHERE name = %s', (character_name,)).close()
 
 def update_character_name(character_id, character_name):
     db('UPDATE character SET name = %s WHERE id = %s', (character_name, character_id)).close()
@@ -307,9 +361,6 @@ def resolve_pending_owner_links(username, user_id):
         link_user_character(user_id, row['character_id'])
     db('DELETE FROM pending_owner_links WHERE tg_username = %s', (username,)).close()
 
-def get_character_by_id(character_id):
-    return db('SELECT * FROM character WHERE id = %s', (character_id,)).one()
-
 def create_character_request(user_id, chat_id, name, description, affiliation, position, photo_file_id):
     query = '''
         INSERT INTO character_requests (user_id, chat_id, name, description, affiliation, position, photo_file_id)
@@ -351,12 +402,6 @@ def create_bot_character(name, description, affiliation, position, photo_file_id
     '''
     row = db(query, (name, description, affiliation, position, photo_file_id)).one()
     return row['id']
-
-def update_character_field(character_id, field, value):
-    allowed = {'name', 'description', 'affiliation', 'position', 'photo_file_id'}
-    if field not in allowed:
-        raise ValueError(f'Недопустимое поле: {field}')
-    db(f'UPDATE character SET {field} = %s, updated_at = now() WHERE id = %s', (value, character_id)).close()
 
 def count_user_characters(user_id) -> int:
     row = db(
@@ -511,3 +556,18 @@ def get_user_flavor_role(user_id):
         WHERE u.id = %s
     '''
     return db(query, (user_id,)).one()
+
+def get_user_games(user_id) -> set[str]:
+    rows = db('SELECT game_code FROM user_games WHERE user_id = %s', (user_id,)).all()
+    return {row['game_code'] for row in rows}
+
+
+def toggle_user_game(user_id, game_code):
+    existing = db(
+        'SELECT 1 FROM user_games WHERE user_id = %s AND game_code = %s', (user_id, game_code)
+    ).one()
+
+    if existing:
+        db('DELETE FROM user_games WHERE user_id = %s AND game_code = %s', (user_id, game_code)).close()
+    else:
+        db('INSERT INTO user_games (user_id, game_code) VALUES (%s, %s)', (user_id, game_code)).close()

@@ -3,7 +3,7 @@ import logging
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 
-from database.queries import get_character_by_name, get_character_subscribers, create_character, get_user_language
+from database.queries import get_tag_by_name, get_tag_subscribers, create_tag, get_user_language, touch_tag_last_used
 from services.tag_storage import tag_storage
 from services.mentions import mention_users
 from message.loader import message
@@ -34,14 +34,14 @@ async def resolve_character_subscribers(update: Update, character_name: str) -> 
     result = tag_storage.find(character_name)
 
     if result["status"] == "found":
-        matched_name = result["tag"]
-        character = get_character_by_name(matched_name)
-        if not character:
-            logger.warning("Рассинхрон кэша тэгов: %s есть в кэше, но нет в БД", matched_name)
-            tag_storage.tags.pop(tag_storage.normalize(matched_name), None)
+        tag_name = result["tag"]
+        tag_id = get_tag_by_name(tag_name)
+        if not tag_name:
+            logger.warning("Рассинхрон кэша тэгов: %s есть в кэше, но нет в БД", tag_name)
+            tag_storage.tags.pop(tag_storage.normalize(tag_name), None)
             return await resolve_character_subscribers(update, character_name)
 
-        subs = get_character_subscribers(matched_name)
+        subs = get_tag_subscribers(tag_id)
         return [s['tag'] for s in subs]
 
     if result["status"] == "suggest":
@@ -54,8 +54,9 @@ async def resolve_character_subscribers(update: Update, character_name: str) -> 
         return None
 
     new_name = result["tag"]
-    create_character(new_name)
+    create_tag(new_name, created_by_tg_id=user_id)
     tag_storage.add_to_cache(new_name)
+    touch_tag_last_used(get_tag_by_name(new_name))
     logger.info("Пользователь %s создал новый тэг: %s", user_id, new_name)
 
     markup = create_subscribe_markup(new_name, user_id)
