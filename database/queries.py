@@ -441,3 +441,131 @@ def get_top_users_by_subscriptions(limit: int | None = None):
     if limit:
         return db(query + ' LIMIT %s', (limit,)).all()
     return db(query).all()
+
+# ---------- CHARACTER ----------
+def is_character_name_taken(name) -> bool:
+    row = db('SELECT 1 FROM character WHERE lower(name) = lower(%s)', (name,)).one()
+    return row is not None
+
+
+def get_user_character_count(user_id) -> int:
+    row = db('SELECT COUNT(*) AS cnt FROM character WHERE owner_user_id = %s', (user_id,)).one()
+    return row['cnt']
+
+
+def get_user_characters(user_id):
+    query = '''
+        SELECT * FROM character
+        WHERE owner_user_id = %s
+        ORDER BY is_primary DESC, created_at
+    '''
+    return db(query, (user_id,)).all()
+
+
+def get_character_by_id(character_id):
+    return db('SELECT * FROM character WHERE id = %s', (character_id,)).one()
+
+
+def create_character_row(owner_user_id, name, birth_date, photo_file_id, description, is_primary):
+    query = '''
+        INSERT INTO character (owner_user_id, name, birth_date, photo_file_id, description, is_primary)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING *
+    '''
+    return db(query, (owner_user_id, name, birth_date, photo_file_id, description, is_primary)).one()
+
+
+def update_character_fields(character_id, birth_date, photo_file_id, description):
+    """Имя НЕ обновляется никогда — CHAR-04, неизменяемо после создания."""
+    query = '''
+        UPDATE character
+        SET birth_date = %s, photo_file_id = %s, description = %s
+        WHERE id = %s
+    '''
+    db(query, (birth_date, photo_file_id, description, character_id)).close()
+
+
+def set_character_primary(user_id, character_id):
+    """
+    Снимает is_primary со всех персонажей пользователя, затем ставит на
+    выбранного — именно в этом порядке. На character (owner_user_id) уже
+    есть частичный UNIQUE-индекс "один основной на пользователя" (Этап A),
+    так что промежуточное состояние "все is_primary=FALSE" не конфликтует
+    с ним, а прыжок сразу в "два TRUE" — конфликтовал бы.
+    """
+    db('UPDATE character SET is_primary = FALSE WHERE owner_user_id = %s', (user_id,)).close()
+    db('UPDATE character SET is_primary = TRUE WHERE id = %s AND owner_user_id = %s', (character_id, user_id)).close()
+
+
+def get_primary_character(user_id):
+    return db('SELECT * FROM character WHERE owner_user_id = %s AND is_primary = TRUE', (user_id,)).one()
+
+
+# ---------- CHARACTER REQUESTS (Этап D) ----------
+
+def create_character_request(
+    request_type, user_id, chat_id, character_id=None,
+    name=None, birth_date=None, description=None, photo_file_id=None,
+):
+    query = '''
+        INSERT INTO character_requests
+            (request_type, user_id, character_id, chat_id, name, birth_date, description, photo_file_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
+    '''
+    row = db(query, (
+        request_type, user_id, character_id, chat_id, name, birth_date, description, photo_file_id,
+    )).one()
+    return row['id']
+
+
+def get_character_request_by_id(request_id):
+    return db('SELECT * FROM character_requests WHERE id = %s', (request_id,)).one()
+
+
+def update_character_request_status(request_id, status):
+    db(
+        'UPDATE character_requests SET status = %s, resolved_at = now() WHERE id = %s',
+        (status, request_id),
+    ).close()
+
+
+def get_user_character_requests(user_id):
+    query = 'SELECT * FROM character_requests WHERE user_id = %s ORDER BY created_at DESC'
+    return db(query, (user_id,)).all()
+
+def get_user_by_id(user_id):
+    return db('SELECT * FROM users WHERE id = %s', (user_id,)).one()
+
+
+def update_character_request_field(request_id, field, value):
+    allowed = {'name', 'birth_date', 'description', 'photo_file_id'}
+    if field not in allowed:
+        raise ValueError(f'Недопустимое поле: {field}')
+    db(f'UPDATE character_requests SET {field} = %s WHERE id = %s', (value, request_id)).close()
+
+def apply_character_edit(character_id, description=None, photo_file_id=None, birth_date=None):
+    """
+    ЗАМЕНЯЕТ update_character_fields(). Частичное обновление —
+    трогает только переданные (не None) поля, а не все три разом.
+    Нужно для одобрения заявок request_type='edit' (D2b), где заявка
+    несёт только ОДНО изменённое поле, а остальные NULL.
+    """
+    fields = []
+    params = []
+
+    if description is not None:
+        fields.append('description = %s')
+        params.append(description)
+    if photo_file_id is not None:
+        fields.append('photo_file_id = %s')
+        params.append(photo_file_id)
+    if birth_date is not None:
+        fields.append('birth_date = %s')
+        params.append(birth_date)
+
+    if not fields:
+        return
+
+    params.append(character_id)
+    db(f'UPDATE character SET {", ".join(fields)} WHERE id = %s', tuple(params)).close()

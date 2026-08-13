@@ -120,3 +120,18 @@ CREATE TABLE IF NOT EXISTS tag_usage (
 );
 
 CREATE INDEX IF NOT EXISTS idx_tag_usage_tag_used_at ON tag_usage (tag_id, used_at);
+
+CREATE TABLE IF NOT EXISTS character_requests (
+    id             SERIAL PRIMARY KEY,
+    request_type   TEXT NOT NULL DEFAULT 'create',   -- 'create' | 'edit'
+    user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    character_id   INTEGER REFERENCES character(id) ON DELETE CASCADE,  -- NULL для 'create', заполнено для 'edit'
+    chat_id        BIGINT NOT NULL,
+    name           TEXT,             -- используется только для 'create' — имя неизменяемо после создания (CHAR-04)
+    birth_date     DATE,
+    description    TEXT,
+    photo_file_id  TEXT,
+    status         TEXT NOT NULL DEFAULT 'pending',  -- pending | approved | rejected
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    resolved_at    TIMESTAMPTZ
+);

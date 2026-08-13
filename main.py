@@ -40,6 +40,18 @@ from handlers.birthday_admin_dm import (
     select_existing_user, manage_entry_router, go_back, receive_date, cancel,
     CHOOSING_CHAT, MAIN_MENU, WAITING_FORWARD, WAITING_DATE, MANAGING_ENTRY,
 )
+from handlers.character_requests import (
+    start_character_request, ask_name, ask_birthdate, ask_description, ask_photo,
+    cancel_character_request, ASK_NAME, ASK_BIRTHDATE, ASK_DESCRIPTION, ASK_PHOTO,
+)
+from handlers.character_edit import (
+    start_character_edit, pick_character, choose_field, receive_edit_value, cancel_character_edit,
+    CHOOSE_CHARACTER, CHOOSE_FIELD, WAITING_VALUE,
+)
+from handlers.admin_character_requests import (
+    character_request_action_callback, choose_charreq_edit_field, receive_charreq_edit_value,
+    EDITING_FIELD, EDITING_VALUE,
+)
 
 from database.queries import get_active_tags, get_all_tag_aliases
 from services.tag_storage import tag_storage
@@ -158,6 +170,40 @@ application.add_handler(CallbackQueryHandler(games_done_callback, pattern=r'^gam
 
 # ---------- статистика ----------
 application.add_handler(CommandHandler('tagstats', tagstats_command))
+
+# ---------- Заявки ----------
+character_request_conv = ConversationHandler(
+    entry_points=[CommandHandler('newcharacter', start_character_request)],
+    states={
+        ASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_name)],
+        ASK_BIRTHDATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_birthdate)],
+        ASK_DESCRIPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_description)],
+        ASK_PHOTO: [MessageHandler(filters.PHOTO, ask_photo)],
+    },
+    fallbacks=[CommandHandler('cancel', cancel_character_request)],
+)
+application.add_handler(character_request_conv)
+
+character_review_conv = ConversationHandler(
+    entry_points=[CallbackQueryHandler(character_request_action_callback, pattern=r'^charreqaction:')],
+    states={
+        EDITING_FIELD: [CallbackQueryHandler(choose_charreq_edit_field, pattern=r'^charreqedit:')],
+        EDITING_VALUE: [MessageHandler((filters.TEXT | filters.PHOTO) & ~filters.COMMAND, receive_charreq_edit_value)],
+    },
+    fallbacks=[],
+)
+application.add_handler(character_review_conv)
+
+character_edit_conv = ConversationHandler(
+    entry_points=[CommandHandler('editcharacter', start_character_edit)],
+    states={
+        CHOOSE_CHARACTER: [CallbackQueryHandler(pick_character, pattern=r'^editcharpick:')],
+        CHOOSE_FIELD: [CallbackQueryHandler(choose_field, pattern=r'^editcharfield:')],
+        WAITING_VALUE: [MessageHandler((filters.TEXT | filters.PHOTO) & ~filters.COMMAND, receive_edit_value)],
+    },
+    fallbacks=[CommandHandler('cancel', cancel_character_edit)],
+)
+application.add_handler(character_edit_conv)
 
 # ============================================================
 # ОТКЛЮЧЕНО (используют старую объединённую character-модель,
