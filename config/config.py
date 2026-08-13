@@ -16,6 +16,12 @@ class Config:
             f"dbname={pg['dbname']} user={pg['user']} password={pg['password']}"
         )
 
+        # ДОБАВЛЕНО: раньше config.admin_user_id использовался в коде
+        # (is_admin, admin_lang и т.д.), но нигде явно не объявлялся здесь.
+        self.admin_user_id: int = data["admin"]["user_id"]
+
+        # google_sheets.* — УБРАНО (Этап A, Google Sheets-интеграция удалена)
+
 
 def load_config() -> Config:
     env = os.getenv("APP_ENV", "dev")

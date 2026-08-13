@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS birthdays (
 );
 
 -- =============================================================
--- Этап A — TAG / CHARACTER, разделены по BRD
+-- TAG / CHARACTER, разделены по BRD
 -- =============================================================
 
 CREATE TABLE IF NOT EXISTS tag (
@@ -109,3 +109,14 @@ CREATE TABLE IF NOT EXISTS character (
 
 CREATE UNIQUE INDEX IF NOT EXISTS one_primary_character_per_user
     ON character (owner_user_id) WHERE is_primary = TRUE;
+
+CREATE TABLE IF NOT EXISTS tag_usage (
+    id                   SERIAL PRIMARY KEY,
+    tag_id               INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE,
+    telegram_message_id  BIGINT,
+    author_tg_id         BIGINT NOT NULL,
+    media_type           TEXT,             -- 'photo' | 'video' | ...
+    used_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_tag_usage_tag_used_at ON tag_usage (tag_id, used_at);

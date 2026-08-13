@@ -5,8 +5,9 @@ from telegram.ext import ContextTypes, ConversationHandler, filters
 
 from database.queries import (
     add_flavor_role, get_flavor_role_by_name, get_users_with_role,
-    delete_flavor_role, get_all_flavor_roles, get_user_by_tg_id, create_user,
+    delete_flavor_role, get_all_flavor_roles, get_user_by_tg_id, create_user, get_users_without_role,
 )
+
 from services.flavor_roles import assign_random_role
 from services.admin import is_admin, admin_lang
 from message.loader import message
@@ -14,6 +15,7 @@ from message.keys import (
     common_private_only, roles_not_admin, roles_usage_add, roles_added, roles_already_exists,
     roles_usage_remove, roles_not_found, roles_removed, roles_list_header, roles_list_empty,
     roles_reroll_prompt, roles_reroll_forward_invalid, roles_reroll_done, roles_no_roles_available,
+    backfill_none_needed, backfill_done,
 )
 
 logger = logging.getLogger(__name__)
@@ -155,3 +157,25 @@ async def receive_reroll_forward(update: Update, context: ContextTypes.DEFAULT_T
         parse_mode='Markdown',
     )
     return ConversationHandler.END
+
+async def backfill_cards_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = admin_lang()
+
+    if update.effective_chat.type != 'private':
+        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        return
+    if not is_admin(update.effective_user.id):
+        await update.message.reply_text(message(lang, roles_not_admin, 'roles'))
+        return
+
+    users = get_users_without_role()
+
+    if not users:
+        await update.message.reply_text(message(lang, backfill_none_needed, 'backfill'))
+        return
+
+    for u in users:
+        assign_random_role(u['id'])
+
+    logger.info("Админ выполнил бэкафилл ролей для %d пользователей без роли", len(users))
+    await update.message.reply_text(message(lang, backfill_done, 'backfill', len(users)))

@@ -1,5 +1,7 @@
 import unicodedata
+
 from rapidfuzz import process, fuzz
+
 
 class TagStorage:
 
@@ -17,7 +19,6 @@ class TagStorage:
             self.tags[self.normalize(tag)] = tag
 
     def load_aliases(self, alias_pairs: list[tuple[str, str]]):
-        """alias_pairs: список (alias, основное_имя_персонажа)."""
         for alias, main_name in alias_pairs:
             self.tags[self.normalize(alias)] = main_name
 
@@ -25,11 +26,9 @@ class TagStorage:
         self.tags[self.normalize(tag)] = tag
 
     def add_alias_to_cache(self, alias: str, main_name: str):
-        """Алиас указывает на основное имя — подписчики ищутся по main_name, не по alias."""
         self.tags[self.normalize(alias)] = main_name
 
     def is_taken(self, tag: str) -> bool:
-        """Точная (не fuzzy) проверка занятости — для защиты от дублей алиасов."""
         return self.normalize(tag) in self.tags
 
     def find(self, tag: str) -> dict:
@@ -53,5 +52,5 @@ class TagStorage:
 
         return {"status": "created", "tag": tag}
 
-# единый инстанс на всё приложение
+
 tag_storage = TagStorage()

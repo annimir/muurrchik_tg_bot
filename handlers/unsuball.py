@@ -7,7 +7,7 @@ from database.queries import unsubscribe_all_tags, count_active_subscriptions, g
 from message.loader import message
 from message.keys import (
     unsuball_empty, unsuball_confirm, unsuball_confirm_yes, unsuball_confirm_no,
-    unsuball_cancelled, unsuball_done, unsuball_no_pending,
+    unsuball_cancelled, unsuball_done,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,6 @@ async def unsuball_confirm_callback(update: Update, context: ContextTypes.DEFAUL
         await query.edit_message_text(message(lang, unsuball_cancelled, 'unsuball'))
         return
 
-    # повторно проверяем количество на случай гонки (подписки могли измениться между показом кнопок и нажатием)
     count = count_active_subscriptions(user.id)
     if count == 0:
         await query.edit_message_text(message(lang, unsuball_empty, 'unsuball'))
@@ -54,5 +53,4 @@ async def unsuball_confirm_callback(update: Update, context: ContextTypes.DEFAUL
 
     unsubscribe_all_tags(user.id)
     logger.info("Пользователь %s массово отписался от %d тегов", user.id, count)
-
     await query.edit_message_text(message(lang, unsuball_done, 'unsuball', count))

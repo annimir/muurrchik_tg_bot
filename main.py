@@ -1,4 +1,6 @@
 import logging
+from datetime import time
+from zoneinfo import ZoneInfo
 
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, InlineQueryHandler,
@@ -8,62 +10,45 @@ from telegram.ext import (
 from config.logging_config import setup_logging
 from config import config
 
-from database.queries import get_all_characters, get_all_aliases
-from services.tag_storage import tag_storage
-
 from handlers.welcome import welcome_new_member
 from handlers.language import language_command
 from handlers.birthday import set_birthday_command, my_birthday_command, delete_birthday_command
 from handlers.birthday_job import check_birthdays
 from handlers.chat_tracking import track_bot_membership
-from handlers.subscriptions import my_subscriptions, subscribe, unsubscribe
-from handlers.unsuball import unsuball_command, unsuball_confirm_callback
-from handlers.characters_admin import list_all_characters, delete_character_command, rename_character_command
-from handlers.user_profile import update_me
 from handlers.membership_tracking import track_member_left
 from handlers.retention_job import send_retention_warnings, run_retention_cleanup
-from handlers.tagging import photo_tag_handler, tag_command
-from handlers.addtag import addtag_command, addtag_confirm_callback
+from handlers.subscriptions import my_subscriptions, subscribe, unsubscribe
+from handlers.unsuball import unsuball_command, unsuball_confirm_callback
+from handlers.tags_admin import (
+    list_all_tags_command, rename_tag_command,
+    delete_tag_command, block_tag_command, restore_tag_command,
+)
+from handlers.user_profile import update_me
+from handlers.tagging import media_tag_handler, tag_command
 from handlers.inline_search import inline_search
 from handlers.callbacks import callback_router
+from handlers.addtag import addtag_command, addtag_confirm_callback
+from handlers.admin_roles import (
+    add_role_command, remove_role_command, list_roles_command,
+    start_reroll_role, receive_reroll_forward, WAITING_REROLL_FORWARD,
+    backfill_cards_command,
+)
+from handlers.tag_stats import tagstats_command
 from handlers.games import mygames_command, toggle_game_callback, games_done_callback
 from handlers.birthday_admin_dm import (
     start_admin_birthday, choose_chat, main_menu_router, receive_forward,
     select_existing_user, manage_entry_router, go_back, receive_date, cancel,
     CHOOSING_CHAT, MAIN_MENU, WAITING_FORWARD, WAITING_DATE, MANAGING_ENTRY,
 )
-from handlers.view_characters import my_characters, character_by_nickname, show_character_callback
-from handlers.character_requests import (
-    start_request, ask_name, ask_description, ask_affiliation, ask_position, ask_photo,
-    cancel_request, my_requests, ASK_NAME, ASK_DESCRIPTION, ASK_AFFILIATION, ASK_POSITION, ASK_PHOTO,
-)
-from handlers.admin_requests import (
-    request_action_callback, choose_edit_field, receive_edit_value, EDITING_FIELD, EDITING_VALUE,
-)
-from handlers.admin_edit_character import (
-    start_edit_character, choose_character_to_edit, choose_field, receive_new_value,
-    CHOOSING_FIELD as EDIT_CHOOSING_FIELD, WAITING_VALUE as EDIT_WAITING_VALUE,
-)
-from handlers.admin_roles import (
-    add_role_command, remove_role_command, list_roles_command,
-    start_reroll_role, receive_reroll_forward, WAITING_REROLL_FORWARD,
-)
 
 from database.queries import get_active_tags, get_all_tag_aliases
 from services.tag_storage import tag_storage
-
-from datetime import time
-from zoneinfo import ZoneInfo
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
 application = Application.builder().token(config.bot_token).build()
-active_tags = get_active_tags()
-tag_storage.load_from([t['name'] for t in active_tags])
 
-alias_rows = get_all_tag_aliases()
-tag_storage.load_aliases([(row['alias'], row['name']) for row in alias_rows])
 
 async def error_handler(update, context):
     logger.error("Необработанное исключение: %s", update, exc_info=context.error)
@@ -71,19 +56,26 @@ async def error_handler(update, context):
 
 application.add_error_handler(error_handler)
 
-# служебные
+# ---------- кэш тегов при старте ----------
+active_tags = get_active_tags()
+tag_storage.load_from([t['name'] for t in active_tags])
+
+alias_rows = get_all_tag_aliases()
+tag_storage.load_aliases([(row['alias'], row['name']) for row in alias_rows])
+
+# ---------- служебные ----------
 application.add_handler(ChatMemberHandler(track_bot_membership, ChatMemberHandler.MY_CHAT_MEMBER))
 application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_new_member))
+application.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, track_member_left))
 
-# язык
+# ---------- язык ----------
 application.add_handler(CommandHandler('language', language_command))
 
-# дни рождения — группа
+# ---------- дни рождения пользователей (старая chat_id-модель) ----------
 application.add_handler(CommandHandler('setbirthday', set_birthday_command))
 application.add_handler(CommandHandler('mybirthday', my_birthday_command))
 application.add_handler(CommandHandler('deletebirthday', delete_birthday_command))
 
-# дни рождения — админ в личке
 admin_birthday_conv = ConversationHandler(
     entry_points=[CommandHandler('admin_birthdays', start_admin_birthday, filters=filters.ChatType.PRIVATE)],
     states={
@@ -114,87 +106,41 @@ application.job_queue.run_daily(check_birthdays, time=time(hour=9, minute=0, tzi
 application.job_queue.run_daily(send_retention_warnings, time=time(hour=10, minute=0, tzinfo=MOSCOW_TZ))
 application.job_queue.run_daily(run_retention_cleanup, time=time(hour=10, minute=30, tzinfo=MOSCOW_TZ))
 
-all_characters = get_all_characters()
-tag_storage.load_from([c['name'] for c in all_characters])
-
-alias_rows = get_all_aliases()
-tag_storage.load_aliases([(row['alias'], row['name']) for row in alias_rows])
-
-# подписки
+# ---------- подписки ----------
 application.add_handler(CommandHandler('mysub', my_subscriptions))
 application.add_handler(CommandHandler('sub', subscribe))
 application.add_handler(CommandHandler('unsub', unsubscribe))
 application.add_handler(CommandHandler('unsuball', unsuball_command))
 application.add_handler(CallbackQueryHandler(unsuball_confirm_callback, pattern=r'^unsuballconfirm:'))
 
-# персонажи (админ)
-application.add_handler(CommandHandler('all', list_all_characters))
-application.add_handler(CommandHandler('del', delete_character_command))
-application.add_handler(CommandHandler('rename', rename_character_command))
+# ---------- теги (админ) ----------
+application.add_handler(CommandHandler('all', list_all_tags_command))
+application.add_handler(CommandHandler('rename', rename_tag_command))
+application.add_handler(CommandHandler('delete_tag', delete_tag_command, filters=filters.ChatType.PRIVATE))
+application.add_handler(CommandHandler('block_tag', block_tag_command, filters=filters.ChatType.PRIVATE))
+application.add_handler(CommandHandler('restore_tag', restore_tag_command, filters=filters.ChatType.PRIVATE))
 
-# профиль
-application.add_handler(CommandHandler('updateme', update_me))
-
-# тэги
-application.add_handler(CommandHandler('tag', tag_command))
-application.add_handler(MessageHandler(filters.PHOTO & filters.CAPTION, photo_tag_handler))
+# ---------- добавление алиаса ----------
 application.add_handler(CommandHandler('addtag', addtag_command))
 application.add_handler(CallbackQueryHandler(addtag_confirm_callback, pattern=r'^addtagconfirm:'))
 
-# inline
+# ---------- профиль ----------
+application.add_handler(CommandHandler('updateme', update_me))
+
+# ---------- тегирование на фото ----------
+application.add_handler(CommandHandler('tag', tag_command))
+application.add_handler(MessageHandler((filters.PHOTO | filters.VIDEO) & filters.CAPTION, media_tag_handler))
+# ---------- inline ----------
 application.add_handler(InlineQueryHandler(inline_search))
 
-# callback-и подписок/тэгов (после ConversationHandler, паттерн исключает конфликт с nav/manage/chat/action)
-application.add_handler(CallbackQueryHandler(callback_router, pattern=r'^(subscribe|tag|new|del)/'))
+# ---------- callback-и тегов (ветка del убрана на Этапе B1) ----------
+application.add_handler(CallbackQueryHandler(callback_router, pattern=r'^(subscribe|tag|new)/'))
 
-# просмотр персонажей — группа
-application.add_handler(CommandHandler('mycharacters', my_characters))
-application.add_handler(CommandHandler('character', character_by_nickname))
-application.add_handler(CallbackQueryHandler(show_character_callback, pattern=r'^showchar:'))
-
-# заявки
-request_conv = ConversationHandler(
-    entry_points=[CommandHandler('newcharacter', start_request)],
-    states={
-        ASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_name)],
-        ASK_DESCRIPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_description)],
-        ASK_AFFILIATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_affiliation)],
-        ASK_POSITION: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_position)],
-        ASK_PHOTO: [MessageHandler(filters.PHOTO, ask_photo)],
-    },
-    fallbacks=[CommandHandler('cancel', cancel_request)],
-)
-application.add_handler(request_conv)
-application.add_handler(CommandHandler('myrequests', my_requests))
-
-# обработка заявки админом
-request_review_conv = ConversationHandler(
-    entry_points=[CallbackQueryHandler(request_action_callback, pattern=r'^reqaction:')],
-    states={
-        EDITING_FIELD: [CallbackQueryHandler(choose_edit_field, pattern=r'^reqedit:')],
-        EDITING_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_edit_value)],
-    },
-    fallbacks=[],
-    per_message=False,
-)
-application.add_handler(request_review_conv)
-application.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, track_member_left))
-
-# редактирование карточки персонажа
-edit_character_conv = ConversationHandler(
-    entry_points=[CommandHandler('edit_character', start_edit_character, filters=filters.ChatType.PRIVATE)],
-    states={
-        EDIT_CHOOSING_FIELD: [CallbackQueryHandler(choose_field, pattern=r'^field:')],
-        EDIT_WAITING_VALUE: [MessageHandler((filters.TEXT | filters.PHOTO) & ~filters.COMMAND, receive_new_value)],
-    },
-    fallbacks=[],
-)
-application.add_handler(edit_character_conv)
-
-# Roles
+# ---------- роли ----------
 application.add_handler(CommandHandler('add_role', add_role_command, filters=filters.ChatType.PRIVATE))
 application.add_handler(CommandHandler('remove_role', remove_role_command, filters=filters.ChatType.PRIVATE))
 application.add_handler(CommandHandler('list_roles', list_roles_command, filters=filters.ChatType.PRIVATE))
+application.add_handler(CommandHandler('backfill_cards', backfill_cards_command, filters=filters.ChatType.PRIVATE))
 
 reroll_conv = ConversationHandler(
     entry_points=[CommandHandler('reroll_role', start_reroll_role, filters=filters.ChatType.PRIVATE)],
@@ -205,10 +151,24 @@ reroll_conv = ConversationHandler(
 )
 application.add_handler(reroll_conv)
 
-# Games
+# ---------- игры ----------
 application.add_handler(CommandHandler('mygames', mygames_command))
 application.add_handler(CallbackQueryHandler(toggle_game_callback, pattern=r'^gametoggle:'))
 application.add_handler(CallbackQueryHandler(games_done_callback, pattern=r'^gamesdone$'))
+
+# ---------- статистика ----------
+application.add_handler(CommandHandler('tagstats', tagstats_command))
+
+# ============================================================
+# ОТКЛЮЧЕНО (используют старую объединённую character-модель,
+# сломаются при вызове; ждут переработки на Этапах D/E):
+#   - handlers/character_requests.py  (заявки на персонажа)
+#   - handlers/admin_requests.py      (рассмотрение заявок админом)
+#   - handlers/view_characters.py     (/mycharacters, /character @nick)
+#   - handlers/card.py                (/card)
+#   - handlers/admin_edit_character.py (/edit_character) — НЕ БЫЛ
+#     отключён на Этапе A, исправлено сейчас (Этап B1 sync-проверка)
+# ============================================================
 
 logger.info("Бот запущен")
 application.run_polling()
