@@ -227,3 +227,28 @@ charprimary_admin_done = 'charprimary.adminDone'
 
 charbday_congratulation_1 = 'charbday.congratulation1'
 charbday_congratulation_2 = 'charbday.congratulation2'
+
+cardreq_ask_bio = 'cardreq.askBio'
+cardreq_submitted = 'cardreq.submitted'
+cardreq_cancelled = 'cardreq.cancelled'
+
+cardreq_admin_notification = 'cardreq.adminNotification'
+cardreq_admin_button_approve = 'cardreq.adminButtonApprove'
+cardreq_admin_button_edit = 'cardreq.adminButtonEdit'
+cardreq_admin_button_reject = 'cardreq.adminButtonReject'
+cardreq_admin_already_resolved = 'cardreq.adminAlreadyResolved'
+cardreq_admin_approved_suffix = 'cardreq.adminApprovedSuffix'
+cardreq_admin_rejected_suffix = 'cardreq.adminRejectedSuffix'
+cardreq_admin_enter_new_bio = 'cardreq.adminEnterNewBio'
+cardreq_admin_updated_preview = 'cardreq.adminUpdatedPreview'
+
+cardreq_user_approved = 'cardreq.userApproved'
+cardreq_user_rejected = 'cardreq.userRejected'
+
+cardreq_my_empty = 'cardreq.myEmpty'
+cardreq_my_status_pending = 'cardreq.myStatusPending'
+cardreq_my_status_approved = 'cardreq.myStatusApproved'
+cardreq_my_status_rejected = 'cardreq.myStatusRejected'
+
+card_bio_label = 'card.bioLabel'
+card_bio_none = 'card.bioNone'

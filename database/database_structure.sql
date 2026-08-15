@@ -58,16 +58,6 @@ CREATE TABLE IF NOT EXISTS user_games (
     PRIMARY KEY (user_id, game_code)
 );
 
--- ---------- ДНИ РОЖДЕНИЯ ПОЛЬЗОВАТЕЛЕЙ (старая модель — упростится на Этапе D) ----------
-CREATE TABLE IF NOT EXISTS birthdays (
-    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    chat_id    BIGINT NOT NULL,
-    day        SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 31),
-    month      SMALLINT NOT NULL CHECK (month BETWEEN 1 AND 12),
-    year       SMALLINT,
-    PRIMARY KEY (user_id, chat_id)
-);
-
 -- =============================================================
 -- TAG / CHARACTER, разделены по BRD
 -- =============================================================
@@ -136,11 +126,24 @@ CREATE TABLE IF NOT EXISTS character_requests (
     resolved_at    TIMESTAMPTZ
 );
 
-DROP TABLE IF EXISTS birthdays;
-
 CREATE TABLE IF NOT EXISTS birthdays (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     day     SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 31),
     month   SMALLINT NOT NULL CHECK (month BETWEEN 1 AND 12),
     year    SMALLINT
+);
+
+CREATE TABLE IF NOT EXISTS user_card (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    bio     TEXT
+);
+
+CREATE TABLE IF NOT EXISTS card_requests (
+    id          SERIAL PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    chat_id     BIGINT NOT NULL,
+    bio         TEXT NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'pending',  -- pending | approved | rejected
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    resolved_at TIMESTAMPTZ
 );

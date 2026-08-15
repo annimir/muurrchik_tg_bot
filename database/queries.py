@@ -618,3 +618,48 @@ def get_all_birthdays():
         ORDER BY b.month, b.day
     '''
     return db(query).all()
+
+# ---------- USER_CARD (Этап E) ----------
+
+def get_user_card(user_id):
+    return db('SELECT * FROM user_card WHERE user_id = %s', (user_id,)).one()
+
+
+def upsert_user_card_bio(user_id, bio):
+    query = '''
+        INSERT INTO user_card (user_id, bio)
+        VALUES (%s, %s)
+        ON CONFLICT (user_id) DO UPDATE SET bio = EXCLUDED.bio
+    '''
+    db(query, (user_id, bio)).close()
+
+
+# ---------- CARD REQUESTS  ----------
+
+def create_card_request(user_id, chat_id, bio):
+    query = '''
+        INSERT INTO card_requests (user_id, chat_id, bio)
+        VALUES (%s, %s, %s)
+        RETURNING id
+    '''
+    row = db(query, (user_id, chat_id, bio)).one()
+    return row['id']
+
+
+def get_card_request_by_id(request_id):
+    return db('SELECT * FROM card_requests WHERE id = %s', (request_id,)).one()
+
+
+def update_card_request_status(request_id, status):
+    db(
+        'UPDATE card_requests SET status = %s, resolved_at = now() WHERE id = %s',
+        (status, request_id),
+    ).close()
+
+
+def get_user_card_requests(user_id):
+    query = 'SELECT * FROM card_requests WHERE user_id = %s ORDER BY created_at DESC'
+    return db(query, (user_id,)).all()
+
+def update_card_request_bio(request_id, bio):
+    db('UPDATE card_requests SET bio = %s WHERE id = %s', (bio, request_id)).close()

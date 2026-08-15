@@ -58,6 +58,9 @@ from handlers.admin_character_primary import (
     WAITING_FORWARD, CHOOSING_CHARACTER,
 )
 from handlers.character_birthday_job import check_character_birthdays
+from handlers.card_request import start_card_request, receive_bio, cancel_card_request, my_card_requests, WAITING_BIO
+from handlers.admin_card_requests import card_request_action_callback, receive_card_edit_bio, EDITING_BIO
+from handlers.card import card_command
 
 from database.queries import get_active_tags, get_all_tag_aliases
 from services.tag_storage import tag_storage
@@ -66,7 +69,6 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 application = Application.builder().token(config.bot_token).build()
-
 
 async def error_handler(update, context):
     logger.error("Необработанное исключение: %s", update, exc_info=context.error)
@@ -225,6 +227,27 @@ admin_setprimary_conv = ConversationHandler(
     fallbacks=[],
 )
 application.add_handler(admin_setprimary_conv)
+
+card_request_conv = ConversationHandler(
+    entry_points=[CommandHandler('editcard', start_card_request)],
+    states={
+        WAITING_BIO: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_bio)],
+    },
+    fallbacks=[CommandHandler('cancel', cancel_card_request)],
+)
+application.add_handler(card_request_conv)
+application.add_handler(CommandHandler('mycardrequest', my_card_requests))
+
+card_review_conv = ConversationHandler(
+    entry_points=[CallbackQueryHandler(card_request_action_callback, pattern=r'^cardreqaction:')],
+    states={
+        EDITING_BIO: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_card_edit_bio)],
+    },
+    fallbacks=[],
+)
+application.add_handler(card_review_conv)
+
+application.add_handler(CommandHandler('card', card_command))
 
 # ============================================================
 # ОТКЛЮЧЕНО (используют старую объединённую character-модель,
