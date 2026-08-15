@@ -56,13 +56,8 @@ async def set_birthday_command(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
     day, month, year = parsed
-    chat_id = update.effective_chat.id
-
-    set_birthday(
-        tg_id=user.id, tag=user.username or user.full_name,
-        chat_id=chat_id, day=day, month=month, year=year,
-    )
-    logger.info("Пользователь %s установил день рождения %02d.%02d в чате %s", user.id, day, month, chat_id)
+    set_birthday(tg_id=user.id, tag=user.username or user.full_name, day=day, month=month, year=year)
+    logger.info("Пользователь %s установил день рождения %02d.%02d", user.id, day, month)
 
     await update.message.reply_text(message(lang, birthday_set, 'birthday', f'{day:02d}', f'{month:02d}'))
 
@@ -74,7 +69,7 @@ async def my_birthday_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not await _check_group(update, lang):
         return
 
-    row = get_birthday(user.id, update.effective_chat.id)
+    row = get_birthday(user.id)
     if not row:
         await update.message.reply_text(message(lang, birthday_not_found, 'birthday'))
         return
@@ -87,16 +82,15 @@ async def my_birthday_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def delete_birthday_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     lang = get_user_language(user.id)
-    chat_id = update.effective_chat.id
 
     if not await _check_group(update, lang):
         return
 
-    row = get_birthday(user.id, chat_id)
+    row = get_birthday(user.id)
     if not row:
         await update.message.reply_text(message(lang, birthday_not_found, 'birthday'))
         return
 
-    delete_birthday(user.id, chat_id)
-    logger.info("Пользователь %s удалил свой день рождения в чате %s", user.id, chat_id)
+    delete_birthday(user.id)
+    logger.info("Пользователь %s удалил свой день рождения", user.id)
     await update.message.reply_text(message(lang, birthday_deleted, 'birthday'))

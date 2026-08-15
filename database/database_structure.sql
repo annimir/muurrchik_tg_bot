@@ -135,3 +135,12 @@ CREATE TABLE IF NOT EXISTS character_requests (
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     resolved_at    TIMESTAMPTZ
 );
+
+DROP TABLE IF EXISTS birthdays;
+
+CREATE TABLE IF NOT EXISTS birthdays (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    day     SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 31),
+    month   SMALLINT NOT NULL CHECK (month BETWEEN 1 AND 12),
+    year    SMALLINT
+);

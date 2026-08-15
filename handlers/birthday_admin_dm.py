@@ -2,26 +2,22 @@ import logging
 from datetime import date
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.constants import ChatMemberStatus
 from telegram.ext import ContextTypes, ConversationHandler
 
-from database.queries import (
-    get_active_chats, get_chat_birthdays, set_birthday, delete_birthday, get_user_language,
-)
+from database.queries import get_all_birthdays, set_birthday, delete_birthday
+from services.admin import is_admin, admin_lang
 from message.loader import message
 from message.keys import (
-    common_private_only, common_cancel,
-    admin_no_chats, admin_choose_chat, admin_choose_action,
-    admin_button_add, admin_button_list, admin_button_edit, admin_button_delete,
+    common_private_only, common_not_admin, common_cancel, common_back,
+    admin_choose_action, admin_button_add, admin_button_list, admin_button_edit, admin_button_delete,
     admin_forward_prompt, admin_forward_invalid, admin_target_confirmed,
     admin_no_entries, admin_choose_user, admin_entry_not_found,
     admin_entry_card, admin_entry_deleted, admin_date_invalid, admin_saved,
-    common_back,
 )
 
 logger = logging.getLogger(__name__)
 
-CHOOSING_CHAT, MAIN_MENU, WAITING_FORWARD, WAITING_DATE, MANAGING_ENTRY = range(5)
+MAIN_MENU, WAITING_FORWARD, WAITING_DATE, MANAGING_ENTRY = range(4)
 
 
 def _parse_date(raw: str):
@@ -42,43 +38,21 @@ def _back_keyboard(lang):
 
 
 async def start_admin_birthday(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    admin_id = update.effective_user.id
-    lang = get_user_language(admin_id)
+    lang = admin_lang()
 
     if update.effective_chat.type != 'private':
         await update.message.reply_text(message(lang, common_private_only, 'common'))
         return ConversationHandler.END
-
-    chats = get_active_chats()
-    accessible = []
-    for chat in chats:
-        try:
-            member = await context.bot.get_chat_member(chat['chat_id'], admin_id)
-        except Exception:
-            continue
-        if member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
-            accessible.append(chat)
-
-    if not accessible:
-        logger.info("Админ %s не имеет доступных чатов для управления днями рождения", admin_id)
-        await update.message.reply_text(message(lang, admin_no_chats, 'admin'))
+    if not is_admin(update.effective_user.id):
+        await update.message.reply_text(message(lang, common_not_admin, 'common'))
         return ConversationHandler.END
 
     keyboard = [
-        [InlineKeyboardButton(chat['title'], callback_data=f'chat:{chat["chat_id"]}')]
-        for chat in accessible
+        [InlineKeyboardButton(message(lang, admin_button_add, 'admin'), callback_data='action:add')],
+        [InlineKeyboardButton(message(lang, admin_button_list, 'admin'), callback_data='action:list')],
     ]
-    await update.message.reply_text(message(lang, admin_choose_chat, 'admin'), reply_markup=InlineKeyboardMarkup(keyboard))
-    return CHOOSING_CHAT
-
-
-async def choose_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    context.user_data['target_chat_id'] = int(query.data.split(':')[1])
-    lang = get_user_language(update.effective_user.id)
-    return await show_main_menu(query, lang)
+    await update.message.reply_text(message(lang, admin_choose_action, 'admin'), reply_markup=InlineKeyboardMarkup(keyboard))
+    return MAIN_MENU
 
 
 async def show_main_menu(query, lang):
@@ -93,7 +67,7 @@ async def show_main_menu(query, lang):
 async def main_menu_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_language(update.effective_user.id)
+    lang = admin_lang()
     action = query.data.split(':')[1]
 
     if action == 'add':
@@ -101,8 +75,7 @@ async def main_menu_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return WAITING_FORWARD
 
     if action == 'list':
-        chat_id = context.user_data['target_chat_id']
-        rows = get_chat_birthdays(chat_id)
+        rows = get_all_birthdays()
 
         if not rows:
             await query.edit_message_text(message(lang, admin_no_entries, 'admin'), reply_markup=_back_keyboard(lang))
@@ -120,7 +93,7 @@ async def main_menu_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def receive_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     origin = update.message.forward_origin
-    lang = get_user_language(update.effective_user.id)
+    lang = admin_lang()
 
     if origin is None or origin.type != 'user':
         await update.message.reply_text(message(lang, admin_forward_invalid, 'admin'), reply_markup=_back_keyboard(lang))
@@ -141,11 +114,10 @@ async def receive_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def select_existing_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_language(update.effective_user.id)
+    lang = admin_lang()
 
     tg_id = int(query.data.split(':')[1])
-    chat_id = context.user_data['target_chat_id']
-    rows = get_chat_birthdays(chat_id)
+    rows = get_all_birthdays()
     row = next((r for r in rows if r['tg_id'] == tg_id), None)
 
     if not row:
@@ -172,12 +144,10 @@ async def select_existing_user(update: Update, context: ContextTypes.DEFAULT_TYP
 async def manage_entry_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_language(update.effective_user.id)
+    lang = admin_lang()
     action = query.data.split(':')[1]
 
     if action == 'edit':
-        await query.edit_message_text(message(lang, admin_forward_prompt, 'admin'), reply_markup=_back_keyboard(lang))
-        # ^ форматно то же самое приглашение "укажите дату" — переиспользуем admin_target_confirmed ниже при желании
         await query.edit_message_text(
             message(lang, admin_target_confirmed, 'admin', context.user_data['target_tag']),
             reply_markup=_back_keyboard(lang),
@@ -185,10 +155,9 @@ async def manage_entry_router(update: Update, context: ContextTypes.DEFAULT_TYPE
         return WAITING_DATE
 
     if action == 'delete':
-        chat_id = context.user_data['target_chat_id']
         tg_id = context.user_data['target_tg_id']
-        delete_birthday(tg_id, chat_id)
-        logger.info("Админ %s удалил день рождения пользователя %s в чате %s", update.effective_user.id, tg_id, chat_id)
+        delete_birthday(tg_id)
+        logger.info("Админ удалил день рождения пользователя %s", tg_id)
 
         await query.edit_message_text(message(lang, admin_entry_deleted, 'admin', context.user_data['target_tag']))
         return await show_main_menu(query, lang)
@@ -197,12 +166,12 @@ async def manage_entry_router(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def go_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_language(update.effective_user.id)
+    lang = admin_lang()
     return await show_main_menu(query, lang)
 
 
 async def receive_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_language(update.effective_user.id)
+    lang = admin_lang()
     parsed = _parse_date(update.message.text)
 
     if not parsed:
@@ -214,12 +183,11 @@ async def receive_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
     set_birthday(
         tg_id=context.user_data['target_tg_id'],
         tag=context.user_data['target_tag'],
-        chat_id=context.user_data['target_chat_id'],
         day=day, month=month, year=year,
     )
     logger.info(
-        "Админ %s установил день рождения %02d.%02d для пользователя %s в чате %s",
-        update.effective_user.id, day, month, context.user_data['target_tg_id'], context.user_data['target_chat_id'],
+        "Админ установил день рождения %02d.%02d для пользователя %s",
+        day, month, context.user_data['target_tg_id'],
     )
 
     await update.message.reply_text(
@@ -232,7 +200,7 @@ async def receive_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_language(update.effective_user.id)
+    lang = admin_lang()
     context.user_data.clear()
     await update.message.reply_text(message(lang, common_cancel, 'common'))
     return ConversationHandler.END

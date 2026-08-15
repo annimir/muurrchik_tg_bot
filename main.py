@@ -36,13 +36,13 @@ from handlers.admin_roles import (
 from handlers.tag_stats import tagstats_command
 from handlers.games import mygames_command, toggle_game_callback, games_done_callback
 from handlers.birthday_admin_dm import (
-    start_admin_birthday, choose_chat, main_menu_router, receive_forward,
+    start_admin_birthday, main_menu_router, receive_forward,
     select_existing_user, manage_entry_router, go_back, receive_date, cancel,
-    CHOOSING_CHAT, MAIN_MENU, WAITING_FORWARD, WAITING_DATE, MANAGING_ENTRY,
+    MAIN_MENU, WAITING_FORWARD, WAITING_DATE, MANAGING_ENTRY,
 )
 from handlers.character_requests import (
     start_character_request, ask_name, ask_birthdate, ask_description, ask_photo,
-    cancel_character_request, ASK_NAME, ASK_BIRTHDATE, ASK_DESCRIPTION, ASK_PHOTO,
+    cancel_character_request, ASK_NAME, ASK_BIRTHDATE, ASK_DESCRIPTION, ASK_PHOTO, my_character_requests,
 )
 from handlers.character_edit import (
     start_character_edit, pick_character, choose_field, receive_edit_value, cancel_character_edit,
@@ -52,6 +52,12 @@ from handlers.admin_character_requests import (
     character_request_action_callback, choose_charreq_edit_field, receive_charreq_edit_value,
     EDITING_FIELD, EDITING_VALUE,
 )
+from handlers.character_primary import setprimary_command, setprimary_callback
+from handlers.admin_character_primary import (
+    start_admin_setprimary, receive_admin_setprimary_forward, admin_setprimary_callback,
+    WAITING_FORWARD, CHOOSING_CHARACTER,
+)
+from handlers.character_birthday_job import check_character_birthdays
 
 from database.queries import get_active_tags, get_all_tag_aliases
 from services.tag_storage import tag_storage
@@ -91,7 +97,6 @@ application.add_handler(CommandHandler('deletebirthday', delete_birthday_command
 admin_birthday_conv = ConversationHandler(
     entry_points=[CommandHandler('admin_birthdays', start_admin_birthday, filters=filters.ChatType.PRIVATE)],
     states={
-        CHOOSING_CHAT: [CallbackQueryHandler(choose_chat, pattern=r'^chat:')],
         MAIN_MENU: [
             CallbackQueryHandler(main_menu_router, pattern=r'^action:'),
             CallbackQueryHandler(select_existing_user, pattern=r'^user:'),
@@ -117,6 +122,7 @@ MOSCOW_TZ = ZoneInfo('Europe/Moscow')
 application.job_queue.run_daily(check_birthdays, time=time(hour=9, minute=0, tzinfo=MOSCOW_TZ))
 application.job_queue.run_daily(send_retention_warnings, time=time(hour=10, minute=0, tzinfo=MOSCOW_TZ))
 application.job_queue.run_daily(run_retention_cleanup, time=time(hour=10, minute=30, tzinfo=MOSCOW_TZ))
+application.job_queue.run_daily(check_character_birthdays, time=time(hour=9, minute=15, tzinfo=MOSCOW_TZ))
 
 # ---------- подписки ----------
 application.add_handler(CommandHandler('mysub', my_subscriptions))
@@ -204,6 +210,21 @@ character_edit_conv = ConversationHandler(
     fallbacks=[CommandHandler('cancel', cancel_character_edit)],
 )
 application.add_handler(character_edit_conv)
+
+application.add_handler(CommandHandler('mycharrequests', my_character_requests))
+
+application.add_handler(CommandHandler('setprimary', setprimary_command))
+application.add_handler(CallbackQueryHandler(setprimary_callback, pattern=r'^setprimary:'))
+
+admin_setprimary_conv = ConversationHandler(
+    entry_points=[CommandHandler('set_primary_character', start_admin_setprimary, filters=filters.ChatType.PRIVATE)],
+    states={
+        WAITING_FORWARD: [MessageHandler(filters.FORWARDED & ~filters.COMMAND, receive_admin_setprimary_forward)],
+        CHOOSING_CHARACTER: [CallbackQueryHandler(admin_setprimary_callback, pattern=r'^adminsetprimary:')],
+    },
+    fallbacks=[],
+)
+application.add_handler(admin_setprimary_conv)
 
 # ============================================================
 # ОТКЛЮЧЕНО (используют старую объединённую character-модель,

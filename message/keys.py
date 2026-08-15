@@ -1,21 +1,21 @@
-# Общие
+# ==================== ОБЩЕЕ ====================
 common_cancel = 'common.cancel'
 common_back = 'common.back'
 common_not_admin = 'common.notAdmin'
 common_group_only = 'common.groupOnly'
 common_private_only = 'common.privateOnly'
 
-# Welcome
+# ==================== WELCOME ====================
 welcome_message = 'welcome.message'
 welcome_role_assigned = 'welcome.roleAssigned'
 
-# Language
+# ==================== LANGUAGE ====================
 language_no_argument_exception = 'language.noArgumentException'
 language_no_correct_exception = 'language.noCorrectException'
 language_warning = 'language.warning'
 language_set = 'language.set'
 
-# Birthdays (групповые команды пользователя)
+# ==================== BIRTHDAY (пользователи) ====================
 birthday_no_argument = 'birthday.noArgument'
 birthday_no_correct = 'birthday.noCorrect'
 birthday_set = 'birthday.set'
@@ -25,9 +25,7 @@ birthday_deleted = 'birthday.deleted'
 birthday_congratulation_1 = 'birthday.congratulation1'
 birthday_congratulation_2 = 'birthday.congratulation2'
 
-# Admin birthdays DM
-admin_no_chats = 'admin.noChats'
-admin_choose_chat = 'admin.chooseChat'
+# ==================== ADMIN BIRTHDAY DM ====================
 admin_choose_action = 'admin.chooseAction'
 admin_button_add = 'admin.buttonAdd'
 admin_button_list = 'admin.buttonList'
@@ -44,111 +42,14 @@ admin_entry_deleted = 'admin.entryDeleted'
 admin_date_invalid = 'admin.dateInvalid'
 admin_saved = 'admin.saved'
 
-# Subscriptions
+# ==================== SUBSCRIPTIONS ====================
 sub_no_argument = 'sub.noArgument'
 sub_character_not_found = 'sub.characterNotFound'
 sub_success = 'sub.success'
+sub_tag_unavailable = 'sub.tagUnavailable'
 unsub_success = 'unsub.success'
 mysub_empty = 'mysub.empty'
 mysub_list = 'mysub.list'
-sub_tag_unavailable = 'sub.tagUnavailable'
-
-# Characters admin
-char_all_list = 'char.allList'
-char_deleted = 'char.deleted'
-char_renamed = 'char.renamed'
-char_rename_taken = 'char.renameTaken'
-char_rename_no_argument = 'char.renameNoArgument'
-char_delete_no_argument = 'char.deleteNoArgument'
-
-# Tagging
-tag_suggest = 'tag.suggest'
-tag_created = 'tag.created'
-tag_no_argument = 'tag.noArgument'
-addtag_usage = 'addtag.usage'
-addtag_alias_taken = 'addtag.aliasTaken'
-addtag_base_not_found = 'addtag.baseNotFound'
-addtag_suggest = 'addtag.suggest'
-addtag_confirm_yes = 'addtag.confirmYes'
-addtag_confirm_no = 'addtag.confirmNo'
-addtag_cancelled = 'addtag.cancelled'
-addtag_no_pending = 'addtag.noPending'
-addtag_success = 'addtag.success'
-tag_name_reserved = 'tag.nameReserved'
-addtag_alias_reserved = 'addtag.aliasReserved'
-
-# User profile
-profile_updated = 'profile.updated'
-
-# Inline search
-inline_top_all = 'inline.topAll'
-inline_top_users = 'inline.topUsers'
-inline_top15 = 'inline.top15'
-inline_subscribers_prefix = 'inline.subscribersPrefix'
-inline_no_subscribers = 'inline.noSubscribers'
-
-# Просмотр персонажей
-char_no_characters = 'char.noCharacters'
-char_choose_which = 'char.chooseWhich'
-char_user_not_found = 'char.userNotFound'
-char_usage_hint = 'char.usageHint'
-
-# Заявки — пользователь
-req_ask_name = 'req.askName'
-req_ask_description = 'req.askDescription'
-req_ask_affiliation = 'req.askAffiliation'
-req_ask_position = 'req.askPosition'
-req_ask_photo = 'req.askPhoto'
-req_photo_invalid = 'req.photoInvalid'
-req_submitted = 'req.submitted'
-req_no_requests = 'req.noRequests'
-req_status_pending = 'req.statusPending'
-req_status_approved = 'req.statusApproved'
-req_status_rejected = 'req.statusRejected'
-req_max_characters_warning = 'req.maxCharactersWarning'
-req_cancelled = 'req.cancelled'
-
-# Заявки — уведомление админу
-req_admin_notification = 'req.adminNotification'
-req_admin_button_approve = 'req.adminButtonApprove'
-req_admin_button_edit = 'req.adminButtonEdit'
-req_admin_button_reject = 'req.adminButtonReject'
-req_admin_already_resolved = 'req.adminAlreadyResolved'
-req_admin_approved_suffix = 'req.adminApprovedSuffix'
-req_admin_rejected_suffix = 'req.adminRejectedSuffix'
-req_admin_max_characters_block = 'req.adminMaxCharactersBlock'
-req_admin_choose_edit_field = 'req.adminChooseEditField'
-req_admin_enter_new_value = 'req.adminEnterNewValue'
-req_admin_updated_preview = 'req.adminUpdatedPreview'
-
-# Заявки — уведомление пользователю в группе
-req_user_approved = 'req.userApproved'
-req_user_rejected = 'req.userRejected'
-
-# Назначение персонажа (админ)
-assign_not_admin = 'assign.notAdmin'
-assign_forward_prompt_assign = 'assign.forwardPromptAssign'
-assign_forward_prompt_unassign = 'assign.forwardPromptUnassign'
-assign_forward_invalid = 'assign.forwardInvalid'
-assign_max_reached = 'assign.maxReached'
-assign_no_characters_to_unassign = 'assign.noCharactersToUnassign'
-assign_choose_character = 'assign.chooseCharacter'
-assign_choose_to_unassign = 'assign.chooseToUnassign'
-assign_done = 'assign.done'
-assign_unassign_done = 'assign.unassignDone'
-
-# Редактирование карточки (админ)
-edit_choose_character = 'edit.chooseCharacter'
-edit_choose_field = 'edit.chooseField'
-edit_enter_value = 'edit.enterValue'
-edit_enter_photo = 'edit.enterPhoto'
-edit_photo_invalid = 'edit.photoInvalid'
-edit_saved = 'edit.saved'
-edit_field_name = 'edit.fieldName'
-edit_field_description = 'edit.fieldDescription'
-edit_field_affiliation = 'edit.fieldAffiliation'
-edit_field_position = 'edit.fieldPosition'
-edit_field_photo = 'edit.fieldPhoto'
 
 unsuball_empty = 'unsuball.empty'
 unsuball_confirm = 'unsuball.confirm'
@@ -156,9 +57,69 @@ unsuball_confirm_yes = 'unsuball.confirmYes'
 unsuball_confirm_no = 'unsuball.confirmNo'
 unsuball_cancelled = 'unsuball.cancelled'
 unsuball_done = 'unsuball.done'
-unsuball_no_pending = 'unsuball.noPending'
 
-retention_warning_message = 'retention.warningMessage'
+# ==================== TAGS (админ: /all, /rename) — плюс паузa view_characters ====================
+char_all_list = 'char.allList'
+char_deleted = 'char.deleted'
+char_renamed = 'char.renamed'
+char_rename_taken = 'char.renameTaken'
+char_rename_no_argument = 'char.renameNoArgument'
+char_delete_no_argument = 'char.deleteNoArgument'
+# ниже — на паузе, ждут Этап E (view_characters.py):
+char_no_characters = 'char.noCharacters'
+char_choose_which = 'char.chooseWhich'
+char_user_not_found = 'char.userNotFound'
+char_usage_hint = 'char.usageHint'
+
+# ==================== TAG STATUS (Этап B1) ====================
+tagstatus_usage_delete = 'tagstatus.usageDelete'
+tagstatus_usage_block = 'tagstatus.usageBlock'
+tagstatus_usage_restore = 'tagstatus.usageRestore'
+tagstatus_not_found = 'tagstatus.notFound'
+tagstatus_already = 'tagstatus.already'
+tagstatus_deleted = 'tagstatus.deleted'
+tagstatus_blocked = 'tagstatus.blocked'
+tagstatus_restored = 'tagstatus.restored'
+
+# ==================== TAGGING / АЛИАСЫ ====================
+tag_suggest = 'tag.suggest'
+tag_created = 'tag.created'
+tag_no_argument = 'tag.noArgument'
+tag_name_reserved = 'tag.nameReserved'
+
+addtag_usage = 'addtag.usage'
+addtag_alias_taken = 'addtag.aliasTaken'
+addtag_alias_reserved = 'addtag.aliasReserved'
+addtag_base_not_found = 'addtag.baseNotFound'
+addtag_suggest = 'addtag.suggest'
+addtag_confirm_yes = 'addtag.confirmYes'
+addtag_confirm_no = 'addtag.confirmNo'
+addtag_cancelled = 'addtag.cancelled'
+addtag_no_pending = 'addtag.noPending'
+addtag_success = 'addtag.success'
+
+# ==================== СТАТИСТИКА (Этап B5) ====================
+tagstats_usage = 'tagstats.usage'
+tagstats_not_found = 'tagstats.notFound'
+tagstats_header = 'tagstats.header'
+tagstats_subscribers = 'tagstats.subscribers'
+tagstats_usage30 = 'tagstats.usage30'
+tagstats_admin_status = 'tagstats.adminStatus'
+tagstats_admin_creator = 'tagstats.adminCreator'
+tagstats_admin_creator_unknown = 'tagstats.adminCreatorUnknown'
+tagstats_admin_last_used = 'tagstats.adminLastUsed'
+tagstats_admin_last_used_never = 'tagstats.adminLastUsedNever'
+
+inline_top_all = 'inline.topAll'
+inline_top_users = 'inline.topUsers'
+inline_top15 = 'inline.top15'
+inline_subscribers_prefix = 'inline.subscribersPrefix'
+inline_no_subscribers = 'inline.noSubscribers'
+inline_top_usage = 'inline.topUsage'
+inline_top_usage_admin = 'inline.topUsageAdmin'
+
+# ==================== PROFILE / ROLES / GAMES / CARD (виртуальная, пауза) ====================
+profile_updated = 'profile.updated'
 
 roles_not_admin = 'roles.notAdmin'
 roles_usage_add = 'roles.usageAdd'
@@ -175,20 +136,15 @@ roles_reroll_forward_invalid = 'roles.rerollForwardInvalid'
 roles_reroll_done = 'roles.rerollDone'
 roles_no_roles_available = 'roles.noRolesAvailable'
 
+backfill_done = 'backfill.done'
+backfill_none_needed = 'backfill.noneNeeded'
+
 games_prompt = 'games.prompt'
 games_done_button = 'games.doneButton'
 games_saved_none = 'games.savedNone'
 games_saved_list = 'games.savedList'
 
-tagstatus_usage_delete = 'tagstatus.usageDelete'
-tagstatus_usage_block = 'tagstatus.usageBlock'
-tagstatus_usage_restore = 'tagstatus.usageRestore'
-tagstatus_not_found = 'tagstatus.notFound'
-tagstatus_already = 'tagstatus.already'
-tagstatus_deleted = 'tagstatus.deleted'
-tagstatus_blocked = 'tagstatus.blocked'
-tagstatus_restored = 'tagstatus.restored'
-
+# ниже — на паузе, ждут Этап E (card.py, виртуальная карточка требует ревизии под owner-модель):
 card_title = 'card.title'
 card_role_label = 'card.roleLabel'
 card_role_none = 'card.roleNone'
@@ -199,23 +155,7 @@ card_characters_none = 'card.charactersNone'
 card_user_not_found = 'card.userNotFound'
 card_usage = 'card.usage'
 
-backfill_done = 'backfill.done'
-backfill_none_needed = 'backfill.noneNeeded'
-
-tagstats_usage = 'tagstats.usage'
-tagstats_not_found = 'tagstats.notFound'
-tagstats_header = 'tagstats.header'
-tagstats_subscribers = 'tagstats.subscribers'
-tagstats_usage30 = 'tagstats.usage30'
-tagstats_admin_status = 'tagstats.adminStatus'
-tagstats_admin_creator = 'tagstats.adminCreator'
-tagstats_admin_creator_unknown = 'tagstats.adminCreatorUnknown'
-tagstats_admin_last_used = 'tagstats.adminLastUsed'
-tagstats_admin_last_used_never = 'tagstats.adminLastUsedNever'
-
-inline_top_usage = 'inline.topUsage'
-inline_top_usage_admin = 'inline.topUsageAdmin'
-
+# ==================== ЗАЯВКИ НА ПЕРСОНАЖА (Этап D) ====================
 charreq_limit_warning = 'charreq.limitWarning'
 charreq_ask_name = 'charreq.askName'
 charreq_name_taken = 'charreq.nameTaken'
@@ -250,6 +190,18 @@ charreq_user_approved = 'charreq.userApproved'
 charreq_user_approved_primary = 'charreq.userApprovedPrimary'
 charreq_user_rejected = 'charreq.userRejected'
 
+charreq_edit_admin_notification = 'charreq.editAdminNotification'
+charreq_edit_admin_updated_preview = 'charreq.editAdminUpdatedPreview'
+charreq_edit_user_approved = 'charreq.editUserApproved'
+charreq_edit_user_rejected = 'charreq.editUserRejected'
+
+charreq_my_empty = 'charreq.myEmpty'
+charreq_my_type_create = 'charreq.myTypeCreate'
+charreq_my_type_edit = 'charreq.myTypeEdit'
+charreq_my_status_pending = 'charreq.myStatusPending'
+charreq_my_status_approved = 'charreq.myStatusApproved'
+charreq_my_status_rejected = 'charreq.myStatusRejected'
+
 charedit_no_characters = 'charedit.noCharacters'
 charedit_not_owner = 'charedit.notOwner'
 charedit_choose_character = 'charedit.chooseCharacter'
@@ -260,7 +212,18 @@ charedit_enter_description = 'charedit.enterDescription'
 charedit_enter_photo = 'charedit.enterPhoto'
 charedit_submitted = 'charedit.submitted'
 
-charreq_edit_admin_notification = 'charreq.editAdminNotification'
-charreq_edit_admin_updated_preview = 'charreq.editAdminUpdatedPreview'
-charreq_edit_user_approved = 'charreq.editUserApproved'
-charreq_edit_user_rejected = 'charreq.editUserRejected'
+retention_warning_message = 'retention.warningMessage'
+
+charprimary_no_characters = 'charprimary.noCharacters'
+charprimary_only_one = 'charprimary.onlyOne'
+charprimary_choose = 'charprimary.choose'
+charprimary_done = 'charprimary.done'
+
+charprimary_admin_forward_prompt = 'charprimary.adminForwardPrompt'
+charprimary_admin_forward_invalid = 'charprimary.adminForwardInvalid'
+charprimary_admin_no_characters = 'charprimary.adminNoCharacters'
+charprimary_admin_choose = 'charprimary.adminChoose'
+charprimary_admin_done = 'charprimary.adminDone'
+
+charbday_congratulation_1 = 'charbday.congratulation1'
+charbday_congratulation_2 = 'charbday.congratulation2'

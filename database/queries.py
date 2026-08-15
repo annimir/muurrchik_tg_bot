@@ -475,16 +475,6 @@ def create_character_row(owner_user_id, name, birth_date, photo_file_id, descrip
     return db(query, (owner_user_id, name, birth_date, photo_file_id, description, is_primary)).one()
 
 
-def update_character_fields(character_id, birth_date, photo_file_id, description):
-    """Имя НЕ обновляется никогда — CHAR-04, неизменяемо после создания."""
-    query = '''
-        UPDATE character
-        SET birth_date = %s, photo_file_id = %s, description = %s
-        WHERE id = %s
-    '''
-    db(query, (birth_date, photo_file_id, description, character_id)).close()
-
-
 def set_character_primary(user_id, character_id):
     """
     Снимает is_primary со всех персонажей пользователя, затем ставит на
@@ -569,3 +559,62 @@ def apply_character_edit(character_id, description=None, photo_file_id=None, bir
 
     params.append(character_id)
     db(f'UPDATE character SET {", ".join(fields)} WHERE id = %s', tuple(params)).close()
+
+def get_todays_character_birthdays(day, month):
+    query = '''
+        SELECT c.id, c.name, u.tg_id AS owner_tg_id, u.tag AS owner_username
+        FROM character c
+        JOIN users u ON u.id = c.owner_user_id
+        WHERE EXTRACT(DAY FROM c.birth_date)::int = %s
+          AND EXTRACT(MONTH FROM c.birth_date)::int = %s
+    '''
+    return db(query, (day, month)).all()
+
+def set_birthday(tg_id, tag, day, month, year=None):
+    user = get_user_by_tg_id(tg_id)
+    if not user:
+        create_user(tg_id, tag)
+
+    query = '''
+        INSERT INTO birthdays (user_id, day, month, year)
+        VALUES ((SELECT id FROM users WHERE tg_id = %s), %s, %s, %s)
+        ON CONFLICT (user_id)
+        DO UPDATE SET day = EXCLUDED.day, month = EXCLUDED.month, year = EXCLUDED.year
+    '''
+    db(query, (tg_id, day, month, year)).close()
+
+
+def get_birthday(tg_id):
+    query = '''
+        SELECT b.day, b.month, b.year
+        FROM birthdays b
+        JOIN users u ON u.id = b.user_id
+        WHERE u.tg_id = %s
+    '''
+    return db(query, (tg_id,)).one()
+
+
+def delete_birthday(tg_id):
+    query = 'DELETE FROM birthdays WHERE user_id = (SELECT id FROM users WHERE tg_id = %s)'
+    db(query, (tg_id,)).close()
+
+
+def get_todays_birthdays(day, month):
+    query = '''
+        SELECT u.tg_id, u.tag
+        FROM birthdays b
+        JOIN users u ON u.id = b.user_id
+        WHERE b.day = %s AND b.month = %s
+    '''
+    return db(query, (day, month)).all()
+
+
+def get_all_birthdays():
+    """ЗАМЕНЯЕТ get_chat_birthdays(chat_id) — список один на весь бот."""
+    query = '''
+        SELECT u.tg_id, u.tag, b.day, b.month, b.year
+        FROM birthdays b
+        JOIN users u ON u.id = b.user_id
+        ORDER BY b.month, b.day
+    '''
+    return db(query).all()

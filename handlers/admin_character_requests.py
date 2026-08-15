@@ -7,8 +7,8 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from database.queries import (
     get_character_request_by_id, update_character_request_status, update_character_request_field,
-    is_character_name_taken, get_user_character_count, create_character_row,
-    get_tag_by_name, create_tag, get_user_by_id, get_user_language,
+    is_character_name_taken, get_user_character_count, create_character_row, apply_character_edit,
+    get_character_by_id, get_tag_by_name, create_tag, get_user_by_id, get_user_language,
 )
 from services.tag_storage import tag_storage
 from services.admin import is_admin, admin_lang
@@ -17,19 +17,26 @@ from message.keys import (
     charreq_admin_already_resolved, charreq_admin_approved_suffix, charreq_admin_rejected_suffix,
     charreq_admin_max_block, charreq_admin_name_taken_block, charreq_admin_name_edit_taken,
     charreq_admin_choose_edit_field, charreq_admin_enter_new_value, charreq_admin_enter_new_photo,
-    charreq_admin_updated_preview, charreq_admin_field_name, charreq_admin_field_birthdate,
-    charreq_admin_field_description, charreq_admin_field_photo, charreq_photo_invalid, charreq_birthdate_invalid,
+    charreq_admin_updated_preview, charreq_edit_admin_updated_preview,
+    charreq_admin_field_name, charreq_admin_field_birthdate, charreq_admin_field_description, charreq_admin_field_photo,
+    charreq_photo_invalid, charreq_birthdate_invalid,
     charreq_admin_button_approve, charreq_admin_button_edit, charreq_admin_button_reject,
     charreq_user_approved, charreq_user_approved_primary, charreq_user_rejected,
+    charreq_edit_user_approved, charreq_edit_user_rejected,
 )
 
 logger = logging.getLogger(__name__)
 
 EDITING_FIELD, EDITING_VALUE = range(2)
 
-EDITABLE_FIELDS = {
+CREATE_EDITABLE_FIELDS = {
     'name': charreq_admin_field_name,
     'birth_date': charreq_admin_field_birthdate,
+    'description': charreq_admin_field_description,
+    'photo_file_id': charreq_admin_field_photo,
+}
+
+EDIT_EDITABLE_FIELDS = {
     'description': charreq_admin_field_description,
     'photo_file_id': charreq_admin_field_photo,
 }
@@ -48,6 +55,29 @@ def _parse_birthdate(raw: str):
         return None
 
 
+async def _set_review_message(query, text: str):
+    """
+    ИСПРАВЛЕНО (сверка после D2b): заменяет ВЕСЬ текст итогового сообщения.
+    Заявки на создание — всегда фото с caption (edit_message_caption),
+    заявки на редактирование могут быть чистым текстом (edit_message_text).
+    Используется, когда нет смысла что-то ДОписывать (например, заявка
+    уже была обработана кем-то ещё до этого нажатия).
+    """
+    if query.message.photo:
+        await query.edit_message_caption(text)
+    else:
+        await query.edit_message_text(text)
+
+
+async def _append_to_review_message(query, suffix: str):
+    """То же самое различение caption/text, но ДОписывает суффикс к уже
+    существующему содержимому (для успешного approve/reject)."""
+    if query.message.photo:
+        await query.edit_message_caption(query.message.caption + suffix)
+    else:
+        await query.edit_message_text(query.message.text + suffix)
+
+
 async def character_request_action_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -61,40 +91,48 @@ async def character_request_action_callback(update: Update, context: ContextType
     req = get_character_request_by_id(request_id)
 
     if not req or req['status'] != 'pending':
-        await query.edit_message_caption(message(lang, charreq_admin_already_resolved, 'charreq'))
+        # ИСПРАВЛЕНО: раньше здесь была строка с двумя `await` в одном
+        # тернарном выражении (синтаксически рабочая, но плохо читаемая) —
+        # теперь используется тот же хелпер, что и для остальных случаев.
+        await _set_review_message(query, message(lang, charreq_admin_already_resolved, 'charreq'))
         return
 
     if action == 'approve':
-        if get_user_character_count(req['user_id']) >= 3:
-            logger.warning("Заявка #%d заблокирована — у пользователя уже 3 персонажа", request_id)
-            await query.message.reply_text(message(lang, charreq_admin_max_block, 'charreq'))
-            return
+        if req['request_type'] == 'create':
+            if get_user_character_count(req['user_id']) >= 3:
+                logger.warning("Заявка #%d заблокирована — у пользователя уже 3 персонажа", request_id)
+                await query.message.reply_text(message(lang, charreq_admin_max_block, 'charreq'))
+                return
 
-        if is_character_name_taken(req['name']):
-            logger.warning("Заявка #%d заблокирована — имя '%s' уже занято", request_id, req['name'])
-            await query.message.reply_text(message(lang, charreq_admin_name_taken_block, 'charreq', req['name']))
-            return
+            if is_character_name_taken(req['name']):
+                logger.warning("Заявка #%d заблокирована — имя '%s' уже занято", request_id, req['name'])
+                await query.message.reply_text(message(lang, charreq_admin_name_taken_block, 'charreq', req['name']))
+                return
 
-        await approve_character_request(context, req)
-        await query.edit_message_caption(query.message.caption + message(lang, charreq_admin_approved_suffix, 'charreq'))
+            await approve_character_create(context, req)
+        else:
+            await approve_character_edit_request(context, req)
+
+        await _append_to_review_message(query, message(lang, charreq_admin_approved_suffix, 'charreq'))
 
     elif action == 'reject':
         update_character_request_status(request_id, 'rejected')
         await notify_character_request_result(context, req, approved=False)
-        await query.edit_message_caption(query.message.caption + message(lang, charreq_admin_rejected_suffix, 'charreq'))
-        logger.info("Админ отклонил заявку на персонажа #%d", request_id)
+        await _append_to_review_message(query, message(lang, charreq_admin_rejected_suffix, 'charreq'))
+        logger.info("Админ отклонил заявку #%d (тип %s)", request_id, req['request_type'])
 
     elif action == 'edit':
         context.user_data['editing_charreq_id'] = request_id
+        fields = CREATE_EDITABLE_FIELDS if req['request_type'] == 'create' else EDIT_EDITABLE_FIELDS
         keyboard = [
             [InlineKeyboardButton(message(lang, label_key, 'charreq'), callback_data=f'charreqedit:{field}')]
-            for field, label_key in EDITABLE_FIELDS.items()
+            for field, label_key in fields.items()
         ]
         await query.message.reply_text(message(lang, charreq_admin_choose_edit_field, 'charreq'), reply_markup=InlineKeyboardMarkup(keyboard))
         return EDITING_FIELD
 
 
-async def approve_character_request(context, req):
+async def approve_character_create(context, req):
     owner_user_id = req['user_id']
     is_primary = get_user_character_count(owner_user_id) == 0
 
@@ -103,7 +141,6 @@ async def approve_character_request(context, req):
         photo_file_id=req['photo_file_id'], description=req['description'], is_primary=is_primary,
     )
 
-    # CHAR-07: автосоздание TAG с тем же именем, если его ещё нет
     existing_tag = get_tag_by_name(character['name'])
     if not existing_tag:
         owner = get_user_by_id(owner_user_id)
@@ -116,16 +153,34 @@ async def approve_character_request(context, req):
     logger.info("Админ одобрил заявку #%d, создан персонаж #%d (primary=%s)", req['id'], character['id'], is_primary)
 
 
+async def approve_character_edit_request(context, req):
+    apply_character_edit(
+        req['character_id'],
+        description=req['description'],
+        photo_file_id=req['photo_file_id'],
+        birth_date=req['birth_date'],
+    )
+    update_character_request_status(req['id'], 'approved')
+    await notify_character_request_result(context, req, approved=True)
+    logger.info("Админ одобрил заявку на изменение #%d (персонаж #%d)", req['id'], req['character_id'])
+
+
 async def notify_character_request_result(context, req, approved: bool, is_primary: bool = False):
     target_user = get_user_by_id(req['user_id'])
     lang = get_user_language(target_user['tg_id']) if target_user else 'RU'
 
-    if approved:
-        key = charreq_user_approved_primary if is_primary else charreq_user_approved
-        text = message(lang, key, 'charreq', req['name'])
+    if req['request_type'] == 'create':
+        character_name = req['name']
+        if approved:
+            key = charreq_user_approved_primary if is_primary else charreq_user_approved
+        else:
+            key = charreq_user_rejected
     else:
-        text = message(lang, charreq_user_rejected, 'charreq', req['name'])
+        character = get_character_by_id(req['character_id'])
+        character_name = character['name'] if character else '?'
+        key = charreq_edit_user_approved if approved else charreq_edit_user_rejected
 
+    text = message(lang, key, 'charreq', character_name)
     await context.bot.send_message(chat_id=req['chat_id'], text=text)
 
 
@@ -139,7 +194,8 @@ async def choose_charreq_edit_field(update: Update, context: ContextTypes.DEFAUL
     if field == 'photo_file_id':
         await query.message.reply_text(message(lang, charreq_admin_enter_new_photo, 'charreq'))
     else:
-        label = message(lang, EDITABLE_FIELDS[field], 'charreq')
+        label_key = CREATE_EDITABLE_FIELDS.get(field, EDIT_EDITABLE_FIELDS.get(field))
+        label = message(lang, label_key, 'charreq')
         await query.message.reply_text(message(lang, charreq_admin_enter_new_value, 'charreq', label))
     return EDITING_VALUE
 
@@ -172,7 +228,7 @@ async def receive_charreq_edit_value(update: Update, context: ContextTypes.DEFAU
         value = update.message.text.strip()
 
     update_character_request_field(request_id, field, value)
-    logger.info("Админ изменил поле '%s' заявки на персонажа #%d", field, request_id)
+    logger.info("Админ изменил поле '%s' заявки #%d", field, request_id)
 
     req = get_character_request_by_id(request_id)
     keyboard = [
@@ -180,11 +236,14 @@ async def receive_charreq_edit_value(update: Update, context: ContextTypes.DEFAU
         [InlineKeyboardButton(message(lang, charreq_admin_button_edit, 'charreq'), callback_data=f'charreqaction:{request_id}:edit')],
         [InlineKeyboardButton(message(lang, charreq_admin_button_reject, 'charreq'), callback_data=f'charreqaction:{request_id}:reject')],
     ]
-    birth_str = req['birth_date'].strftime('%d.%m') if req['birth_date'] else '—'
-    await update.message.reply_text(
-        message(lang, charreq_admin_updated_preview, 'charreq', req['name'], birth_str, req['description']),
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
+
+    if req['request_type'] == 'create':
+        birth_str = req['birth_date'].strftime('%d.%m') if req['birth_date'] else '—'
+        preview = message(lang, charreq_admin_updated_preview, 'charreq', req['name'], birth_str, req['description'])
+    else:
+        preview = message(lang, charreq_edit_admin_updated_preview, 'charreq')
+
+    await update.message.reply_text(preview, reply_markup=InlineKeyboardMarkup(keyboard))
     context.user_data.pop('editing_charreq_id', None)
     context.user_data.pop('editing_charreq_field', None)
     return ConversationHandler.END
