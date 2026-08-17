@@ -3,11 +3,12 @@ import re
 from datetime import date
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import TelegramError
 from telegram.ext import ContextTypes, ConversationHandler
 
 from database.queries import (
     get_user_by_tg_id, get_user_character_count, is_character_name_taken,
-    create_character_request, get_user_character_requests, get_character_by_id, get_user_language,
+    create_character_request, get_user_character_requests, get_character_by_id, get_user_language, get_all_admin_ids,
 )
 from config import config
 from message.loader import message
@@ -19,6 +20,8 @@ from message.keys import (
     charreq_my_empty, charreq_my_type_create, charreq_my_type_edit,
     charreq_my_status_pending, charreq_my_status_approved, charreq_my_status_rejected,
 )
+from services.request_broadcast import broadcast_to_admins
+from message.keys import req_claim_button
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +110,8 @@ async def ask_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         birth_date=data['birth_date'],
         description=data['description'],
         photo_file_id=photo_file_id,
+        requester_display_name=user.full_name,
+        requester_username=user.username,
     )
 
     logger.info("Пользователь %s подал заявку #%d на персонажа '%s'", user.id, request_id, data['name'])
@@ -118,25 +123,29 @@ async def ask_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def notify_admin_new_character_request(context, request_id, data, user):
-    admin_lang_value = get_user_language(int(config.admin_user_id))
-
-    keyboard = [
-        [InlineKeyboardButton(message(admin_lang_value, charreq_admin_button_approve, 'charreq'), callback_data=f'charreqaction:{request_id}:approve')],
-        [InlineKeyboardButton(message(admin_lang_value, charreq_admin_button_edit, 'charreq'), callback_data=f'charreqaction:{request_id}:edit')],
-        [InlineKeyboardButton(message(admin_lang_value, charreq_admin_button_reject, 'charreq'), callback_data=f'charreqaction:{request_id}:reject')],
-    ]
+    """
+    рассылается ВСЕМ админам
+    Исходное уведомление показывает только кнопку "Взять в работу" — approve/
+    edit/reject появляются только после того, как кто-то возьмёт заявку себе.
+    """
     birth_str = data['birth_date'].strftime('%d.%m')
-    caption = message(
-        admin_lang_value, charreq_admin_notification, 'charreq',
-        request_id, user.full_name, user.username or '—',
-        data['name'], birth_str, data['description'],
-    )
 
-    await context.bot.send_photo(
-        config.admin_user_id, photo=data['photo_file_id'], caption=caption,
-        parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard),
-    )
+    async def send_fn(admin_tg_id):
+        admin_lang_value = get_user_language(admin_tg_id)
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton(message(admin_lang_value, req_claim_button, 'reqclaim'), callback_data=f'charreqaction:{request_id}:claim'),
+        ]])
+        caption = message(
+            admin_lang_value, charreq_admin_notification, 'charreq',
+            request_id, user.full_name, user.username or '—',
+            data['name'], birth_str, data['description'],
+        )
+        return await context.bot.send_photo(
+            admin_tg_id, photo=data['photo_file_id'], caption=caption,
+            parse_mode='Markdown', reply_markup=keyboard,
+        )
 
+    await broadcast_to_admins(context, 'character', request_id, send_fn)
 
 async def cancel_character_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)

@@ -3,8 +3,8 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from database.queries import get_all_tags, get_tag_by_name, rename_tag, set_tag_status
-from services.admin import is_admin, admin_lang
+from database.queries import get_all_tags, get_tag_by_name, rename_tag, set_tag_status, get_user_language
+from services.admin import is_admin
 from services.tag_storage import tag_storage
 from message.loader import message
 from message.keys import (
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 async def list_all_tags_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     thread_id = update.message.message_thread_id
-    lang = admin_lang()
+    lang = get_user_language(user.id)
 
     if not is_admin(user.id):
         await update.message.reply_text(message(lang, common_not_admin, 'common'), message_thread_id=thread_id)
@@ -38,7 +38,7 @@ async def list_all_tags_command(update: Update, context: ContextTypes.DEFAULT_TY
 async def rename_tag_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     thread_id = update.message.message_thread_id
-    lang = admin_lang()
+    lang = get_user_language(user.id)
 
     if not is_admin(user.id):
         await update.message.reply_text(message(lang, common_not_admin, 'common'), message_thread_id=thread_id)
@@ -80,12 +80,13 @@ async def rename_tag_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def _change_tag_status(update: Update, context: ContextTypes.DEFAULT_TYPE, target_status: str):
-    lang = admin_lang()
+    user = update.effective_user
+    lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
         await update.message.reply_text(message(lang, common_private_only, 'common'))
         return
-    if not is_admin(update.effective_user.id):
+    if not is_admin(user.id):
         await update.message.reply_text(message(lang, common_not_admin, 'common'))
         return
 
@@ -116,12 +117,10 @@ async def _change_tag_status(update: Update, context: ContextTypes.DEFAULT_TYPE,
         tag_storage.add_to_cache(tag['name'])
         result_key = tagstatus_restored
     else:
-        # DELETED/BLOCKED — тег пропадает из fuzzy-поиска/тегирования/подписки,
-        # но сама запись и история подписок в БД остаются нетронутыми
         tag_storage.tags.pop(tag_storage.normalize(tag['name']), None)
         result_key = tagstatus_deleted if target_status == 'DELETED' else tagstatus_blocked
 
-    logger.info("Админ %s перевёл тег '%s' в статус %s", update.effective_user.id, name, target_status)
+    logger.info("Админ %s перевёл тег '%s' в статус %s", user.id, name, target_status)
     await update.message.reply_text(message(lang, result_key, 'tagstatus', name))
 
 

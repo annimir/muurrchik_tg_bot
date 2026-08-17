@@ -61,12 +61,20 @@ from handlers.character_birthday_job import check_character_birthdays
 from handlers.card_request import start_card_request, receive_bio, cancel_card_request, my_card_requests, WAITING_BIO
 from handlers.admin_card_requests import card_request_action_callback, receive_card_edit_bio, EDITING_BIO
 from handlers.card import card_command
+from database.queries import bootstrap_admin_if_empty
+from handlers.admin_management import (
+    start_add_admin, receive_add_forward, start_remove_admin, receive_remove_forward,
+    list_admins_command, WAITING_ADD_FORWARD, WAITING_REMOVE_FORWARD,
+)
+from handlers.admin_request_queue import pending_requests_command, my_claimed_requests_command
+
 
 from database.queries import get_active_tags, get_all_tag_aliases
 from services.tag_storage import tag_storage
 
 setup_logging()
 logger = logging.getLogger(__name__)
+bootstrap_admin_if_empty(config.admin_user_id)
 
 application = Application.builder().token(config.bot_token).build()
 
@@ -249,6 +257,23 @@ application.add_handler(card_review_conv)
 
 application.add_handler(CommandHandler('card', card_command))
 
+add_admin_conv = ConversationHandler(
+    entry_points=[CommandHandler('add_admin', start_add_admin, filters=filters.ChatType.PRIVATE)],
+    states={WAITING_ADD_FORWARD: [MessageHandler(filters.FORWARDED & ~filters.COMMAND, receive_add_forward)]},
+    fallbacks=[],
+)
+application.add_handler(add_admin_conv)
+
+remove_admin_conv = ConversationHandler(
+    entry_points=[CommandHandler('remove_admin', start_remove_admin, filters=filters.ChatType.PRIVATE)],
+    states={WAITING_REMOVE_FORWARD: [MessageHandler(filters.FORWARDED & ~filters.COMMAND, receive_remove_forward)]},
+    fallbacks=[],
+)
+application.add_handler(remove_admin_conv)
+
+application.add_handler(CommandHandler('list_admins', list_admins_command))
+application.add_handler(CommandHandler('pendingrequests', pending_requests_command, filters=filters.ChatType.PRIVATE))
+application.add_handler(CommandHandler('myclaimedrequests', my_claimed_requests_command, filters=filters.ChatType.PRIVATE))
 # ============================================================
 # ОТКЛЮЧЕНО (используют старую объединённую character-модель,
 # сломаются при вызове; ждут переработки на Этапах D/E):

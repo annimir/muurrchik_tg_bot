@@ -1,21 +1,21 @@
 import logging
 
-from telegram import Update
-from telegram.ext import ContextTypes, ConversationHandler, filters
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes, ConversationHandler
 
 from database.queries import (
     add_flavor_role, get_flavor_role_by_name, get_users_with_role,
-    delete_flavor_role, get_all_flavor_roles, get_user_by_tg_id, create_user, get_users_without_role,
+    delete_flavor_role, get_all_flavor_roles, get_user_by_tg_id, create_user,
+    get_users_without_role, get_user_flavor_role, get_user_language,
 )
-
 from services.flavor_roles import assign_random_role
-from services.admin import is_admin, admin_lang
+from services.admin import is_admin
 from message.loader import message
 from message.keys import (
     common_private_only, roles_not_admin, roles_usage_add, roles_added, roles_already_exists,
     roles_usage_remove, roles_not_found, roles_removed, roles_list_header, roles_list_empty,
     roles_reroll_prompt, roles_reroll_forward_invalid, roles_reroll_done, roles_no_roles_available,
-    backfill_none_needed, backfill_done,
+    backfill_done, backfill_none_needed,
 )
 
 logger = logging.getLogger(__name__)
@@ -23,17 +23,14 @@ logger = logging.getLogger(__name__)
 WAITING_REROLL_FORWARD = range(1)[0]
 
 
-def _guard_ok(update: Update, lang: str) -> bool:
-    return update.effective_chat.type == 'private' and is_admin(update.effective_user.id)
-
-
 async def add_role_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = admin_lang()
+    user = update.effective_user
+    lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
         await update.message.reply_text(message(lang, common_private_only, 'common'))
         return
-    if not is_admin(update.effective_user.id):
+    if not is_admin(user.id):
         await update.message.reply_text(message(lang, roles_not_admin, 'roles'))
         return
 
@@ -48,17 +45,18 @@ async def add_role_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(message(lang, roles_already_exists, 'roles', name))
         return
 
-    logger.info("Админ добавил роль '%s' (id=%d)", name, role_id)
+    logger.info("Админ %s добавил роль '%s' (id=%d)", user.id, name, role_id)
     await update.message.reply_text(message(lang, roles_added, 'roles', name))
 
 
 async def remove_role_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = admin_lang()
+    user = update.effective_user
+    lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
         await update.message.reply_text(message(lang, common_private_only, 'common'))
         return
-    if not is_admin(update.effective_user.id):
+    if not is_admin(user.id):
         await update.message.reply_text(message(lang, roles_not_admin, 'roles'))
         return
 
@@ -75,7 +73,7 @@ async def remove_role_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     affected_users = get_users_with_role(role['id'])
     delete_flavor_role(role['id'])
-    logger.info("Админ удалил роль '%s', затронуто пользователей: %d", name, len(affected_users))
+    logger.info("Админ %s удалил роль '%s', затронуто пользователей: %d", user.id, name, len(affected_users))
 
     reassigned = 0
     for u in affected_users:
@@ -89,12 +87,13 @@ async def remove_role_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def list_roles_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = admin_lang()
+    user = update.effective_user
+    lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
         await update.message.reply_text(message(lang, common_private_only, 'common'))
         return
-    if not is_admin(update.effective_user.id):
+    if not is_admin(user.id):
         await update.message.reply_text(message(lang, roles_not_admin, 'roles'))
         return
 
@@ -110,12 +109,13 @@ async def list_roles_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def start_reroll_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = admin_lang()
+    user = update.effective_user
+    lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
         await update.message.reply_text(message(lang, common_private_only, 'common'))
         return ConversationHandler.END
-    if not is_admin(update.effective_user.id):
+    if not is_admin(user.id):
         await update.message.reply_text(message(lang, roles_not_admin, 'roles'))
         return ConversationHandler.END
 
@@ -128,7 +128,7 @@ async def start_reroll_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def receive_reroll_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = admin_lang()
+    lang = get_user_language(update.effective_user.id)
     origin = update.message.forward_origin
 
     if origin is None or origin.type != 'user':
@@ -142,7 +142,6 @@ async def receive_reroll_forward(update: Update, context: ContextTypes.DEFAULT_T
         create_user(target_user.id, target_user.username or target_user.full_name)
         db_user = get_user_by_tg_id(target_user.id)
 
-    from database.queries import get_user_flavor_role
     old_role = get_user_flavor_role(db_user['id'])
     old_role_id = old_role['id'] if old_role else None
 
@@ -158,18 +157,19 @@ async def receive_reroll_forward(update: Update, context: ContextTypes.DEFAULT_T
     )
     return ConversationHandler.END
 
+
 async def backfill_cards_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = admin_lang()
+    user = update.effective_user
+    lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
         await update.message.reply_text(message(lang, common_private_only, 'common'))
         return
-    if not is_admin(update.effective_user.id):
+    if not is_admin(user.id):
         await update.message.reply_text(message(lang, roles_not_admin, 'roles'))
         return
 
     users = get_users_without_role()
-
     if not users:
         await update.message.reply_text(message(lang, backfill_none_needed, 'backfill'))
         return
@@ -177,5 +177,5 @@ async def backfill_cards_command(update: Update, context: ContextTypes.DEFAULT_T
     for u in users:
         assign_random_role(u['id'])
 
-    logger.info("Админ выполнил бэкафилл ролей для %d пользователей без роли", len(users))
+    logger.info("Админ %s выполнил бэкафилл ролей для %d пользователей без роли", user.id, len(users))
     await update.message.reply_text(message(lang, backfill_done, 'backfill', len(users)))

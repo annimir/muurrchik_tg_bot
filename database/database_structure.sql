@@ -147,3 +147,26 @@ CREATE TABLE IF NOT EXISTS card_requests (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     resolved_at TIMESTAMPTZ
 );
+
+CREATE TABLE IF NOT EXISTS admins (
+    tg_id BIGINT PRIMARY KEY
+);
+
+ALTER TABLE character_requests ADD COLUMN IF NOT EXISTS claimed_by BIGINT;
+ALTER TABLE character_requests ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ;
+ALTER TABLE character_requests ADD COLUMN IF NOT EXISTS requester_display_name TEXT;
+ALTER TABLE character_requests ADD COLUMN IF NOT EXISTS requester_username TEXT;
+
+ALTER TABLE card_requests ADD COLUMN IF NOT EXISTS claimed_by BIGINT;
+ALTER TABLE card_requests ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ;
+ALTER TABLE card_requests ADD COLUMN IF NOT EXISTS requester_display_name TEXT;
+ALTER TABLE card_requests ADD COLUMN IF NOT EXISTS requester_username TEXT;
+
+CREATE TABLE IF NOT EXISTS request_notifications (
+    id           SERIAL PRIMARY KEY,
+    request_type TEXT NOT NULL,   -- 'character' | 'card'
+    request_id   INTEGER NOT NULL,
+    admin_tg_id  BIGINT NOT NULL,
+    message_id   BIGINT NOT NULL,
+    UNIQUE (request_type, request_id, admin_tg_id)
+);

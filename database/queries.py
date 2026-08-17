@@ -6,10 +6,15 @@ tables_path = 'database/database_structure.sql'
 db = Database(config.pg_dsn)
 db.execute_file(tables_path)
 
-# ---------- USERS / AUTH ----------
+
+# ==================== USERS / AUTH ====================
 
 def get_user_by_tg_id(tg_id):
     return db('SELECT * FROM users WHERE tg_id = %s', (tg_id,)).one()
+
+
+def get_user_by_id(user_id):
+    return db('SELECT * FROM users WHERE id = %s', (user_id,)).one()
 
 
 def create_user(tg_id, tag):
@@ -28,7 +33,7 @@ def get_all_users():
     return db('SELECT * FROM users').all()
 
 
-# ---------- LANGUAGE ----------
+# ==================== LANGUAGE ====================
 
 def get_user_language(tg_id) -> str:
     row = db('SELECT language FROM users WHERE tg_id = %s', (tg_id,)).one()
@@ -39,43 +44,40 @@ def set_user_language(tg_id, language: str):
     db('UPDATE users SET language = %s WHERE tg_id = %s', (language, tg_id)).close()
 
 
-# ---------- BIRTHDAYS (старая chat_id-модель — упростится на Этапе D) ----------
+# ==================== BIRTHDAYS — пользователи (упрощено на Этапе D5, без chat_id) ====================
 
-def set_birthday(tg_id, tag, chat_id, day, month, year=None):
+def set_birthday(tg_id, tag, day, month, year=None):
     user = get_user_by_tg_id(tg_id)
     if not user:
         create_user(tg_id, tag)
 
     query = '''
-        INSERT INTO birthdays (user_id, chat_id, day, month, year)
-        VALUES ((SELECT id FROM users WHERE tg_id = %s), %s, %s, %s, %s)
-        ON CONFLICT (user_id, chat_id)
+        INSERT INTO birthdays (user_id, day, month, year)
+        VALUES ((SELECT id FROM users WHERE tg_id = %s), %s, %s, %s)
+        ON CONFLICT (user_id)
         DO UPDATE SET day = EXCLUDED.day, month = EXCLUDED.month, year = EXCLUDED.year
     '''
-    db(query, (tg_id, chat_id, day, month, year)).close()
+    db(query, (tg_id, day, month, year)).close()
 
 
-def get_birthday(tg_id, chat_id):
+def get_birthday(tg_id):
     query = '''
         SELECT b.day, b.month, b.year
         FROM birthdays b
         JOIN users u ON u.id = b.user_id
-        WHERE u.tg_id = %s AND b.chat_id = %s
+        WHERE u.tg_id = %s
     '''
-    return db(query, (tg_id, chat_id)).one()
+    return db(query, (tg_id,)).one()
 
 
-def delete_birthday(tg_id, chat_id):
-    query = '''
-        DELETE FROM birthdays
-        WHERE user_id = (SELECT id FROM users WHERE tg_id = %s) AND chat_id = %s
-    '''
-    db(query, (tg_id, chat_id)).close()
+def delete_birthday(tg_id):
+    query = 'DELETE FROM birthdays WHERE user_id = (SELECT id FROM users WHERE tg_id = %s)'
+    db(query, (tg_id,)).close()
 
 
 def get_todays_birthdays(day, month):
     query = '''
-        SELECT u.tg_id, u.tag, b.chat_id, b.year
+        SELECT u.tg_id, u.tag
         FROM birthdays b
         JOIN users u ON u.id = b.user_id
         WHERE b.day = %s AND b.month = %s
@@ -83,18 +85,30 @@ def get_todays_birthdays(day, month):
     return db(query, (day, month)).all()
 
 
-def get_chat_birthdays(chat_id):
+def get_all_birthdays():
     query = '''
         SELECT u.tg_id, u.tag, b.day, b.month, b.year
         FROM birthdays b
         JOIN users u ON u.id = b.user_id
-        WHERE b.chat_id = %s
         ORDER BY b.month, b.day
     '''
-    return db(query, (chat_id,)).all()
+    return db(query).all()
 
 
-# ---------- CHATS / MEMBERSHIP (Этап 3 первого раунда) ----------
+# ==================== BIRTHDAYS — персонажи (Этап D4) ====================
+
+def get_todays_character_birthdays(day, month):
+    query = '''
+        SELECT c.id, c.name, u.tg_id AS owner_tg_id, u.tag AS owner_username
+        FROM character c
+        JOIN users u ON u.id = c.owner_user_id
+        WHERE EXTRACT(DAY FROM c.birth_date)::int = %s
+          AND EXTRACT(MONTH FROM c.birth_date)::int = %s
+    '''
+    return db(query, (day, month)).all()
+
+
+# ==================== CHATS / ЧЛЕНСТВО (Этап 3 первого раунда) ====================
 
 def upsert_chat(chat_id, title):
     query = '''
@@ -141,6 +155,8 @@ def mark_user_returned(user_id):
     db('UPDATE users SET left_at = NULL, deletion_warned_at = NULL WHERE id = %s', (user_id,)).close()
 
 
+# ==================== АВТООЧИСТКА НЕАКТИВНЫХ (Этап 3 первого раунда) ====================
+
 def get_users_pending_warning():
     query = '''
         SELECT id, tg_id, language
@@ -165,17 +181,10 @@ def get_users_pending_deletion():
 
 
 def delete_user_completely(user_id):
-    """
-    ИСПРАВЛЕНО: раньше здесь был отдельный вызов delete_orphaned_bot_characters(),
-    который фильтровал по character.source — колонки, которой больше нет
-    после Этапа A. Теперь character.owner_user_id -> users.id имеет
-    ON DELETE CASCADE, так что удаление пользователя само каскадно
-    удаляет его персонажей. Отдельный шаг не нужен.
-    """
     db('DELETE FROM users WHERE id = %s', (user_id,)).close()
 
 
-# ---------- FLAVOR ROLES (Этап 4 первого раунда) ----------
+# ==================== FLAVOR ROLES (Этап 4 первого раунда) ====================
 
 def get_all_flavor_roles():
     return db('SELECT id, name FROM flavor_roles').all()
@@ -221,7 +230,7 @@ def get_users_without_role():
     return db('SELECT id, tg_id FROM users WHERE flavor_role_id IS NULL').all()
 
 
-# ---------- GAMES (Этап 5 первого раунда) ----------
+# ==================== GAMES (Этап 5 первого раунда) ====================
 
 def get_user_games(user_id) -> set[str]:
     rows = db('SELECT game_code FROM user_games WHERE user_id = %s', (user_id,)).all()
@@ -238,7 +247,7 @@ def toggle_user_game(user_id, game_code):
         db('INSERT INTO user_games (user_id, game_code) VALUES (%s, %s)', (user_id, game_code)).close()
 
 
-# ---------- TAG (Этап A) ----------
+# ==================== TAG (Этап A) ====================
 
 def get_tag_by_name(name):
     return db('SELECT * FROM tag WHERE lower(name) = lower(%s)', (name,)).one()
@@ -291,19 +300,13 @@ def get_all_tag_aliases():
 
 
 def set_tag_status(tag_id, status):
-    """Добавлено на Этапе B1."""
     valid = {'ACTIVE', 'DELETED', 'BLOCKED'}
     if status not in valid:
         raise ValueError(f'Недопустимый статус: {status}')
     db('UPDATE tag SET status = %s WHERE id = %s', (status, tag_id)).close()
 
+
 def find_any_tag_or_alias_owner(name):
-    """
-    Точное совпадение (без учёта регистра) с именем тега или его алиасом,
-    НЕЗАВИСИМО от статуса. Нужно поймать коллизию с DELETED/BLOCKED тегом,
-    которого нет в TagStorage-кэше — иначе create_tag()/add_tag_alias()
-    упадёт на UNIQUE-ограничении вместо понятного сообщения пользователю.
-    """
     query = '''
         SELECT name, status FROM tag WHERE lower(name) = lower(%s)
         UNION
@@ -314,12 +317,8 @@ def find_any_tag_or_alias_owner(name):
     '''
     return db(query, (name, name)).one()
 
-# ---------- SUBSCRIPTION (Этап A) ----------
-# ИСПРАВЛЕНО: все функции принимают tg_id (а не внутренний users.id),
-# как и весь остальной проект (see set_birthday и т.д.) — раньше в
-# первом черновике Этапа A была нестыковка: subscribe_tag/unsubscribe_tag
-# ожидали внутренний id, а вызывающий код передавал бы tg_id. Теперь
-# соответствие единообразно по всему файлу.
+
+# ==================== SUBSCRIPTION (Этап A) ====================
 
 def subscribe_tag(tg_id, tag_id):
     query = '''
@@ -376,12 +375,16 @@ def get_tag_subscribers(tag_id):
     '''
     return db(query, (tag_id,)).all()
 
+
+# ==================== TAG_USAGE / СТАТИСТИКА (Этап B4/B5) ====================
+
 def log_tag_usage(tag_id, telegram_message_id, author_tg_id, media_type):
     query = '''
         INSERT INTO tag_usage (tag_id, telegram_message_id, author_tg_id, media_type)
         VALUES (%s, %s, %s, %s)
     '''
     db(query, (tag_id, telegram_message_id, author_tg_id, media_type)).close()
+
 
 def get_tag_subscriber_count(tag_id) -> int:
     row = db("SELECT COUNT(*) AS cnt FROM subscription WHERE tag_id = %s AND active = TRUE", (tag_id,)).one()
@@ -397,11 +400,6 @@ def get_tag_usage_count(tag_id, days=30) -> int:
 
 
 def get_top_tags_by_subscribers(limit: int | None = None):
-    """
-    ИСПРАВЛЕНО (B5): раньше топ считался в Python-цикле — по запросу
-    get_tag_subscribers() на КАЖДЫЙ тег отдельно (N+1). Теперь один
-    агрегирующий SQL-запрос.
-    """
     query = '''
         SELECT t.name, COUNT(s.id) AS cnt
         FROM tag t
@@ -430,7 +428,6 @@ def get_top_tags_by_usage(days: int = 30, limit: int | None = None):
 
 
 def get_top_users_by_subscriptions(limit: int | None = None):
-    """ИСПРАВЛЕНО (B5): тот же N+1, что и у тегов, теперь одним запросом."""
     query = '''
         SELECT u.tag AS username, COUNT(s.id) AS cnt
         FROM users u
@@ -442,7 +439,9 @@ def get_top_users_by_subscriptions(limit: int | None = None):
         return db(query + ' LIMIT %s', (limit,)).all()
     return db(query).all()
 
-# ---------- CHARACTER ----------
+
+# ==================== CHARACTER (Этап D) ====================
+
 def is_character_name_taken(name) -> bool:
     row = db('SELECT 1 FROM character WHERE lower(name) = lower(%s)', (name,)).one()
     return row is not None
@@ -475,72 +474,7 @@ def create_character_row(owner_user_id, name, birth_date, photo_file_id, descrip
     return db(query, (owner_user_id, name, birth_date, photo_file_id, description, is_primary)).one()
 
 
-def set_character_primary(user_id, character_id):
-    """
-    Снимает is_primary со всех персонажей пользователя, затем ставит на
-    выбранного — именно в этом порядке. На character (owner_user_id) уже
-    есть частичный UNIQUE-индекс "один основной на пользователя" (Этап A),
-    так что промежуточное состояние "все is_primary=FALSE" не конфликтует
-    с ним, а прыжок сразу в "два TRUE" — конфликтовал бы.
-    """
-    db('UPDATE character SET is_primary = FALSE WHERE owner_user_id = %s', (user_id,)).close()
-    db('UPDATE character SET is_primary = TRUE WHERE id = %s AND owner_user_id = %s', (character_id, user_id)).close()
-
-
-def get_primary_character(user_id):
-    return db('SELECT * FROM character WHERE owner_user_id = %s AND is_primary = TRUE', (user_id,)).one()
-
-
-# ---------- CHARACTER REQUESTS (Этап D) ----------
-
-def create_character_request(
-    request_type, user_id, chat_id, character_id=None,
-    name=None, birth_date=None, description=None, photo_file_id=None,
-):
-    query = '''
-        INSERT INTO character_requests
-            (request_type, user_id, character_id, chat_id, name, birth_date, description, photo_file_id)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id
-    '''
-    row = db(query, (
-        request_type, user_id, character_id, chat_id, name, birth_date, description, photo_file_id,
-    )).one()
-    return row['id']
-
-
-def get_character_request_by_id(request_id):
-    return db('SELECT * FROM character_requests WHERE id = %s', (request_id,)).one()
-
-
-def update_character_request_status(request_id, status):
-    db(
-        'UPDATE character_requests SET status = %s, resolved_at = now() WHERE id = %s',
-        (status, request_id),
-    ).close()
-
-
-def get_user_character_requests(user_id):
-    query = 'SELECT * FROM character_requests WHERE user_id = %s ORDER BY created_at DESC'
-    return db(query, (user_id,)).all()
-
-def get_user_by_id(user_id):
-    return db('SELECT * FROM users WHERE id = %s', (user_id,)).one()
-
-
-def update_character_request_field(request_id, field, value):
-    allowed = {'name', 'birth_date', 'description', 'photo_file_id'}
-    if field not in allowed:
-        raise ValueError(f'Недопустимое поле: {field}')
-    db(f'UPDATE character_requests SET {field} = %s WHERE id = %s', (value, request_id)).close()
-
 def apply_character_edit(character_id, description=None, photo_file_id=None, birth_date=None):
-    """
-    ЗАМЕНЯЕТ update_character_fields(). Частичное обновление —
-    трогает только переданные (не None) поля, а не все три разом.
-    Нужно для одобрения заявок request_type='edit' (D2b), где заявка
-    несёт только ОДНО изменённое поле, а остальные NULL.
-    """
     fields = []
     params = []
 
@@ -560,66 +494,61 @@ def apply_character_edit(character_id, description=None, photo_file_id=None, bir
     params.append(character_id)
     db(f'UPDATE character SET {", ".join(fields)} WHERE id = %s', tuple(params)).close()
 
-def get_todays_character_birthdays(day, month):
+
+def set_character_primary(user_id, character_id):
+    db('UPDATE character SET is_primary = FALSE WHERE owner_user_id = %s', (user_id,)).close()
+    db('UPDATE character SET is_primary = TRUE WHERE id = %s AND owner_user_id = %s', (character_id, user_id)).close()
+
+
+def get_primary_character(user_id):
+    return db('SELECT * FROM character WHERE owner_user_id = %s AND is_primary = TRUE', (user_id,)).one()
+
+
+# ==================== CHARACTER REQUESTS (Этап D) ====================
+
+def create_character_request(
+    request_type, user_id, chat_id, character_id=None,
+    name=None, birth_date=None, description=None, photo_file_id=None,
+    requester_display_name=None, requester_username=None,
+):
     query = '''
-        SELECT c.id, c.name, u.tg_id AS owner_tg_id, u.tag AS owner_username
-        FROM character c
-        JOIN users u ON u.id = c.owner_user_id
-        WHERE EXTRACT(DAY FROM c.birth_date)::int = %s
-          AND EXTRACT(MONTH FROM c.birth_date)::int = %s
+        INSERT INTO character_requests
+            (request_type, user_id, character_id, chat_id, name, birth_date, description, photo_file_id,
+             requester_display_name, requester_username)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
     '''
-    return db(query, (day, month)).all()
-
-def set_birthday(tg_id, tag, day, month, year=None):
-    user = get_user_by_tg_id(tg_id)
-    if not user:
-        create_user(tg_id, tag)
-
-    query = '''
-        INSERT INTO birthdays (user_id, day, month, year)
-        VALUES ((SELECT id FROM users WHERE tg_id = %s), %s, %s, %s)
-        ON CONFLICT (user_id)
-        DO UPDATE SET day = EXCLUDED.day, month = EXCLUDED.month, year = EXCLUDED.year
-    '''
-    db(query, (tg_id, day, month, year)).close()
+    row = db(query, (
+        request_type, user_id, character_id, chat_id, name, birth_date, description, photo_file_id,
+        requester_display_name, requester_username,
+    )).one()
+    return row['id']
 
 
-def get_birthday(tg_id):
-    query = '''
-        SELECT b.day, b.month, b.year
-        FROM birthdays b
-        JOIN users u ON u.id = b.user_id
-        WHERE u.tg_id = %s
-    '''
-    return db(query, (tg_id,)).one()
+def get_character_request_by_id(request_id):
+    return db('SELECT * FROM character_requests WHERE id = %s', (request_id,)).one()
 
 
-def delete_birthday(tg_id):
-    query = 'DELETE FROM birthdays WHERE user_id = (SELECT id FROM users WHERE tg_id = %s)'
-    db(query, (tg_id,)).close()
+def update_character_request_status(request_id, status):
+    db(
+        'UPDATE character_requests SET status = %s, resolved_at = now() WHERE id = %s',
+        (status, request_id),
+    ).close()
 
 
-def get_todays_birthdays(day, month):
-    query = '''
-        SELECT u.tg_id, u.tag
-        FROM birthdays b
-        JOIN users u ON u.id = b.user_id
-        WHERE b.day = %s AND b.month = %s
-    '''
-    return db(query, (day, month)).all()
+def update_character_request_field(request_id, field, value):
+    allowed = {'name', 'birth_date', 'description', 'photo_file_id'}
+    if field not in allowed:
+        raise ValueError(f'Недопустимое поле: {field}')
+    db(f'UPDATE character_requests SET {field} = %s WHERE id = %s', (value, request_id)).close()
 
 
-def get_all_birthdays():
-    """ЗАМЕНЯЕТ get_chat_birthdays(chat_id) — список один на весь бот."""
-    query = '''
-        SELECT u.tg_id, u.tag, b.day, b.month, b.year
-        FROM birthdays b
-        JOIN users u ON u.id = b.user_id
-        ORDER BY b.month, b.day
-    '''
-    return db(query).all()
+def get_user_character_requests(user_id):
+    query = 'SELECT * FROM character_requests WHERE user_id = %s ORDER BY created_at DESC'
+    return db(query, (user_id,)).all()
 
-# ---------- USER_CARD (Этап E) ----------
+
+# ==================== USER_CARD (Этап E) ====================
 
 def get_user_card(user_id):
     return db('SELECT * FROM user_card WHERE user_id = %s', (user_id,)).one()
@@ -634,17 +563,7 @@ def upsert_user_card_bio(user_id, bio):
     db(query, (user_id, bio)).close()
 
 
-# ---------- CARD REQUESTS  ----------
-
-def create_card_request(user_id, chat_id, bio):
-    query = '''
-        INSERT INTO card_requests (user_id, chat_id, bio)
-        VALUES (%s, %s, %s)
-        RETURNING id
-    '''
-    row = db(query, (user_id, chat_id, bio)).one()
-    return row['id']
-
+# ==================== CARD REQUESTS (Этап E) ====================
 
 def get_card_request_by_id(request_id):
     return db('SELECT * FROM card_requests WHERE id = %s', (request_id,)).one()
@@ -657,9 +576,101 @@ def update_card_request_status(request_id, status):
     ).close()
 
 
+def update_card_request_bio(request_id, bio):
+    db('UPDATE card_requests SET bio = %s WHERE id = %s', (bio, request_id)).close()
+
+
 def get_user_card_requests(user_id):
     query = 'SELECT * FROM card_requests WHERE user_id = %s ORDER BY created_at DESC'
     return db(query, (user_id,)).all()
 
-def update_card_request_bio(request_id, bio):
-    db('UPDATE card_requests SET bio = %s WHERE id = %s', (bio, request_id)).close()
+def get_all_admin_ids() -> set[int]:
+    rows = db('SELECT tg_id FROM admins').all()
+    return {row['tg_id'] for row in rows}
+
+
+def add_admin(tg_id):
+    db('INSERT INTO admins (tg_id) VALUES (%s) ON CONFLICT DO NOTHING', (tg_id,)).close()
+
+
+def remove_admin(tg_id):
+    db('DELETE FROM admins WHERE tg_id = %s', (tg_id,)).close()
+
+
+def count_admins() -> int:
+    return db('SELECT COUNT(*) AS cnt FROM admins').one()['cnt']
+
+
+def bootstrap_admin_if_empty(tg_id):
+    """Если таблица admins пуста — засеваем её значением из конфига.
+    Решает проблему курицы и яйца: без этого некому было бы выдать
+    первого админа, раз добавлять админов может только админ."""
+    if count_admins() == 0:
+        add_admin(tg_id)
+
+_REQUEST_TABLES = {'character': 'character_requests', 'card': 'card_requests'}
+# ^ ключ 'request_type' всегда приходит как литерал из нашего же кода
+# (никогда напрямую из пользовательского ввода/callback_data без сверки) —
+# f-string с именем таблицы безопасен по той же логике, что и в
+# update_character_request_field
+
+def claim_request(request_type, request_id, admin_tg_id):
+    table = _REQUEST_TABLES[request_type]
+    db(f'UPDATE {table} SET claimed_by = %s, claimed_at = now() WHERE id = %s', (admin_tg_id, request_id)).close()
+
+
+def release_request(request_type, request_id):
+    table = _REQUEST_TABLES[request_type]
+    db(f'UPDATE {table} SET claimed_by = NULL, claimed_at = NULL WHERE id = %s', (request_id,)).close()
+
+
+def save_request_notification(request_type, request_id, admin_tg_id, message_id):
+    query = '''
+        INSERT INTO request_notifications (request_type, request_id, admin_tg_id, message_id)
+        VALUES (%s, %s, %s, %s)
+        ON CONFLICT (request_type, request_id, admin_tg_id) DO UPDATE SET message_id = EXCLUDED.message_id
+    '''
+    db(query, (request_type, request_id, admin_tg_id, message_id)).close()
+
+
+def get_request_notifications(request_type, request_id):
+    query = 'SELECT admin_tg_id, message_id FROM request_notifications WHERE request_type = %s AND request_id = %s'
+    return db(query, (request_type, request_id)).all()
+
+def create_card_request(user_id, chat_id, bio, requester_display_name=None, requester_username=None):
+    query = '''
+        INSERT INTO card_requests (user_id, chat_id, bio, requester_display_name, requester_username)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING id
+    '''
+    row = db(query, (user_id, chat_id, bio, requester_display_name, requester_username)).one()
+    return row['id']
+
+
+def get_pending_unclaimed_requests():
+    """Объединённая очередь: заявки обоих типов, ожидающие взятия в работу."""
+    query = '''
+        SELECT 'character' AS request_type, id, name AS label, created_at
+        FROM character_requests
+        WHERE status = 'pending' AND claimed_by IS NULL
+        UNION ALL
+        SELECT 'card' AS request_type, id, LEFT(bio, 40) AS label, created_at
+        FROM card_requests
+        WHERE status = 'pending' AND claimed_by IS NULL
+        ORDER BY created_at
+    '''
+    return db(query).all()
+
+
+def get_my_claimed_requests(admin_tg_id):
+    query = '''
+        SELECT 'character' AS request_type, id, name AS label, claimed_at
+        FROM character_requests
+        WHERE status = 'pending' AND claimed_by = %s
+        UNION ALL
+        SELECT 'card' AS request_type, id, LEFT(bio, 40) AS label, claimed_at
+        FROM card_requests
+        WHERE status = 'pending' AND claimed_by = %s
+        ORDER BY claimed_at
+    '''
+    return db(query, (admin_tg_id, admin_tg_id)).all()

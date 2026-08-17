@@ -1,9 +1,11 @@
 import logging
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import TelegramError
 from telegram.ext import ContextTypes, ConversationHandler
 
-from database.queries import get_user_by_tg_id, create_card_request, get_user_card_requests, get_user_language
+from database.queries import get_user_by_tg_id, create_card_request, get_user_card_requests, get_user_language, \
+    get_all_admin_ids
 from config import config
 from message.loader import message
 from message.keys import (
@@ -32,7 +34,10 @@ async def receive_bio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db_user = get_user_by_tg_id(user.id)
     chat_id = context.user_data.pop('cardreq_chat_id', update.effective_chat.id)
 
-    request_id = create_card_request(user_id=db_user['id'], chat_id=chat_id, bio=bio)
+    request_id = create_card_request(
+        user_id=db_user['id'], chat_id=chat_id, bio=bio,
+        requester_display_name=user.full_name, requester_username=user.username,
+    )
     logger.info("Пользователь %s подал заявку #%d на изменение карточки", user.id, request_id)
     await update.message.reply_text(message(lang, cardreq_submitted, 'cardreq'))
 
@@ -41,21 +46,22 @@ async def receive_bio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def notify_admin_new_card_request(context, request_id, bio, user):
-    admin_lang_value = get_user_language(int(config.admin_user_id))
+    """рассылается всем админам, изначально только кнопка "Взять в работу"."""
+    from services.request_broadcast import broadcast_to_admins
+    from message.keys import req_claim_button
 
-    keyboard = [
-        [InlineKeyboardButton(message(admin_lang_value, cardreq_admin_button_approve, 'cardreq'), callback_data=f'cardreqaction:{request_id}:approve')],
-        [InlineKeyboardButton(message(admin_lang_value, cardreq_admin_button_edit, 'cardreq'), callback_data=f'cardreqaction:{request_id}:edit')],
-        [InlineKeyboardButton(message(admin_lang_value, cardreq_admin_button_reject, 'cardreq'), callback_data=f'cardreqaction:{request_id}:reject')],
-    ]
-    text = message(
-        admin_lang_value, cardreq_admin_notification, 'cardreq',
-        request_id, user.full_name, user.username or '—', bio,
-    )
-    await context.bot.send_message(
-        config.admin_user_id, text=text, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard),
-    )
+    async def send_fn(admin_tg_id):
+        admin_lang_value = get_user_language(admin_tg_id)
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton(message(admin_lang_value, req_claim_button, 'reqclaim'), callback_data=f'cardreqaction:{request_id}:claim'),
+        ]])
+        text = message(
+            admin_lang_value, cardreq_admin_notification, 'cardreq',
+            request_id, user.full_name, user.username or '—', bio,
+        )
+        return await context.bot.send_message(admin_tg_id, text=text, parse_mode='Markdown', reply_markup=keyboard)
 
+    await broadcast_to_admins(context, 'card', request_id, send_fn)
 
 async def cancel_card_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)

@@ -9,9 +9,11 @@ from database.queries import (
     get_character_request_by_id, update_character_request_status, update_character_request_field,
     is_character_name_taken, get_user_character_count, create_character_row, apply_character_edit,
     get_character_by_id, get_tag_by_name, create_tag, get_user_by_id, get_user_language,
+    claim_request, release_request,
 )
 from services.tag_storage import tag_storage
-from services.admin import is_admin, admin_lang
+from services.admin import is_admin
+from services.request_broadcast import sync_all_copies
 from message.loader import message
 from message.keys import (
     charreq_admin_already_resolved, charreq_admin_approved_suffix, charreq_admin_rejected_suffix,
@@ -19,10 +21,12 @@ from message.keys import (
     charreq_admin_choose_edit_field, charreq_admin_enter_new_value, charreq_admin_enter_new_photo,
     charreq_admin_updated_preview, charreq_edit_admin_updated_preview,
     charreq_admin_field_name, charreq_admin_field_birthdate, charreq_admin_field_description, charreq_admin_field_photo,
-    charreq_photo_invalid, charreq_birthdate_invalid,
+    charreq_photo_invalid, charreq_birthdate_invalid, charreq_summary_label,
     charreq_admin_button_approve, charreq_admin_button_edit, charreq_admin_button_reject,
     charreq_user_approved, charreq_user_approved_primary, charreq_user_rejected,
     charreq_edit_user_approved, charreq_edit_user_rejected,
+    req_claim_button, req_release_button, req_claimed_summary, req_unclaimed_again,
+    req_claim_race_lost, req_not_claimed_by_you,
 )
 
 logger = logging.getLogger(__name__)
@@ -55,46 +59,109 @@ def _parse_birthdate(raw: str):
         return None
 
 
-async def _set_review_message(query, text: str):
-    """
-    ИСПРАВЛЕНО (сверка после D2b): заменяет ВЕСЬ текст итогового сообщения.
-    Заявки на создание — всегда фото с caption (edit_message_caption),
-    заявки на редактирование могут быть чистым текстом (edit_message_text).
-    Используется, когда нет смысла что-то ДОписывать (например, заявка
-    уже была обработана кем-то ещё до этого нажатия).
-    """
+def _summary_label(req, lang):
+    owner_label = req['requester_display_name'] or str(req['user_id'])
+    return message(lang, charreq_summary_label, 'charreq', req['name'], req['id'], owner_label)
+
+
+def _claim_keyboard(request_id, lang):
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(message(lang, req_claim_button, 'reqclaim'), callback_data=f'charreqaction:{request_id}:claim'),
+    ]])
+
+
+def _working_keyboard(request_id, lang):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(message(lang, charreq_admin_button_approve, 'charreq'), callback_data=f'charreqaction:{request_id}:approve')],
+        [InlineKeyboardButton(message(lang, charreq_admin_button_edit, 'charreq'), callback_data=f'charreqaction:{request_id}:edit')],
+        [InlineKeyboardButton(message(lang, charreq_admin_button_reject, 'charreq'), callback_data=f'charreqaction:{request_id}:reject')],
+        [InlineKeyboardButton(message(lang, req_release_button, 'reqclaim'), callback_data=f'charreqaction:{request_id}:release')],
+    ])
+
+
+async def _set_review_message(query, text, markup=None):
     if query.message.photo:
-        await query.edit_message_caption(text)
+        await query.edit_message_caption(caption=text, parse_mode='Markdown', reply_markup=markup)
     else:
-        await query.edit_message_text(text)
+        await query.edit_message_text(text=text, parse_mode='Markdown', reply_markup=markup)
 
 
 async def _append_to_review_message(query, suffix: str):
-    """То же самое различение caption/text, но ДОписывает суффикс к уже
-    существующему содержимому (для успешного approve/reject)."""
     if query.message.photo:
-        await query.edit_message_caption(query.message.caption + suffix)
+        await query.edit_message_caption(caption=query.message.caption + suffix, reply_markup=None)
     else:
-        await query.edit_message_text(query.message.text + suffix)
+        await query.edit_message_text(text=query.message.text + suffix, reply_markup=None)
+
+
+async def _finalize_other_copies(context, request_id, req, approved: bool, exclude):
+    def build(other_admin_tg_id):
+        other_lang = get_user_language(other_admin_tg_id)
+        label = _summary_label(req, other_lang)
+        suffix_key = charreq_admin_approved_suffix if approved else charreq_admin_rejected_suffix
+        return label + message(other_lang, suffix_key, 'charreq'), None
+
+    await sync_all_copies(context, 'character', req['id'], build, exclude_admin_tg_id=exclude, is_photo=True)
 
 
 async def character_request_action_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    if not is_admin(update.effective_user.id):
+    admin_tg_id = update.effective_user.id
+    if not is_admin(admin_tg_id):
         return
 
-    lang = admin_lang()
+    lang = get_user_language(admin_tg_id)
     _, request_id, action = query.data.split(':')
     request_id = int(request_id)
     req = get_character_request_by_id(request_id)
 
     if not req or req['status'] != 'pending':
-        # ИСПРАВЛЕНО: раньше здесь была строка с двумя `await` в одном
-        # тернарном выражении (синтаксически рабочая, но плохо читаемая) —
-        # теперь используется тот же хелпер, что и для остальных случаев.
         await _set_review_message(query, message(lang, charreq_admin_already_resolved, 'charreq'))
+        return
+
+    if action == 'claim':
+        if req['claimed_by'] is not None:
+            await query.answer(message(lang, req_claim_race_lost, 'reqclaim'), show_alert=True)
+            return
+
+        claim_request('character', request_id, admin_tg_id)
+        logger.info("Админ %s взял в работу заявку на персонажа #%d", admin_tg_id, request_id)
+
+        current_content = query.message.caption or query.message.text
+        await _set_review_message(query, current_content, _working_keyboard(request_id, lang))
+
+        claimer_name = update.effective_user.full_name
+
+        def build(other_admin_tg_id):
+            other_lang = get_user_language(other_admin_tg_id)
+            label = _summary_label(req, other_lang)
+            return message(other_lang, req_claimed_summary, 'reqclaim', label, claimer_name), None
+
+        await sync_all_copies(context, 'character', request_id, build, exclude_admin_tg_id=admin_tg_id, is_photo=True)
+        return
+
+    if action == 'release':
+        if req['claimed_by'] != admin_tg_id:
+            return
+
+        release_request('character', request_id)
+        logger.info("Админ %s отложил заявку на персонажа #%d", admin_tg_id, request_id)
+
+        label = _summary_label(req, lang)
+        await _set_review_message(query, message(lang, req_unclaimed_again, 'reqclaim', label), _claim_keyboard(request_id, lang))
+
+        def build(other_admin_tg_id):
+            other_lang = get_user_language(other_admin_tg_id)
+            other_label = _summary_label(req, other_lang)
+            return message(other_lang, req_unclaimed_again, 'reqclaim', other_label), _claim_keyboard(request_id, other_lang)
+
+        await sync_all_copies(context, 'character', request_id, build, exclude_admin_tg_id=admin_tg_id, is_photo=True)
+        return
+
+    # approve / edit / reject — только для того, кто взял заявку в работу
+    if req['claimed_by'] != admin_tg_id:
+        await query.answer(message(lang, req_not_claimed_by_you, 'reqclaim'), show_alert=True)
         return
 
     if action == 'approve':
@@ -103,23 +170,23 @@ async def character_request_action_callback(update: Update, context: ContextType
                 logger.warning("Заявка #%d заблокирована — у пользователя уже 3 персонажа", request_id)
                 await query.message.reply_text(message(lang, charreq_admin_max_block, 'charreq'))
                 return
-
             if is_character_name_taken(req['name']):
                 logger.warning("Заявка #%d заблокирована — имя '%s' уже занято", request_id, req['name'])
                 await query.message.reply_text(message(lang, charreq_admin_name_taken_block, 'charreq', req['name']))
                 return
-
             await approve_character_create(context, req)
         else:
             await approve_character_edit_request(context, req)
 
         await _append_to_review_message(query, message(lang, charreq_admin_approved_suffix, 'charreq'))
+        await _finalize_other_copies(context, request_id, req, approved=True, exclude=admin_tg_id)
 
     elif action == 'reject':
         update_character_request_status(request_id, 'rejected')
         await notify_character_request_result(context, req, approved=False)
         await _append_to_review_message(query, message(lang, charreq_admin_rejected_suffix, 'charreq'))
-        logger.info("Админ отклонил заявку #%d (тип %s)", request_id, req['request_type'])
+        logger.info("Админ %s отклонил заявку #%d (тип %s)", admin_tg_id, request_id, req['request_type'])
+        await _finalize_other_copies(context, request_id, req, approved=False, exclude=admin_tg_id)
 
     elif action == 'edit':
         context.user_data['editing_charreq_id'] = request_id
@@ -150,7 +217,7 @@ async def approve_character_create(context, req):
 
     update_character_request_status(req['id'], 'approved')
     await notify_character_request_result(context, req, approved=True, is_primary=is_primary)
-    logger.info("Админ одобрил заявку #%d, создан персонаж #%d (primary=%s)", req['id'], character['id'], is_primary)
+    logger.info("Заявка #%d одобрена, создан персонаж #%d (primary=%s)", req['id'], character['id'], is_primary)
 
 
 async def approve_character_edit_request(context, req):
@@ -162,7 +229,7 @@ async def approve_character_edit_request(context, req):
     )
     update_character_request_status(req['id'], 'approved')
     await notify_character_request_result(context, req, approved=True)
-    logger.info("Админ одобрил заявку на изменение #%d (персонаж #%d)", req['id'], req['character_id'])
+    logger.info("Заявка на изменение #%d одобрена (персонаж #%d)", req['id'], req['character_id'])
 
 
 async def notify_character_request_result(context, req, approved: bool, is_primary: bool = False):
@@ -187,7 +254,7 @@ async def notify_character_request_result(context, req, approved: bool, is_prima
 async def choose_charreq_edit_field(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = admin_lang()
+    lang = get_user_language(update.effective_user.id)
     field = query.data.split(':')[1]
 
     context.user_data['editing_charreq_field'] = field
@@ -201,7 +268,7 @@ async def choose_charreq_edit_field(update: Update, context: ContextTypes.DEFAUL
 
 
 async def receive_charreq_edit_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = admin_lang()
+    lang = get_user_language(update.effective_user.id)
     request_id = context.user_data['editing_charreq_id']
     field = context.user_data['editing_charreq_field']
 

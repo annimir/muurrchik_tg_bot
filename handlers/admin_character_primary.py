@@ -3,8 +3,9 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 
-from database.queries import get_user_by_tg_id, create_user, get_user_characters, set_character_primary
-from services.admin import is_admin, admin_lang
+from database.queries import get_user_by_tg_id, create_user, get_user_characters, set_character_primary, \
+    get_user_language
+from services.admin import is_admin
 from message.loader import message
 from message.keys import (
     common_private_only, common_not_admin,
@@ -18,7 +19,7 @@ WAITING_FORWARD, CHOOSING_CHARACTER = range(2)
 
 
 async def start_admin_setprimary(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = admin_lang()
+    lang = get_user_language(update.effective_user.id)
 
     if update.effective_chat.type != 'private':
         await update.message.reply_text(message(lang, common_private_only, 'common'))
@@ -32,7 +33,7 @@ async def start_admin_setprimary(update: Update, context: ContextTypes.DEFAULT_T
 
 
 async def receive_admin_setprimary_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = admin_lang()
+    lang = get_user_language(update.effective_user.id)
     origin = update.message.forward_origin
 
     if origin is None or origin.type != 'user':
@@ -69,7 +70,7 @@ async def admin_setprimary_callback(update: Update, context: ContextTypes.DEFAUL
     query = update.callback_query
     await query.answer()
 
-    lang = admin_lang()
+    lang = get_user_language(update.effective_user.id)
     data = context.user_data.get('admin_setprimary_target')
     if not data:
         return ConversationHandler.END

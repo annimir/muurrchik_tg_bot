@@ -1,10 +1,5 @@
-from database.queries import get_user_language
-from config import config
-
-
-def admin_lang() -> str:
-    return get_user_language(int(config.admin_user_id))
+from database.queries import get_all_admin_ids
 
 
 def is_admin(user_id: int) -> bool:
-    return int(user_id) == int(config.admin_user_id)
+    return int(user_id) in get_all_admin_ids()
