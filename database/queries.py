@@ -33,6 +33,30 @@ def get_all_users():
     return db('SELECT * FROM users').all()
 
 
+# ==================== ADMINS ====================
+
+def get_all_admin_ids() -> set[int]:
+    rows = db('SELECT tg_id FROM admins').all()
+    return {row['tg_id'] for row in rows}
+
+
+def add_admin(tg_id):
+    db('INSERT INTO admins (tg_id) VALUES (%s) ON CONFLICT DO NOTHING', (tg_id,)).close()
+
+
+def remove_admin(tg_id):
+    db('DELETE FROM admins WHERE tg_id = %s', (tg_id,)).close()
+
+
+def count_admins() -> int:
+    return db('SELECT COUNT(*) AS cnt FROM admins').one()['cnt']
+
+
+def bootstrap_admin_if_empty(tg_id):
+    if count_admins() == 0:
+        add_admin(tg_id)
+
+
 # ==================== LANGUAGE ====================
 
 def get_user_language(tg_id) -> str:
@@ -44,7 +68,7 @@ def set_user_language(tg_id, language: str):
     db('UPDATE users SET language = %s WHERE tg_id = %s', (language, tg_id)).close()
 
 
-# ==================== BIRTHDAYS — пользователи (упрощено на Этапе D5, без chat_id) ====================
+# ==================== BIRTHDAYS — пользователи ===================
 
 def set_birthday(tg_id, tag, day, month, year=None):
     user = get_user_by_tg_id(tg_id)
@@ -108,7 +132,7 @@ def get_todays_character_birthdays(day, month):
     return db(query, (day, month)).all()
 
 
-# ==================== CHATS / ЧЛЕНСТВО (Этап 3 первого раунда) ====================
+# ==================== CHATS / ЧЛЕНСТВО ====================
 
 def upsert_chat(chat_id, title):
     query = '''
@@ -155,7 +179,7 @@ def mark_user_returned(user_id):
     db('UPDATE users SET left_at = NULL, deletion_warned_at = NULL WHERE id = %s', (user_id,)).close()
 
 
-# ==================== АВТООЧИСТКА НЕАКТИВНЫХ (Этап 3 первого раунда) ====================
+# ==================== АВТООЧИСТКА НЕАКТИВНЫХ ====================
 
 def get_users_pending_warning():
     query = '''
@@ -184,7 +208,7 @@ def delete_user_completely(user_id):
     db('DELETE FROM users WHERE id = %s', (user_id,)).close()
 
 
-# ==================== FLAVOR ROLES (Этап 4 первого раунда) ====================
+# ==================== FLAVOR ROLES ====================
 
 def get_all_flavor_roles():
     return db('SELECT id, name FROM flavor_roles').all()
@@ -230,7 +254,7 @@ def get_users_without_role():
     return db('SELECT id, tg_id FROM users WHERE flavor_role_id IS NULL').all()
 
 
-# ==================== GAMES (Этап 5 первого раунда) ====================
+# ==================== GAMES ====================
 
 def get_user_games(user_id) -> set[str]:
     rows = db('SELECT game_code FROM user_games WHERE user_id = %s', (user_id,)).all()
@@ -247,7 +271,7 @@ def toggle_user_game(user_id, game_code):
         db('INSERT INTO user_games (user_id, game_code) VALUES (%s, %s)', (user_id, game_code)).close()
 
 
-# ==================== TAG (Этап A) ====================
+# ==================== TAG ====================
 
 def get_tag_by_name(name):
     return db('SELECT * FROM tag WHERE lower(name) = lower(%s)', (name,)).one()
@@ -318,7 +342,7 @@ def find_any_tag_or_alias_owner(name):
     return db(query, (name, name)).one()
 
 
-# ==================== SUBSCRIPTION (Этап A) ====================
+# ==================== SUBSCRIPTION ====================
 
 def subscribe_tag(tg_id, tag_id):
     query = '''
@@ -376,7 +400,7 @@ def get_tag_subscribers(tag_id):
     return db(query, (tag_id,)).all()
 
 
-# ==================== TAG_USAGE / СТАТИСТИКА (Этап B4/B5) ====================
+# ==================== TAG_USAGE / СТАТИСТИКА ====================
 
 def log_tag_usage(tag_id, telegram_message_id, author_tg_id, media_type):
     query = '''
@@ -440,7 +464,7 @@ def get_top_users_by_subscriptions(limit: int | None = None):
     return db(query).all()
 
 
-# ==================== CHARACTER (Этап D) ====================
+# ==================== CHARACTER ====================
 
 def is_character_name_taken(name) -> bool:
     row = db('SELECT 1 FROM character WHERE lower(name) = lower(%s)', (name,)).one()
@@ -504,7 +528,7 @@ def get_primary_character(user_id):
     return db('SELECT * FROM character WHERE owner_user_id = %s AND is_primary = TRUE', (user_id,)).one()
 
 
-# ==================== CHARACTER REQUESTS (Этап D) ====================
+# ==================== CHARACTER REQUESTS ====================
 
 def create_character_request(
     request_type, user_id, chat_id, character_id=None,
@@ -548,7 +572,7 @@ def get_user_character_requests(user_id):
     return db(query, (user_id,)).all()
 
 
-# ==================== USER_CARD (Этап E) ====================
+# ==================== USER_CARD ====================
 
 def get_user_card(user_id):
     return db('SELECT * FROM user_card WHERE user_id = %s', (user_id,)).one()
@@ -563,7 +587,17 @@ def upsert_user_card_bio(user_id, bio):
     db(query, (user_id, bio)).close()
 
 
-# ==================== CARD REQUESTS (Этап E) ====================
+# ==================== CARD REQUESTS ====================
+
+def create_card_request(user_id, chat_id, bio, requester_display_name=None, requester_username=None):
+    query = '''
+        INSERT INTO card_requests (user_id, chat_id, bio, requester_display_name, requester_username)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING id
+    '''
+    row = db(query, (user_id, chat_id, bio, requester_display_name, requester_username)).one()
+    return row['id']
+
 
 def get_card_request_by_id(request_id):
     return db('SELECT * FROM card_requests WHERE id = %s', (request_id,)).one()
@@ -584,35 +618,11 @@ def get_user_card_requests(user_id):
     query = 'SELECT * FROM card_requests WHERE user_id = %s ORDER BY created_at DESC'
     return db(query, (user_id,)).all()
 
-def get_all_admin_ids() -> set[int]:
-    rows = db('SELECT tg_id FROM admins').all()
-    return {row['tg_id'] for row in rows}
 
-
-def add_admin(tg_id):
-    db('INSERT INTO admins (tg_id) VALUES (%s) ON CONFLICT DO NOTHING', (tg_id,)).close()
-
-
-def remove_admin(tg_id):
-    db('DELETE FROM admins WHERE tg_id = %s', (tg_id,)).close()
-
-
-def count_admins() -> int:
-    return db('SELECT COUNT(*) AS cnt FROM admins').one()['cnt']
-
-
-def bootstrap_admin_if_empty(tg_id):
-    """Если таблица admins пуста — засеваем её значением из конфига.
-    Решает проблему курицы и яйца: без этого некому было бы выдать
-    первого админа, раз добавлять админов может только админ."""
-    if count_admins() == 0:
-        add_admin(tg_id)
+# ==================== ЗАЯВКИ — ВЗЯТИЕ В РАБОТУ / ОЧЕРЕДЬ ====================
 
 _REQUEST_TABLES = {'character': 'character_requests', 'card': 'card_requests'}
-# ^ ключ 'request_type' всегда приходит как литерал из нашего же кода
-# (никогда напрямую из пользовательского ввода/callback_data без сверки) —
-# f-string с именем таблицы безопасен по той же логике, что и в
-# update_character_request_field
+
 
 def claim_request(request_type, request_id, admin_tg_id):
     table = _REQUEST_TABLES[request_type]
@@ -637,18 +647,8 @@ def get_request_notifications(request_type, request_id):
     query = 'SELECT admin_tg_id, message_id FROM request_notifications WHERE request_type = %s AND request_id = %s'
     return db(query, (request_type, request_id)).all()
 
-def create_card_request(user_id, chat_id, bio, requester_display_name=None, requester_username=None):
-    query = '''
-        INSERT INTO card_requests (user_id, chat_id, bio, requester_display_name, requester_username)
-        VALUES (%s, %s, %s, %s, %s)
-        RETURNING id
-    '''
-    row = db(query, (user_id, chat_id, bio, requester_display_name, requester_username)).one()
-    return row['id']
-
 
 def get_pending_unclaimed_requests():
-    """Объединённая очередь: заявки обоих типов, ожидающие взятия в работу."""
     query = '''
         SELECT 'character' AS request_type, id, name AS label, created_at
         FROM character_requests
