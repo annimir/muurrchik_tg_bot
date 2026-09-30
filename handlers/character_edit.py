@@ -7,14 +7,12 @@ from database.queries import (
     get_user_by_tg_id, get_user_characters, get_character_by_id,
     create_character_request, get_user_language,
 )
-from config import config
+from handlers.character_requests import notify_admin_new_character_request
 from message.loader import message
 from message.keys import (
     charedit_no_characters, charedit_not_owner, charedit_choose_character, charedit_choose_field,
     charedit_field_description, charedit_field_photo, charedit_enter_description, charedit_enter_photo,
     charedit_submitted, charreq_photo_invalid, charreq_cancelled,
-    charreq_edit_admin_notification, charreq_admin_field_description, charreq_admin_field_photo,
-    charreq_admin_button_approve, charreq_admin_button_edit, charreq_admin_button_reject,
 )
 
 logger = logging.getLogger(__name__)
@@ -114,6 +112,8 @@ async def receive_edit_value(update: Update, context: ContextTypes.DEFAULT_TYPE)
         character_id=data['character_id'],
         description=description,
         photo_file_id=photo_file_id,
+        requester_display_name=user.full_name,  # ДОБАВЛЕНО — тоже было упущено в D2b
+        requester_username=user.username,  # ДОБАВЛЕНО
     )
 
     logger.info(
@@ -122,39 +122,9 @@ async def receive_edit_value(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
     await update.message.reply_text(message(lang, charedit_submitted, 'charedit'))
 
-    await _notify_admin_character_edit(
-        context, request_id, data['character_name'], field,
-        photo_file_id if field == 'photo' else admin_preview_value, user,
-    )
+    await notify_admin_new_character_request(context, request_id)  # используем общую функцию
     context.user_data.pop('charedit', None)
     return ConversationHandler.END
-
-
-async def _notify_admin_character_edit(context, request_id, character_name, field, value, user):
-    admin_lang_value = get_user_language(int(config.admin_user_id))
-
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton(message(admin_lang_value, charreq_admin_button_approve, 'charreq'), callback_data=f'charreqaction:{request_id}:approve')],
-        [InlineKeyboardButton(message(admin_lang_value, charreq_admin_button_edit, 'charreq'), callback_data=f'charreqaction:{request_id}:edit')],
-        [InlineKeyboardButton(message(admin_lang_value, charreq_admin_button_reject, 'charreq'), callback_data=f'charreqaction:{request_id}:reject')],
-    ])
-
-    if field == 'photo':
-        field_label = message(admin_lang_value, charreq_admin_field_photo, 'charreq')
-        caption = message(
-            admin_lang_value, charreq_edit_admin_notification, 'charreq',
-            character_name, request_id, user.full_name, user.username or '—', field_label,
-        )
-        await context.bot.send_photo(config.admin_user_id, photo=value, caption=caption, parse_mode='Markdown', reply_markup=keyboard)
-    else:
-        field_label = message(admin_lang_value, charreq_admin_field_description, 'charreq')
-        change_str = f'{field_label}: {value}'
-        text = message(
-            admin_lang_value, charreq_edit_admin_notification, 'charreq',
-            character_name, request_id, user.full_name, user.username or '—', change_str,
-        )
-        await context.bot.send_message(config.admin_user_id, text=text, parse_mode='Markdown', reply_markup=keyboard)
-
 
 async def cancel_character_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)

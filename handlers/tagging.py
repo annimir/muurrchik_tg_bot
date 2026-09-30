@@ -105,7 +105,7 @@ async def resolve_tag_subscribers(
 async def media_tag_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     ПЕРЕИМЕНОВАНО (было photo_tag_handler): теперь обрабатывает и фото, и
-    видео с тегом в подписи — по вашему решению расширить сразу вместе с B4.
+    видео с тегом в подписи.
     Тип медиа определяется динамически, а не жёстко зашит как 'photo'.
     """
     message_obj = update.message

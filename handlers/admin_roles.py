@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 from database.queries import (
     add_flavor_role, get_flavor_role_by_name, get_users_with_role,
     delete_flavor_role, get_all_flavor_roles, get_user_by_tg_id, create_user,
-    get_users_without_role, get_user_flavor_role, get_user_language,
+    get_users_without_role, get_user_flavor_role, get_user_language, get_flavor_role_by_id, set_user_flavor_role
 )
 from services.flavor_roles import assign_random_role
 from services.admin import is_admin
@@ -15,13 +15,13 @@ from message.keys import (
     common_private_only, roles_not_admin, roles_usage_add, roles_added, roles_already_exists,
     roles_usage_remove, roles_not_found, roles_removed, roles_list_header, roles_list_empty,
     roles_reroll_prompt, roles_reroll_forward_invalid, roles_reroll_done, roles_no_roles_available,
-    backfill_done, backfill_none_needed,
+    backfill_done, backfill_none_needed, roles_setrole_forward_prompt, roles_setrole_forward_invalid, roles_setrole_choose, roles_setrole_done
 )
 
 logger = logging.getLogger(__name__)
 
 WAITING_REROLL_FORWARD = range(1)[0]
-
+WAITING_SETROLE_FORWARD, CHOOSING_SPECIFIC_ROLE = range(2)
 
 async def add_role_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -179,3 +179,70 @@ async def backfill_cards_command(update: Update, context: ContextTypes.DEFAULT_T
 
     logger.info("Админ %s выполнил бэкафилл ролей для %d пользователей без роли", user.id, len(users))
     await update.message.reply_text(message(lang, backfill_done, 'backfill', len(users)))
+
+async def start_set_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    lang = get_user_language(user.id)
+
+    if update.effective_chat.type != 'private':
+        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        return ConversationHandler.END
+    if not is_admin(user.id):
+        await update.message.reply_text(message(lang, roles_not_admin, 'roles'))
+        return ConversationHandler.END
+
+    if not get_all_flavor_roles():
+        await update.message.reply_text(message(lang, roles_no_roles_available, 'roles'))
+        return ConversationHandler.END
+
+    await update.message.reply_text(message(lang, roles_setrole_forward_prompt, 'roles'))
+    return WAITING_SETROLE_FORWARD
+
+
+async def receive_set_role_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_language(update.effective_user.id)
+    origin = update.message.forward_origin
+
+    if origin is None or origin.type != 'user':
+        await update.message.reply_text(message(lang, roles_setrole_forward_invalid, 'roles'))
+        return WAITING_SETROLE_FORWARD
+
+    target_user = origin.sender_user
+    db_user = get_user_by_tg_id(target_user.id)
+    if not db_user:
+        create_user(target_user.id, target_user.username or target_user.full_name)
+        db_user = get_user_by_tg_id(target_user.id)
+
+    context.user_data['setrole_target'] = {
+        'user_id': db_user['id'], 'tg_id': target_user.id, 'name': target_user.full_name,
+    }
+
+    roles = get_all_flavor_roles()
+    keyboard = [[InlineKeyboardButton(r['name'], callback_data=f'setrole:{r["id"]}')] for r in roles]
+    await update.message.reply_text(
+        message(lang, roles_setrole_choose, 'roles', target_user.full_name),
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return CHOOSING_SPECIFIC_ROLE
+
+
+async def choose_specific_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_language(update.effective_user.id)
+    data = context.user_data.get('setrole_target')
+    if not data:
+        return ConversationHandler.END
+
+    role_id = int(query.data.split(':')[1])
+    role = get_flavor_role_by_id(role_id)
+    if not role:
+        return ConversationHandler.END
+
+    set_user_flavor_role(data['user_id'], role_id)
+    logger.info("Админ %s назначил конкретную роль '%s' пользователю %s", update.effective_user.id, role['name'], data['tg_id'])
+
+    await query.edit_message_text(message(lang, roles_setrole_done, 'roles', data['name'], role['name']), parse_mode='Markdown')
+    context.user_data.pop('setrole_target', None)
+    return ConversationHandler.END

@@ -1,7 +1,8 @@
-GAMES = {
-    'genshin':  'Genshin Impact',
-    'hsr':      'Honkai: Star Rail',
-    'zzz':      'Zenless Zone Zero',
-    'endfield': 'Arknights: Endfield',
-    'hi3':      'Honkai Impact 3rd',
-}
+import re
+
+
+def slugify_game_name(name: str) -> str:
+    """Генерирует code из имени игры: 'Wuthering Waves' -> 'wuthering_waves'."""
+    slug = name.strip().lower()
+    slug = re.sub(r'[^a-z0-9]+', '_', slug).strip('_')
+    return slug or 'game'

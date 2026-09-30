@@ -1,5 +1,5 @@
-from database import Database
-from config import config
+from database.database import Database
+from config.config import config
 
 tables_path = 'database/database_structure.sql'
 
@@ -26,8 +26,7 @@ def update_user_tag(tg_id, new_tag):
 
 
 def get_user_by_username(username):
-    return db('SELECT id, tg_id FROM users WHERE tag = %s', (username,)).one()
-
+    return db('SELECT id, tg_id FROM users WHERE lower(tag) = lower(%s)', (username,)).one()
 
 def get_all_users():
     return db('SELECT * FROM users').all()
@@ -119,7 +118,8 @@ def get_all_birthdays():
     return db(query).all()
 
 
-# ==================== BIRTHDAYS — персонажи (Этап D4) ====================
+# ==================== BIRTHDAYS — персонажи
+# ====================
 
 def get_todays_character_birthdays(day, month):
     query = '''
@@ -674,3 +674,160 @@ def get_my_claimed_requests(admin_tg_id):
         ORDER BY claimed_at
     '''
     return db(query, (admin_tg_id, admin_tg_id)).all()
+
+def get_all_games():
+    return db('SELECT code, name FROM games ORDER BY name').all()
+
+
+def get_games_dict() -> dict[str, str]:
+    return {row['code']: row['name'] for row in get_all_games()}
+
+
+def get_game_by_name(name):
+    return db('SELECT code, name FROM games WHERE lower(name) = lower(%s)', (name,)).one()
+
+
+def game_code_exists(code) -> bool:
+    return db('SELECT 1 FROM games WHERE code = %s', (code,)).one() is not None
+
+
+def add_game(code, name):
+    db('INSERT INTO games (code, name) VALUES (%s, %s)', (code, name)).close()
+
+
+def remove_game(code):
+    db('DELETE FROM games WHERE code = %s', (code,)).close()
+
+
+def count_users_with_game(code) -> int:
+    return db('SELECT COUNT(*) AS cnt FROM user_games WHERE game_code = %s', (code,)).one()['cnt']
+
+def get_flavor_role_by_id(role_id):
+    return db('SELECT id, name FROM flavor_roles WHERE id = %s', (role_id,)).one()
+
+def get_all_positions():
+    return db('SELECT id, name FROM positions ORDER BY name').all()
+
+
+def get_all_positions_with_holders():
+    query = '''
+        SELECT p.id, p.name, c.id AS character_id, c.name AS character_name, u.tag AS owner_tag
+        FROM positions p
+        LEFT JOIN character c ON c.position_id = p.id
+        LEFT JOIN users u ON u.id = c.owner_user_id
+        ORDER BY p.name
+    '''
+    return db(query).all()
+
+
+def get_position_by_name(name):
+    return db('SELECT id, name FROM positions WHERE lower(name) = lower(%s)', (name,)).one()
+
+
+def add_position(name):
+    query = '''
+        INSERT INTO positions (name) VALUES (%s)
+        ON CONFLICT (name) DO NOTHING
+        RETURNING id
+    '''
+    row = db(query, (name,)).one()
+    return row['id'] if row else None
+
+
+def remove_position(position_id):
+    db('DELETE FROM positions WHERE id = %s', (position_id,)).close()
+
+
+def get_position_holder_character(position_id):
+    query = '''
+        SELECT c.*, u.tg_id AS owner_tg_id, u.tag AS owner_tag
+        FROM character c
+        JOIN users u ON u.id = c.owner_user_id
+        WHERE c.position_id = %s
+    '''
+    return db(query, (position_id,)).one()
+
+
+def assign_position_to_character(character_id, position_id):
+    db('UPDATE character SET position_id = %s WHERE id = %s', (position_id, character_id)).close()
+
+
+def revoke_position_by_id(position_id):
+    db('UPDATE character SET position_id = NULL WHERE position_id = %s', (position_id,)).close()
+
+
+def get_character_position(character_id):
+    query = '''
+        SELECT p.id, p.name
+        FROM character c
+        JOIN positions p ON p.id = c.position_id
+        WHERE c.id = %s
+    '''
+    return db(query, (character_id,)).one()
+
+def get_all_affiliations_flat():
+    return db('SELECT id, parent_id, name FROM affiliations').all()
+
+
+def get_affiliation_by_name_and_parent(name, parent_id):
+    if parent_id is None:
+        return db('SELECT id FROM affiliations WHERE parent_id IS NULL AND lower(name) = lower(%s)', (name,)).one()
+    return db('SELECT id FROM affiliations WHERE parent_id = %s AND lower(name) = lower(%s)', (parent_id, name)).one()
+
+
+def add_affiliation(name, parent_id=None):
+    query = 'INSERT INTO affiliations (parent_id, name) VALUES (%s, %s) RETURNING id'
+    row = db(query, (parent_id, name)).one()
+    return row['id']
+
+
+def remove_affiliation(affiliation_id):
+    db('DELETE FROM affiliations WHERE id = %s', (affiliation_id,)).close()
+
+
+def assign_affiliation_to_character(character_id, affiliation_id):
+    db('UPDATE character SET affiliation_id = %s WHERE id = %s', (affiliation_id, character_id)).close()
+
+
+def get_character_affiliation_path(character_id):
+    """Хлебные крошки 'Родитель / Ребёнок' — обход вверх по parent_id. Для G4."""
+    row = db('SELECT affiliation_id FROM character WHERE id = %s', (character_id,)).one()
+    if not row or not row['affiliation_id']:
+        return None
+
+    path = []
+    current_id = row['affiliation_id']
+    while current_id:
+        node = db('SELECT id, parent_id, name FROM affiliations WHERE id = %s', (current_id,)).one()
+        if not node:
+            break
+        path.append(node['name'])
+        current_id = node['parent_id']
+
+    return ' / '.join(reversed(path))
+
+def get_flavor_role_by_id(role_id):
+    return db('SELECT * FROM flavor_roles WHERE id = %s', (role_id,)).one()
+
+
+def update_flavor_role_photo(role_id, photo_file_id):
+    db('UPDATE flavor_roles SET photo_file_id = %s WHERE id = %s', (photo_file_id, role_id)).close()
+
+
+def update_flavor_role_description(role_id, description):
+    db('UPDATE flavor_roles SET description = %s WHERE id = %s', (description, role_id)).close()
+
+
+def update_flavor_role_wiki_url(role_id, wiki_url):
+    db('UPDATE flavor_roles SET wiki_url = %s WHERE id = %s', (wiki_url, role_id)).close()
+
+
+def get_user_flavor_role_full(user_id):
+    """Полная строка роли (с фото/описанием/вики) — понадобится в G4 для карточки."""
+    query = '''
+        SELECT fr.*
+        FROM users u
+        JOIN flavor_roles fr ON fr.id = u.flavor_role_id
+        WHERE u.id = %s
+    '''
+    return db(query, (user_id,)).one()

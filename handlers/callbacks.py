@@ -40,7 +40,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        # ДОБАВЛЕНО (B2): защита от гонки — кнопка могла быть отрисована
+        # защита от гонки — кнопка могла быть отрисована
         # до того, как тег заблокировали/удалили, а нажата уже после.
         if tag['status'] != 'ACTIVE':
             logger.info("Кнопка 'Подписаться' нажата на неактивный тег %s (статус %s)", tag_name, tag['status'])

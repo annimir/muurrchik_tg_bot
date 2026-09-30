@@ -30,7 +30,7 @@ docker compose up -d
  
 ### Конфигурация
  
-`config.dev.yml` (или `config.prod.yml`, переключается через `APP_ENV`):
+`config/config.dev.yml` (или `config.prod.yml`, переключается через `APP_ENV`):
  
 ```yaml
 telegram:

@@ -41,28 +41,27 @@ async def receive_bio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Пользователь %s подал заявку #%d на изменение карточки", user.id, request_id)
     await update.message.reply_text(message(lang, cardreq_submitted, 'cardreq'))
 
-    await notify_admin_new_card_request(context, request_id, bio, user)
+    await notify_admin_new_card_request(context, request_id)  # без bio/user
     return ConversationHandler.END
 
 
-async def notify_admin_new_card_request(context, request_id, bio, user):
-    """рассылается всем админам, изначально только кнопка "Взять в работу"."""
+async def notify_admin_new_card_request(context, request_id):
+    from database.queries import get_card_request_by_id
+    from handlers.admin_card_requests import _build_card_request_content
     from services.request_broadcast import broadcast_to_admins
     from message.keys import req_claim_button
 
+    req = get_card_request_by_id(request_id)
+
     async def send_fn(admin_tg_id):
         admin_lang_value = get_user_language(admin_tg_id)
+        text = _build_card_request_content(req, admin_lang_value)
         keyboard = InlineKeyboardMarkup([[
             InlineKeyboardButton(message(admin_lang_value, req_claim_button, 'reqclaim'), callback_data=f'cardreqaction:{request_id}:claim'),
         ]])
-        text = message(
-            admin_lang_value, cardreq_admin_notification, 'cardreq',
-            request_id, user.full_name, user.username or '—', bio,
-        )
         return await context.bot.send_message(admin_tg_id, text=text, parse_mode='Markdown', reply_markup=keyboard)
 
     await broadcast_to_admins(context, 'card', request_id, send_fn)
-
 async def cancel_card_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)
     context.user_data.pop('cardreq_chat_id', None)
@@ -71,7 +70,6 @@ async def cancel_card_request(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def my_card_requests(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Подключаю сразу вместе с подачей заявки — не откладываю, как это вышло с /mycharrequests в D2b."""
     user = update.effective_user
     lang = get_user_language(user.id)
 

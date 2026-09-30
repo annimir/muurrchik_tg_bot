@@ -1,9 +1,22 @@
 -- =============================================================
 -- P.A.I.M.O.N. — консолидированная схема БД
--- Актуально по состоянию после Этапа A (BRD-выравнивание)
--- Таблицы под заявки/карточки (Этапы D/E) сюда НЕ включены —
--- код, который их использует, пока отключён в main.py.
 -- =============================================================
+
+-- ---------- РОЛИ ----------
+CREATE TABLE IF NOT EXISTS flavor_roles (
+    id   SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+
+
+INSERT INTO flavor_roles (name) VALUES
+    ('Хиличурл'),
+    ('Застрельщик Фатуи'),
+    ('Стражник Мондштадта'),
+    ('Рыцарь Ордо Фавониус'),
+    ('Искатель сокровищ'),
+    ('Странствующий торговец')
+ON CONFLICT (name) DO NOTHING;
 
 -- ---------- USERS ----------
 CREATE TABLE IF NOT EXISTS users (
@@ -13,7 +26,9 @@ CREATE TABLE IF NOT EXISTS users (
     language             VARCHAR(2) NOT NULL DEFAULT 'RU',
     left_at              TIMESTAMPTZ,
     deletion_warned_at   TIMESTAMPTZ,
-    flavor_role_id       INTEGER  -- FK на flavor_roles ниже, добавляется после её создания
+    flavor_role_id       INTEGER
+        REFERENCES flavor_roles(id)
+        ON DELETE SET NULL
 );
 
 -- ---------- ЧАТЫ, ГДЕ СОСТОИТ БОТ ----------
@@ -32,24 +47,7 @@ CREATE TABLE IF NOT EXISTS user_chat_memberships (
     PRIMARY KEY (user_id, chat_id)
 );
 
--- ---------- РОЛИ (Этап 4) ----------
-CREATE TABLE IF NOT EXISTS flavor_roles (
-    id   SERIAL PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE
-);
 
-ALTER TABLE users
-    ADD CONSTRAINT fk_users_flavor_role
-    FOREIGN KEY (flavor_role_id) REFERENCES flavor_roles(id) ON DELETE SET NULL;
-
-INSERT INTO flavor_roles (name) VALUES
-    ('Хиличурл'),
-    ('Застрельщик Фатуи'),
-    ('Стражник Мондштадта'),
-    ('Рыцарь Ордо Фавониус'),
-    ('Искатель сокровищ'),
-    ('Странствующий торговец')
-ON CONFLICT (name) DO NOTHING;
 
 -- ---------- ИГРЫ ПОЛЬЗОВАТЕЛЯ (Этап 5) ----------
 CREATE TABLE IF NOT EXISTS user_games (
@@ -170,3 +168,62 @@ CREATE TABLE IF NOT EXISTS request_notifications (
     message_id   BIGINT NOT NULL,
     UNIQUE (request_type, request_id, admin_tg_id)
 );
+
+CREATE TABLE IF NOT EXISTS games (
+    code TEXT PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+INSERT INTO games (code, name) VALUES
+    ('genshin', 'Genshin Impact'),
+    ('hsr', 'Honkai: Star Rail'),
+    ('zzz', 'Zenless Zone Zero'),
+    ('endfield', 'Arknights: Endfield'),
+    ('hi3', 'Honkai Impact 3rd')
+ON CONFLICT (code) DO NOTHING;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'fk_user_games_game_code'
+          AND conrelid = 'user_games'::regclass
+    ) THEN
+        ALTER TABLE user_games
+            ADD CONSTRAINT fk_user_games_game_code
+            FOREIGN KEY (game_code)
+            REFERENCES games(code)
+            ON DELETE CASCADE;
+    END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS positions (
+    id   SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+
+ALTER TABLE character ADD COLUMN IF NOT EXISTS position_id INTEGER REFERENCES positions(id) ON DELETE SET NULL;
+
+-- гарантия "один держатель на должность одновременно" — та же техника,
+-- что и с is_primary в Этапе D (частичный уникальный индекс)
+CREATE UNIQUE INDEX IF NOT EXISTS one_holder_per_position
+    ON character (position_id) WHERE position_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS affiliations (
+    id        SERIAL PRIMARY KEY,
+    parent_id INTEGER REFERENCES affiliations(id) ON DELETE CASCADE,
+    name      TEXT NOT NULL
+);
+
+-- уникальность имени в рамках одного уровня дерева, а не глобально —
+-- Postgres не считает NULL равным NULL в обычном UNIQUE, поэтому для
+-- корневых узлов (parent_id IS NULL) нужен отдельный частичный индекс
+CREATE UNIQUE INDEX IF NOT EXISTS affiliations_unique_root ON affiliations (name) WHERE parent_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS affiliations_unique_child ON affiliations (parent_id, name) WHERE parent_id IS NOT NULL;
+
+ALTER TABLE character ADD COLUMN IF NOT EXISTS affiliation_id INTEGER REFERENCES affiliations(id) ON DELETE SET NULL;
+
+ALTER TABLE flavor_roles ADD COLUMN IF NOT EXISTS photo_file_id TEXT;
+ALTER TABLE flavor_roles ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE flavor_roles ADD COLUMN IF NOT EXISTS wiki_url TEXT;

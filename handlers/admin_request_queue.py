@@ -1,6 +1,6 @@
 import logging
 
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from database.queries import get_pending_unclaimed_requests, get_my_claimed_requests, get_user_language
@@ -15,6 +15,7 @@ from message.keys import (
 logger = logging.getLogger(__name__)
 
 TYPE_LABELS = {'character': reqqueue_type_character, 'card': reqqueue_type_card}
+CALLBACK_PREFIX = {'character': 'charreqaction', 'card': 'cardreqaction'}
 
 
 async def pending_requests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -33,12 +34,22 @@ async def pending_requests_command(update: Update, context: ContextTypes.DEFAULT
         await update.message.reply_text(message(lang, reqqueue_pending_empty, 'reqqueue'))
         return
 
-    lines = [message(lang, reqqueue_pending_header, 'reqqueue')]
+    # ДОБАВЛЕНО: раньше это был просто текстовый
+    # список без единой кнопки — "перейти и взять в работу" было не на
+    # что нажать. Callback_data переиспользует уже существующие
+    # ConversationHandler-точки входа (charreqaction:/cardreqaction:) —
+    # регистрировать в main.py ничего нового не нужно.
+    keyboard = []
     for row in rows:
         type_label = message(lang, TYPE_LABELS[row['request_type']], 'reqqueue')
-        lines.append(f'#{row["id"]} [{type_label}] {row["label"]}')
+        button_text = f'#{row["id"]} [{type_label}] {row["label"]}'
+        prefix = CALLBACK_PREFIX[row['request_type']]
+        keyboard.append([InlineKeyboardButton(button_text, callback_data=f'{prefix}:{row["id"]}:claim')])
 
-    await update.message.reply_text('\n'.join(lines), parse_mode='Markdown')
+    await update.message.reply_text(
+        message(lang, reqqueue_pending_header, 'reqqueue'),
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
 
 
 async def my_claimed_requests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

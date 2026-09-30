@@ -10,18 +10,14 @@ from database.queries import (
     get_user_by_tg_id, get_user_character_count, is_character_name_taken,
     create_character_request, get_user_character_requests, get_character_by_id, get_user_language, get_all_admin_ids,
 )
-from config import config
 from message.loader import message
 from message.keys import (
     charreq_limit_warning, charreq_ask_name, charreq_name_taken, charreq_ask_birthdate,
     charreq_birthdate_invalid, charreq_ask_description, charreq_ask_photo, charreq_photo_invalid,
-    charreq_submitted, charreq_cancelled, charreq_admin_notification,
-    charreq_admin_button_approve, charreq_admin_button_edit, charreq_admin_button_reject,
+    charreq_submitted, charreq_cancelled,
     charreq_my_empty, charreq_my_type_create, charreq_my_type_edit,
     charreq_my_status_pending, charreq_my_status_approved, charreq_my_status_rejected,
 )
-from services.request_broadcast import broadcast_to_admins
-from message.keys import req_claim_button
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +93,6 @@ async def ask_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     photo_file_id = update.message.photo[-1].file_id
     data = context.user_data['charreq']
-    data['photo_file_id'] = photo_file_id
 
     user = update.effective_user
     db_user = get_user_by_tg_id(user.id)
@@ -117,33 +112,33 @@ async def ask_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Пользователь %s подал заявку #%d на персонажа '%s'", user.id, request_id, data['name'])
     await update.message.reply_text(message(lang, charreq_submitted, 'charreq'))
 
-    await notify_admin_new_character_request(context, request_id, data, user)
+    await notify_admin_new_character_request(context, request_id)  # ИЗМЕНЕНО: без data/user
     context.user_data.pop('charreq', None)
     return ConversationHandler.END
 
 
-async def notify_admin_new_character_request(context, request_id, data, user):
+async def notify_admin_new_character_request(context, request_id):
     """
-    рассылается ВСЕМ админам
-    Исходное уведомление показывает только кнопку "Взять в работу" — approve/
-    edit/reject появляются только после того, как кто-то возьмёт заявку себе.
+    ПЕРЕПИСАНО: теперь единая функция для ОБОИХ типов заявок (create и edit) —
+    именно её отсутствие в character_edit.py и было причиной бага 1.
+    character_edit.py импортирует и вызывает эту же функцию, а не свою копию.
     """
-    birth_str = data['birth_date'].strftime('%d.%m')
+    from database.queries import get_character_request_by_id
+    from handlers.admin_character_requests import _build_character_request_content
+    from services.request_broadcast import broadcast_to_admins
+    from message.keys import req_claim_button
+
+    req = get_character_request_by_id(request_id)
 
     async def send_fn(admin_tg_id):
         admin_lang_value = get_user_language(admin_tg_id)
+        content, photo = _build_character_request_content(req, admin_lang_value)
         keyboard = InlineKeyboardMarkup([[
             InlineKeyboardButton(message(admin_lang_value, req_claim_button, 'reqclaim'), callback_data=f'charreqaction:{request_id}:claim'),
         ]])
-        caption = message(
-            admin_lang_value, charreq_admin_notification, 'charreq',
-            request_id, user.full_name, user.username or '—',
-            data['name'], birth_str, data['description'],
-        )
-        return await context.bot.send_photo(
-            admin_tg_id, photo=data['photo_file_id'], caption=caption,
-            parse_mode='Markdown', reply_markup=keyboard,
-        )
+        if photo:
+            return await context.bot.send_photo(admin_tg_id, photo=photo, caption=content, parse_mode='Markdown', reply_markup=keyboard)
+        return await context.bot.send_message(admin_tg_id, text=content, parse_mode='Markdown', reply_markup=keyboard)
 
     await broadcast_to_admins(context, 'character', request_id, send_fn)
 

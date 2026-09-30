@@ -11,7 +11,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      - "5432:5432"  # можно убрать в проде, оставить только для локальной отладки
+      - "5432:5432"   # для миграции/отладки через psql; уберите в проде
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U bot_user -d bot_db"]
       interval: 5s
@@ -25,9 +25,9 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      APP_ENV: prod
+      APP_ENV: dev
     volumes:
-      - ./config.prod.yml:/app/config.prod.yml
+      - ./config/config.dev.yml:/app/config.dev.yml
       - ./logs:/app/logs
 
 volumes:

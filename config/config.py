@@ -20,12 +20,10 @@ class Config:
         # (is_admin, admin_lang и т.д.), но нигде явно не объявлялся здесь.
         self.admin_user_id: int = data["admin"]["user_id"]
 
-        # google_sheets.* — УБРАНО (Этап A, Google Sheets-интеграция удалена)
-
 
 def load_config() -> Config:
     env = os.getenv("APP_ENV", "dev")
-    config_path = Path(__file__).parent / f"config.{env}.yml"
+    config_path = Path.cwd() / f"config.{env}.yml"
     return Config(config_path)
 
 

@@ -5,14 +5,14 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from database.queries import (
     get_card_request_by_id, update_card_request_status, update_card_request_bio,
-    upsert_user_card_bio, get_user_by_id, get_user_language, claim_request, release_request,
+    upsert_user_card_bio, get_user_by_id, get_user_language, release_request,
 )
 from services.admin import is_admin
-from services.request_broadcast import sync_all_copies
+from services.request_broadcast import sync_all_copies, claim_and_sync
 from message.loader import message
 from message.keys import (
     cardreq_admin_already_resolved, cardreq_admin_approved_suffix, cardreq_admin_rejected_suffix,
-    cardreq_admin_enter_new_bio, cardreq_admin_updated_preview,
+    cardreq_admin_enter_new_bio, cardreq_admin_updated_preview, cardreq_admin_notification,
     cardreq_admin_button_approve, cardreq_admin_button_edit, cardreq_admin_button_reject,
     cardreq_user_approved, cardreq_user_rejected, cardreq_summary_label,
     req_claim_button, req_release_button, req_claimed_summary, req_unclaimed_again,
@@ -22,6 +22,13 @@ from message.keys import (
 logger = logging.getLogger(__name__)
 
 EDITING_BIO = range(1)[0]
+
+
+def _build_card_request_content(req, lang):
+    return message(
+        lang, cardreq_admin_notification, 'cardreq',
+        req['id'], req['requester_display_name'] or '?', req['requester_username'] or '—', req['bio'],
+    )
 
 
 def _summary_label(req, lang):
@@ -44,16 +51,6 @@ def _working_keyboard(request_id, lang):
     ])
 
 
-async def _finalize_other_copies(context, request_id, req, approved: bool, exclude):
-    def build(other_admin_tg_id):
-        other_lang = get_user_language(other_admin_tg_id)
-        label = _summary_label(req, other_lang)
-        suffix_key = cardreq_admin_approved_suffix if approved else cardreq_admin_rejected_suffix
-        return label + message(other_lang, suffix_key, 'cardreq'), None
-
-    await sync_all_copies(context, 'card', request_id, build, exclude_admin_tg_id=exclude, is_photo=False)
-
-
 async def card_request_action_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -68,7 +65,7 @@ async def card_request_action_callback(update: Update, context: ContextTypes.DEF
     req = get_card_request_by_id(request_id)
 
     if not req or req['status'] != 'pending':
-        await query.edit_message_text(message(lang, cardreq_admin_already_resolved, 'cardreq'))
+        await query.answer(message(lang, cardreq_admin_already_resolved, 'cardreq'), show_alert=True)
         return
 
     if action == 'claim':
@@ -76,19 +73,21 @@ async def card_request_action_callback(update: Update, context: ContextTypes.DEF
             await query.answer(message(lang, req_claim_race_lost, 'reqclaim'), show_alert=True)
             return
 
-        claim_request('card', request_id, admin_tg_id)
-        logger.info("Админ %s взял в работу заявку на карточку #%d", admin_tg_id, request_id)
-
-        await query.edit_message_text(text=query.message.text, reply_markup=_working_keyboard(request_id, lang))
-
         claimer_name = update.effective_user.full_name
 
-        def build(other_admin_tg_id):
-            other_lang = get_user_language(other_admin_tg_id)
-            label = _summary_label(req, other_lang)
-            return message(other_lang, req_claimed_summary, 'reqclaim', label, claimer_name), None
+        def build_claimer_view(target_admin_tg_id):
+            target_lang = get_user_language(target_admin_tg_id)
+            content = _build_card_request_content(req, target_lang)
+            return content, _working_keyboard(request_id, target_lang), False
 
-        await sync_all_copies(context, 'card', request_id, build, exclude_admin_tg_id=admin_tg_id, is_photo=False)
+        def build_other_view(target_admin_tg_id):
+            other_lang = get_user_language(target_admin_tg_id)
+            label = _summary_label(req, other_lang)
+            return message(other_lang, req_claimed_summary, 'reqclaim', label, claimer_name), None, False
+
+        await claim_and_sync(context, 'card', request_id, admin_tg_id, build_claimer_view, build_other_view)
+        logger.info("Админ %s взял в работу заявку на карточку #%d", admin_tg_id, request_id)
+        await query.answer()
         return
 
     if action == 'release':
@@ -99,10 +98,7 @@ async def card_request_action_callback(update: Update, context: ContextTypes.DEF
         logger.info("Админ %s отложил заявку на карточку #%d", admin_tg_id, request_id)
 
         label = _summary_label(req, lang)
-        await query.edit_message_text(
-            text=message(lang, req_unclaimed_again, 'reqclaim', label),
-            reply_markup=_claim_keyboard(request_id, lang),
-        )
+        await query.edit_message_text(text=message(lang, req_unclaimed_again, 'reqclaim', label), reply_markup=_claim_keyboard(request_id, lang))
 
         def build(other_admin_tg_id):
             other_lang = get_user_language(other_admin_tg_id)
@@ -122,14 +118,12 @@ async def card_request_action_callback(update: Update, context: ContextTypes.DEF
         await notify_card_request_result(context, req, approved=True)
         await query.edit_message_text(text=query.message.text + message(lang, cardreq_admin_approved_suffix, 'cardreq'))
         logger.info("Заявка на карточку #%d одобрена", request_id)
-        await _finalize_other_copies(context, request_id, req, approved=True, exclude=admin_tg_id)
 
     elif action == 'reject':
         update_card_request_status(request_id, 'rejected')
         await notify_card_request_result(context, req, approved=False)
         await query.edit_message_text(text=query.message.text + message(lang, cardreq_admin_rejected_suffix, 'cardreq'))
         logger.info("Админ %s отклонил заявку на карточку #%d", admin_tg_id, request_id)
-        await _finalize_other_copies(context, request_id, req, approved=False, exclude=admin_tg_id)
 
     elif action == 'edit':
         context.user_data['editing_cardreq_id'] = request_id

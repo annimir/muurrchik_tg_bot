@@ -23,10 +23,7 @@ def _apply_alias(main_name: str, alias: str):
 async def _check_alias_collision(update, lang, thread_id, alias) -> bool:
     """
     Возвращает True, если алиас занят (и уже отправлен ответ пользователю).
-    ИЗМЕНЕНО (B2): раньше проверяли только tag_storage.is_taken() —
-    это кэш, из которого DELETED/BLOCKED теги намеренно убраны, поэтому
-    коллизия с ними пропускалась и падала на UNIQUE в БД. Теперь смотрим
-    напрямую в БД через find_any_tag_or_alias_owner.
+    смотрим напрямую в БД через find_any_tag_or_alias_owner.
     """
     existing = find_any_tag_or_alias_owner(alias)
     if not existing:

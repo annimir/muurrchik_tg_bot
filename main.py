@@ -8,9 +8,10 @@ from telegram.ext import (
 )
 
 from config.logging_config import setup_logging
-from config import config
+from config.config import config
 
 from database.queries import get_active_tags, get_all_tag_aliases, bootstrap_admin_if_empty
+from services.bot_commands import register_bot_commands
 from services.tag_storage import tag_storage
 
 from handlers.welcome import welcome_new_member
@@ -46,9 +47,11 @@ from handlers.callbacks import callback_router
 from handlers.admin_roles import (
     add_role_command, remove_role_command, list_roles_command,
     start_reroll_role, receive_reroll_forward, WAITING_REROLL_FORWARD,
-    backfill_cards_command,
+    backfill_cards_command, start_set_role, receive_set_role_forward, choose_specific_role,
+    WAITING_SETROLE_FORWARD, CHOOSING_SPECIFIC_ROLE,
 )
 from handlers.games import mygames_command, toggle_game_callback, games_done_callback
+from handlers.admin_games import add_game_command, remove_game_command, list_games_command
 
 from handlers.character_requests import (
     start_character_request, ask_name, ask_birthdate, ask_description, ask_photo,
@@ -74,6 +77,24 @@ from handlers.card_request import (
     start_card_request, receive_bio, cancel_card_request, my_card_requests,
     WAITING_BIO,
 )
+from handlers.admin_positions import (
+    add_position_command, remove_position_command, list_positions_command,
+    start_assign_position, choose_position_for_assign, receive_assign_position_forward,
+    choose_character_for_position, start_revoke_position, choose_revoke_position,
+    CHOOSING_POSITION, WAITING_ASSIGN_FORWARD, CHOOSING_CHARACTER_FOR_POSITION, CHOOSING_REVOKE_POSITION,
+)
+from handlers.admin_affiliations import (
+    start_add_affiliation, choose_affiliation_type, choose_affiliation_parent, receive_affiliation_name,
+    start_remove_affiliation, choose_affiliation_to_remove, list_affiliations_command,
+    start_assign_affiliation, choose_affiliation_for_assign, receive_assign_affiliation_forward,
+    choose_character_for_affiliation,
+    CHOOSING_TYPE, CHOOSING_PARENT, WAITING_NAME, CHOOSING_REMOVE,
+    CHOOSING_AFF_FOR_ASSIGN, WAITING_AFF_ASSIGN_FORWARD, CHOOSING_CHARACTER_FOR_AFF,
+)
+from handlers.admin_role_edit import (
+    start_edit_role, choose_role_to_edit, choose_role_field, receive_role_field_value,
+    CHOOSING_ROLE, CHOOSING_FIELD, WAITING_VALUE,
+)
 from handlers.admin_card_requests import (
     card_request_action_callback, receive_card_edit_bio, EDITING_BIO,
 )
@@ -87,7 +108,7 @@ from handlers.admin_request_queue import pending_requests_command, my_claimed_re
 setup_logging()
 logger = logging.getLogger(__name__)
 
-application = Application.builder().token(config.bot_token).build()
+application = Application.builder().token(config.bot_token).post_init(register_bot_commands).build()
 
 
 async def error_handler(update, context):
@@ -193,6 +214,16 @@ reroll_conv = ConversationHandler(
 )
 application.add_handler(reroll_conv)
 
+setrole_conv = ConversationHandler(
+    entry_points=[CommandHandler('set_role', start_set_role, filters=filters.ChatType.PRIVATE)],
+    states={
+        WAITING_SETROLE_FORWARD: [MessageHandler(filters.FORWARDED & ~filters.COMMAND, receive_set_role_forward)],
+        CHOOSING_SPECIFIC_ROLE: [CallbackQueryHandler(choose_specific_role, pattern=r'^setrole:')],
+    },
+    fallbacks=[],
+)
+application.add_handler(setrole_conv)
+
 # ---------- игры ----------
 application.add_handler(CommandHandler('mygames', mygames_command))
 application.add_handler(CallbackQueryHandler(toggle_game_callback, pattern=r'^gametoggle:'))
@@ -282,6 +313,75 @@ application.add_handler(remove_admin_conv)
 application.add_handler(CommandHandler('list_admins', list_admins_command))
 application.add_handler(CommandHandler('pendingrequests', pending_requests_command, filters=filters.ChatType.PRIVATE))
 application.add_handler(CommandHandler('myclaimedrequests', my_claimed_requests_command, filters=filters.ChatType.PRIVATE))
+application.add_handler(CommandHandler('add_game', add_game_command, filters=filters.ChatType.PRIVATE))
+application.add_handler(CommandHandler('remove_game', remove_game_command, filters=filters.ChatType.PRIVATE))
+application.add_handler(CommandHandler('list_games', list_games_command, filters=filters.ChatType.PRIVATE))
+
+application.add_handler(CommandHandler('add_position', add_position_command, filters=filters.ChatType.PRIVATE))
+application.add_handler(CommandHandler('remove_position', remove_position_command, filters=filters.ChatType.PRIVATE))
+application.add_handler(CommandHandler('list_positions', list_positions_command, filters=filters.ChatType.PRIVATE))
+
+assign_position_conv = ConversationHandler(
+    entry_points=[CommandHandler('assign_position', start_assign_position, filters=filters.ChatType.PRIVATE)],
+    states={
+        CHOOSING_POSITION: [CallbackQueryHandler(choose_position_for_assign, pattern=r'^posassign:')],
+        WAITING_ASSIGN_FORWARD: [MessageHandler(filters.FORWARDED & ~filters.COMMAND, receive_assign_position_forward)],
+        CHOOSING_CHARACTER_FOR_POSITION: [CallbackQueryHandler(choose_character_for_position, pattern=r'^posassigncharacter:')],
+    },
+    fallbacks=[],
+)
+application.add_handler(assign_position_conv)
+
+revoke_position_conv = ConversationHandler(
+    entry_points=[CommandHandler('revoke_position', start_revoke_position, filters=filters.ChatType.PRIVATE)],
+    states={
+        CHOOSING_REVOKE_POSITION: [CallbackQueryHandler(choose_revoke_position, pattern=r'^posrevoke:')],
+    },
+    fallbacks=[],
+)
+application.add_handler(revoke_position_conv)
+
+add_affiliation_conv = ConversationHandler(
+    entry_points=[CommandHandler('add_affiliation', start_add_affiliation, filters=filters.ChatType.PRIVATE)],
+    states={
+        CHOOSING_TYPE: [CallbackQueryHandler(choose_affiliation_type, pattern=r'^afftype:')],
+        CHOOSING_PARENT: [CallbackQueryHandler(choose_affiliation_parent, pattern=r'^affparent:')],
+        WAITING_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_affiliation_name)],
+    },
+    fallbacks=[],
+)
+application.add_handler(add_affiliation_conv)
+
+remove_affiliation_conv = ConversationHandler(
+    entry_points=[CommandHandler('remove_affiliation', start_remove_affiliation, filters=filters.ChatType.PRIVATE)],
+    states={CHOOSING_REMOVE: [CallbackQueryHandler(choose_affiliation_to_remove, pattern=r'^affremove:')]},
+    fallbacks=[],
+)
+application.add_handler(remove_affiliation_conv)
+
+application.add_handler(CommandHandler('list_affiliations', list_affiliations_command, filters=filters.ChatType.PRIVATE))
+
+assign_affiliation_conv = ConversationHandler(
+    entry_points=[CommandHandler('assign_affiliation', start_assign_affiliation, filters=filters.ChatType.PRIVATE)],
+    states={
+        CHOOSING_AFF_FOR_ASSIGN: [CallbackQueryHandler(choose_affiliation_for_assign, pattern=r'^affassign:')],
+        WAITING_AFF_ASSIGN_FORWARD: [MessageHandler(filters.FORWARDED & ~filters.COMMAND, receive_assign_affiliation_forward)],
+        CHOOSING_CHARACTER_FOR_AFF: [CallbackQueryHandler(choose_character_for_affiliation, pattern=r'^affassigncharacter:')],
+    },
+    fallbacks=[],
+)
+application.add_handler(assign_affiliation_conv)
+
+edit_role_conv = ConversationHandler(
+    entry_points=[CommandHandler('edit_role', start_edit_role, filters=filters.ChatType.PRIVATE)],
+    states={
+        CHOOSING_ROLE: [CallbackQueryHandler(choose_role_to_edit, pattern=r'^roleeditpick:')],
+        CHOOSING_FIELD: [CallbackQueryHandler(choose_role_field, pattern=r'^roleeditfield:')],
+        WAITING_VALUE: [MessageHandler((filters.TEXT | filters.PHOTO) & ~filters.COMMAND, receive_role_field_value)],
+    },
+    fallbacks=[],
+)
+application.add_handler(edit_role_conv)
 
 logger.info("Бот запущен")
 application.run_polling()

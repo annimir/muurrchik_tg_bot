@@ -63,7 +63,6 @@ async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # ДОБАВЛЕНО (B2): раньше здесь не проверялся статус — можно было
     # подписаться на DELETED/BLOCKED тег в обход тегирования по фото.
     if tag['status'] != 'ACTIVE':
         logger.info("Пользователь %s пытался подписаться на тег %s в статусе %s", user.id, tag_name, tag['status'])
@@ -102,7 +101,7 @@ async def unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Отписка НЕ проверяет статус тега намеренно (B2) — пользователь должен
+    # Отписка НЕ проверяет статус тега намеренно — пользователь должен
     # иметь возможность выйти из подписки на DELETED/BLOCKED тег в любой момент,
     # даже если новые подписки на него запрещены.
     unsubscribe_tag(user.id, tag['id'])

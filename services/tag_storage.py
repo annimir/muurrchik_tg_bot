@@ -5,7 +5,7 @@ from rapidfuzz import process, fuzz
 
 class TagStorage:
 
-    def __init__(self, similarity_threshold: int = 90):
+    def __init__(self, similarity_threshold: int = 60):
         self.tags: dict[str, str] = {}
         self.similarity_threshold = similarity_threshold
 
