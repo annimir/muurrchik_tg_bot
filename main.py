@@ -40,7 +40,7 @@ from handlers.addtag import addtag_command, addtag_confirm_callback
 from handlers.tag_stats import tagstats_command
 
 from handlers.user_profile import update_me
-from handlers.tagging import media_tag_handler, tag_command
+from handlers.tagging import media_tag_handler, link_tag_handler, tag_command
 from handlers.inline_search import inline_search
 from handlers.callbacks import callback_router
 
@@ -195,6 +195,7 @@ application.add_handler(CommandHandler('updateme', update_me))
 # ---------- тегирование ----------
 application.add_handler(CommandHandler('tag', tag_command))
 application.add_handler(MessageHandler((filters.PHOTO | filters.VIDEO) & filters.CAPTION, media_tag_handler))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, link_tag_handler), group=1)
 
 # ---------- inline ----------
 application.add_handler(InlineQueryHandler(inline_search))
