@@ -7,10 +7,13 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from database.queries import (
     get_character_request_by_id, update_character_request_status, update_character_request_field,
-    is_character_name_taken, get_user_character_count, create_character_row, apply_character_edit,
-    get_character_by_id, get_tag_by_name, create_tag, get_user_by_id, get_user_language,
+    is_character_name_taken, get_user_character_count, get_character_by_id, get_user_by_id,
+    get_user_language, CharacterApprovalError,
+    approve_character_create_request as approve_character_create_transaction,
+    approve_character_edit_request as approve_character_edit_transaction,
 )
 from services.tag_storage import tag_storage
+from services.validation import MAX_NAME_LENGTH, MAX_TEXT_LENGTH, name_is_too_long, text_is_too_long
 from services.admin import is_admin
 from services.request_broadcast import sync_all_copies, claim_and_sync
 from message.loader import message
@@ -121,9 +124,9 @@ def _working_keyboard(request_id, lang):
 
 async def _set_review_message(query, text, markup=None):
     if query.message.photo:
-        await query.edit_message_caption(caption=text, parse_mode='Markdown', reply_markup=markup)
+        await query.edit_message_caption(caption=text, parse_mode=None, reply_markup=markup)
     else:
-        await query.edit_message_text(text=text, parse_mode='Markdown', reply_markup=markup)
+        await query.edit_message_text(text=text, parse_mode=None, reply_markup=markup)
 
 
 async def _append_to_review_message(query, suffix: str):
@@ -171,7 +174,12 @@ async def character_request_action_callback(update: Update, context: ContextType
             _, photo = _build_character_request_content(req, other_lang)
             return message(other_lang, req_claimed_summary, 'reqclaim', label, claimer_name), None, photo is not None
 
-        await claim_and_sync(context, 'character', request_id, admin_tg_id, build_claimer_view, build_other_view)
+        claimed = await claim_and_sync(
+            context, 'character', request_id, admin_tg_id, build_claimer_view, build_other_view,
+        )
+        if not claimed:
+            await query.answer(message(lang, req_claim_race_lost, 'reqclaim'), show_alert=True)
+            return
         logger.info("Админ %s взял в работу заявку на персонажа #%d", admin_tg_id, request_id)
         await query.answer()
         return
@@ -200,19 +208,30 @@ async def character_request_action_callback(update: Update, context: ContextType
         return
 
     if action == 'approve':
-        if req['request_type'] == 'create':
-            if get_user_character_count(req['user_id']) >= 3:
-                logger.warning("Заявка #%d заблокирована — у пользователя уже 3 персонажа", request_id)
-                await query.message.reply_text(message(lang, charreq_admin_max_block, 'charreq'))
-                return
-            if is_character_name_taken(req['name']):
-                logger.warning("Заявка #%d заблокирована — имя '%s' уже занято", request_id, req['name'])
-                await query.message.reply_text(message(lang, charreq_admin_name_taken_block, 'charreq', req['name']))
-                return
-            await approve_character_create(context, req)
-        else:
-            await approve_character_edit_request(context, req)
+        try:
+            if req['request_type'] == 'create':
+                if get_user_character_count(req['user_id']) >= 3:
+                    logger.warning("Заявка #%d заблокирована — у пользователя уже 3 персонажа", request_id)
+                    await query.message.reply_text(message(lang, charreq_admin_max_block, 'charreq'))
+                    return
+                if is_character_name_taken(req['name']):
+                    logger.warning("Заявка #%d заблокирована — имя '%s' уже занято", request_id, req['name'])
+                    await query.message.reply_text(message(lang, charreq_admin_name_taken_block, 'charreq', req['name']))
+                    return
+                approved = await approve_character_create(context, req)
+            else:
+                approved = await approve_character_edit_request(context, req)
+        except CharacterApprovalError as exc:
+            if exc.code == 'character_limit':
+                text = message(lang, charreq_admin_max_block, 'charreq')
+            else:
+                text = message(lang, charreq_admin_name_taken_block, 'charreq', req['name'])
+            await query.message.reply_text(text)
+            return
 
+        if not approved:
+            await query.answer(message(lang, charreq_admin_already_resolved, 'charreq'), show_alert=True)
+            return
         await _append_to_review_message(query, message(lang, charreq_admin_approved_suffix, 'charreq'))
 
     elif action == 'reject':
@@ -233,36 +252,28 @@ async def character_request_action_callback(update: Update, context: ContextType
 
 
 async def approve_character_create(context, req):
-    owner_user_id = req['user_id']
-    is_primary = get_user_character_count(owner_user_id) == 0
+    result = approve_character_create_transaction(req['id'])
+    if not result:
+        return False
 
-    character = create_character_row(
-        owner_user_id=owner_user_id, name=req['name'], birth_date=req['birth_date'],
-        photo_file_id=req['photo_file_id'], description=req['description'], is_primary=is_primary,
-    )
-
-    existing_tag = get_tag_by_name(character['name'])
-    if not existing_tag:
-        owner = get_user_by_id(owner_user_id)
-        create_tag(character['name'], created_by_tg_id=owner['tg_id'] if owner else None)
+    character = result['character']
+    if result['created_tag']:
         tag_storage.add_to_cache(character['name'])
         logger.info("Автосоздан тег '%s' вместе с персонажем #%d (CHAR-07)", character['name'], character['id'])
 
-    update_character_request_status(req['id'], 'approved')
+    is_primary = character['is_primary']
     await notify_character_request_result(context, req, approved=True, is_primary=is_primary)
     logger.info("Заявка #%d одобрена, создан персонаж #%d (primary=%s)", req['id'], character['id'], is_primary)
+    return True
 
 
 async def approve_character_edit_request(context, req):
-    apply_character_edit(
-        req['character_id'],
-        description=req['description'],
-        photo_file_id=req['photo_file_id'],
-        birth_date=req['birth_date'],
-    )
-    update_character_request_status(req['id'], 'approved')
+    result = approve_character_edit_transaction(req['id'])
+    if not result:
+        return False
     await notify_character_request_result(context, req, approved=True)
     logger.info("Заявка на изменение #%d одобрена (персонаж #%d)", req['id'], req['character_id'])
+    return True
 
 
 async def notify_character_request_result(context, req, approved: bool, is_primary: bool = False):
@@ -306,26 +317,36 @@ async def receive_charreq_edit_value(update: Update, context: ContextTypes.DEFAU
     field = context.user_data['editing_charreq_field']
 
     if field == 'photo_file_id':
-        if not update.message.photo:
-            await update.message.reply_text(message(lang, charreq_photo_invalid, 'charreq'))
+        if not update.effective_message.photo:
+            await update.effective_message.reply_text(message(lang, charreq_photo_invalid, 'charreq'))
             return EDITING_VALUE
-        value = update.message.photo[-1].file_id
+        value = update.effective_message.photo[-1].file_id
 
     elif field == 'birth_date':
-        parsed = _parse_birthdate(update.message.text)
+        parsed = _parse_birthdate(update.effective_message.text)
         if not parsed:
-            await update.message.reply_text(message(lang, charreq_birthdate_invalid, 'charreq'))
+            await update.effective_message.reply_text(message(lang, charreq_birthdate_invalid, 'charreq'))
             return EDITING_VALUE
         value = parsed
 
     elif field == 'name':
-        value = update.message.text.strip()
+        value = update.effective_message.text.strip()
+        if name_is_too_long(value):
+            await update.effective_message.reply_text(
+                message(lang, 'common.nameTooLong', 'common', MAX_NAME_LENGTH)
+            )
+            return EDITING_VALUE
         if is_character_name_taken(value):
-            await update.message.reply_text(message(lang, charreq_admin_name_edit_taken, 'charreq', value))
+            await update.effective_message.reply_text(message(lang, charreq_admin_name_edit_taken, 'charreq', value))
             return EDITING_VALUE
 
     else:
-        value = update.message.text.strip()
+        value = update.effective_message.text.strip()
+        if text_is_too_long(value):
+            await update.effective_message.reply_text(
+                message(lang, 'common.textTooLong', 'common', MAX_TEXT_LENGTH)
+            )
+            return EDITING_VALUE
 
     update_character_request_field(request_id, field, value)
     logger.info("Админ изменил поле '%s' заявки #%d", field, request_id)
@@ -343,7 +364,7 @@ async def receive_charreq_edit_value(update: Update, context: ContextTypes.DEFAU
     else:
         preview = message(lang, charreq_edit_admin_updated_preview, 'charreq')
 
-    await update.message.reply_text(preview, reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.effective_message.reply_text(preview, reply_markup=InlineKeyboardMarkup(keyboard))
     context.user_data.pop('editing_charreq_id', None)
     context.user_data.pop('editing_charreq_field', None)
     return ConversationHandler.END

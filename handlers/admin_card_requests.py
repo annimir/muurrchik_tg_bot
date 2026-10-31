@@ -5,9 +5,10 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from database.queries import (
     get_card_request_by_id, update_card_request_status, update_card_request_bio,
-    upsert_user_card_bio, get_user_by_id, get_user_language, release_request,
+    get_user_by_id, get_user_language, release_request, approve_card_request,
 )
 from services.admin import is_admin
+from services.validation import MAX_TEXT_LENGTH, text_is_too_long
 from services.request_broadcast import sync_all_copies, claim_and_sync
 from message.loader import message
 from message.keys import (
@@ -85,7 +86,12 @@ async def card_request_action_callback(update: Update, context: ContextTypes.DEF
             label = _summary_label(req, other_lang)
             return message(other_lang, req_claimed_summary, 'reqclaim', label, claimer_name), None, False
 
-        await claim_and_sync(context, 'card', request_id, admin_tg_id, build_claimer_view, build_other_view)
+        claimed = await claim_and_sync(
+            context, 'card', request_id, admin_tg_id, build_claimer_view, build_other_view,
+        )
+        if not claimed:
+            await query.answer(message(lang, req_claim_race_lost, 'reqclaim'), show_alert=True)
+            return
         logger.info("Админ %s взял в работу заявку на карточку #%d", admin_tg_id, request_id)
         await query.answer()
         return
@@ -113,8 +119,9 @@ async def card_request_action_callback(update: Update, context: ContextTypes.DEF
         return
 
     if action == 'approve':
-        upsert_user_card_bio(req['user_id'], req['bio'])
-        update_card_request_status(request_id, 'approved')
+        if not approve_card_request(request_id):
+            await query.answer(message(lang, cardreq_admin_already_resolved, 'cardreq'), show_alert=True)
+            return
         await notify_card_request_result(context, req, approved=True)
         await query.edit_message_text(text=query.message.text + message(lang, cardreq_admin_approved_suffix, 'cardreq'))
         logger.info("Заявка на карточку #%d одобрена", request_id)
@@ -141,7 +148,12 @@ async def notify_card_request_result(context, req, approved: bool):
 async def receive_card_edit_bio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)
     request_id = context.user_data['editing_cardreq_id']
-    new_bio = update.message.text.strip()
+    new_bio = update.effective_message.text.strip()
+    if text_is_too_long(new_bio):
+        await update.effective_message.reply_text(
+            message(lang, 'common.textTooLong', 'common', MAX_TEXT_LENGTH)
+        )
+        return EDITING_BIO
 
     update_card_request_bio(request_id, new_bio)
     logger.info("Админ изменил текст заявки на карточку #%d", request_id)
@@ -152,7 +164,7 @@ async def receive_card_edit_bio(update: Update, context: ContextTypes.DEFAULT_TY
         [InlineKeyboardButton(message(lang, cardreq_admin_button_edit, 'cardreq'), callback_data=f'cardreqaction:{request_id}:edit')],
         [InlineKeyboardButton(message(lang, cardreq_admin_button_reject, 'cardreq'), callback_data=f'cardreqaction:{request_id}:reject')],
     ]
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         message(lang, cardreq_admin_updated_preview, 'cardreq', req['bio']),
         reply_markup=InlineKeyboardMarkup(keyboard),
     )

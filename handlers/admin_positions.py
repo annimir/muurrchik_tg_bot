@@ -34,25 +34,25 @@ async def add_position_command(update: Update, context: ContextTypes.DEFAULT_TYP
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return
 
     if not context.args:
-        await update.message.reply_text(message(lang, adminpos_usage_add, 'adminpos'))
+        await update.effective_message.reply_text(message(lang, adminpos_usage_add, 'adminpos'))
         return
 
     name = ' '.join(context.args).strip()
     position_id = add_position(name)
 
     if position_id is None:
-        await update.message.reply_text(message(lang, adminpos_already_exists, 'adminpos', name))
+        await update.effective_message.reply_text(message(lang, adminpos_already_exists, 'adminpos', name))
         return
 
     logger.info("Админ %s добавил должность '%s' (id=%d)", user.id, name, position_id)
-    await update.message.reply_text(message(lang, adminpos_added, 'adminpos', name))
+    await update.effective_message.reply_text(message(lang, adminpos_added, 'adminpos', name))
 
 
 async def remove_position_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -60,26 +60,26 @@ async def remove_position_command(update: Update, context: ContextTypes.DEFAULT_
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return
 
     if not context.args:
-        await update.message.reply_text(message(lang, adminpos_usage_remove, 'adminpos'))
+        await update.effective_message.reply_text(message(lang, adminpos_usage_remove, 'adminpos'))
         return
 
     name = ' '.join(context.args).strip()
     position = get_position_by_name(name)
 
     if not position:
-        await update.message.reply_text(message(lang, adminpos_not_found, 'adminpos', name))
+        await update.effective_message.reply_text(message(lang, adminpos_not_found, 'adminpos', name))
         return
 
     remove_position(position['id'])  # ON DELETE SET NULL сам освобождает держателя, если он был
     logger.info("Админ %s удалил должность '%s'", user.id, name)
-    await update.message.reply_text(message(lang, adminpos_removed, 'adminpos', name))
+    await update.effective_message.reply_text(message(lang, adminpos_removed, 'adminpos', name))
 
 
 async def list_positions_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -87,15 +87,15 @@ async def list_positions_command(update: Update, context: ContextTypes.DEFAULT_T
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return
 
     rows = get_all_positions_with_holders()
     if not rows:
-        await update.message.reply_text(message(lang, adminpos_list_empty, 'adminpos'))
+        await update.effective_message.reply_text(message(lang, adminpos_list_empty, 'adminpos'))
         return
 
     lines = [message(lang, adminpos_list_header, 'adminpos')]
@@ -106,7 +106,7 @@ async def list_positions_command(update: Update, context: ContextTypes.DEFAULT_T
             status = message(lang, adminpos_list_vacant, 'adminpos')
         lines.append(f'• {row["name"]} — {status}')
 
-    await update.message.reply_text('\n'.join(lines), parse_mode='Markdown')
+    await update.effective_message.reply_text('\n'.join(lines), parse_mode=None)
 
 
 async def start_assign_position(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -114,19 +114,19 @@ async def start_assign_position(update: Update, context: ContextTypes.DEFAULT_TY
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return ConversationHandler.END
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return ConversationHandler.END
 
     positions = get_all_positions()
     if not positions:
-        await update.message.reply_text(message(lang, adminpos_assign_no_positions, 'adminpos'))
+        await update.effective_message.reply_text(message(lang, adminpos_assign_no_positions, 'adminpos'))
         return ConversationHandler.END
 
     keyboard = [[InlineKeyboardButton(p['name'], callback_data=f'posassign:{p["id"]}')] for p in positions]
-    await update.message.reply_text(message(lang, adminpos_assign_choose_position, 'adminpos'), reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.effective_message.reply_text(message(lang, adminpos_assign_choose_position, 'adminpos'), reply_markup=InlineKeyboardMarkup(keyboard))
     return CHOOSING_POSITION
 
 
@@ -148,10 +148,10 @@ async def choose_position_for_assign(update: Update, context: ContextTypes.DEFAU
 
 async def receive_assign_position_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)
-    origin = update.message.forward_origin
+    origin = update.effective_message.forward_origin
 
     if origin is None or origin.type != 'user':
-        await update.message.reply_text(message(lang, adminpos_assign_forward_invalid, 'adminpos'))
+        await update.effective_message.reply_text(message(lang, adminpos_assign_forward_invalid, 'adminpos'))
         return WAITING_ASSIGN_FORWARD
 
     target_user = origin.sender_user
@@ -162,7 +162,7 @@ async def receive_assign_position_forward(update: Update, context: ContextTypes.
 
     characters = get_user_characters(db_user['id'])
     if not characters:
-        await update.message.reply_text(message(lang, adminpos_assign_no_characters, 'adminpos'))
+        await update.effective_message.reply_text(message(lang, adminpos_assign_no_characters, 'adminpos'))
         context.user_data.pop('assign_position', None)
         return ConversationHandler.END
 
@@ -170,10 +170,10 @@ async def receive_assign_position_forward(update: Update, context: ContextTypes.
     context.user_data['assign_position']['target_tg_id'] = target_user.id
 
     if len(characters) == 1:
-        return await _finalize_position_assignment(update, context, characters[0], lang, via_message=update.message)
+        return await _finalize_position_assignment(update, context, characters[0], lang, via_message=update.effective_message)
 
     keyboard = [[InlineKeyboardButton(c['name'], callback_data=f'posassigncharacter:{c["id"]}')] for c in characters]
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         message(lang, adminpos_assign_choose_character, 'adminpos', target_user.full_name),
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
@@ -190,7 +190,12 @@ async def choose_character_for_position(update: Update, context: ContextTypes.DE
 
     character_id = int(query.data.split(':')[1])
     character = get_character_by_id(character_id)
-    if not character:
+    data = context.user_data['assign_position']
+    target_user = get_user_by_tg_id(data['target_tg_id'])
+    if (
+        not character or not target_user
+        or character['owner_user_id'] != target_user['id']
+    ):
         return ConversationHandler.END
 
     return await _finalize_position_assignment(update, context, character, lang, via_query=query)
@@ -232,24 +237,24 @@ async def start_revoke_position(update: Update, context: ContextTypes.DEFAULT_TY
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return ConversationHandler.END
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return ConversationHandler.END
 
     rows = get_all_positions_with_holders()
     occupied = [r for r in rows if r['character_name']]
 
     if not occupied:
-        await update.message.reply_text(message(lang, adminpos_revoke_no_occupied, 'adminpos'))
+        await update.effective_message.reply_text(message(lang, adminpos_revoke_no_occupied, 'adminpos'))
         return ConversationHandler.END
 
     keyboard = [
         [InlineKeyboardButton(f'{r["name"]} — {r["character_name"]}', callback_data=f'posrevoke:{r["id"]}')]
         for r in occupied
     ]
-    await update.message.reply_text(message(lang, adminpos_revoke_choose, 'adminpos'), reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.effective_message.reply_text(message(lang, adminpos_revoke_choose, 'adminpos'), reply_markup=InlineKeyboardMarkup(keyboard))
     return CHOOSING_REVOKE_POSITION
 
 

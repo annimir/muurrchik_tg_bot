@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 async def update_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    thread_id = update.message.message_thread_id
+    thread_id = update.effective_message.message_thread_id
 
     await auth(user.id, user.username)
     lang = get_user_language(user.id)
@@ -21,5 +21,5 @@ async def update_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(
         update.effective_chat.id, message(lang, profile_updated, 'profile', user.username),
-        parse_mode='Markdown', message_thread_id=thread_id,
+        parse_mode=None, message_thread_id=thread_id,
     )

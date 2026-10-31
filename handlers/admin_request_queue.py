@@ -23,15 +23,15 @@ async def pending_requests_command(update: Update, context: ContextTypes.DEFAULT
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return
 
     rows = get_pending_unclaimed_requests()
     if not rows:
-        await update.message.reply_text(message(lang, reqqueue_pending_empty, 'reqqueue'))
+        await update.effective_message.reply_text(message(lang, reqqueue_pending_empty, 'reqqueue'))
         return
 
     # ДОБАВЛЕНО: раньше это был просто текстовый
@@ -46,7 +46,7 @@ async def pending_requests_command(update: Update, context: ContextTypes.DEFAULT
         prefix = CALLBACK_PREFIX[row['request_type']]
         keyboard.append([InlineKeyboardButton(button_text, callback_data=f'{prefix}:{row["id"]}:claim')])
 
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         message(lang, reqqueue_pending_header, 'reqqueue'),
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
@@ -57,15 +57,15 @@ async def my_claimed_requests_command(update: Update, context: ContextTypes.DEFA
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return
 
     rows = get_my_claimed_requests(user.id)
     if not rows:
-        await update.message.reply_text(message(lang, reqqueue_claimed_empty, 'reqqueue'))
+        await update.effective_message.reply_text(message(lang, reqqueue_claimed_empty, 'reqqueue'))
         return
 
     lines = [message(lang, reqqueue_claimed_header, 'reqqueue')]
@@ -73,4 +73,4 @@ async def my_claimed_requests_command(update: Update, context: ContextTypes.DEFA
         type_label = message(lang, TYPE_LABELS[row['request_type']], 'reqqueue')
         lines.append(f'#{row["id"]} [{type_label}] {row["label"]}')
 
-    await update.message.reply_text('\n'.join(lines), parse_mode='Markdown')
+    await update.effective_message.reply_text('\n'.join(lines), parse_mode=None)

@@ -8,6 +8,7 @@ from database.queries import (
     create_character_request, get_user_language,
 )
 from handlers.character_requests import notify_admin_new_character_request
+from services.validation import MAX_TEXT_LENGTH, text_is_too_long
 from message.loader import message
 from message.keys import (
     charedit_no_characters, charedit_not_owner, charedit_choose_character, charedit_choose_field,
@@ -35,16 +36,16 @@ async def start_character_edit(update: Update, context: ContextTypes.DEFAULT_TYP
     characters = get_user_characters(db_user['id']) if db_user else []
 
     if not characters:
-        await update.message.reply_text(message(lang, charedit_no_characters, 'charedit'))
+        await update.effective_message.reply_text(message(lang, charedit_no_characters, 'charedit'))
         return ConversationHandler.END
 
     if len(characters) == 1:
         context.user_data['charedit'] = {'character_id': characters[0]['id'], 'character_name': characters[0]['name']}
-        await update.message.reply_text(message(lang, charedit_choose_field, 'charedit'), reply_markup=_field_keyboard(lang))
+        await update.effective_message.reply_text(message(lang, charedit_choose_field, 'charedit'), reply_markup=_field_keyboard(lang))
         return CHOOSE_FIELD
 
     keyboard = [[InlineKeyboardButton(c['name'], callback_data=f'editcharpick:{c["id"]}')] for c in characters]
-    await update.message.reply_text(message(lang, charedit_choose_character, 'charedit'), reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.effective_message.reply_text(message(lang, charedit_choose_character, 'charedit'), reply_markup=InlineKeyboardMarkup(keyboard))
     return CHOOSE_CHARACTER
 
 
@@ -93,14 +94,19 @@ async def receive_edit_value(update: Update, context: ContextTypes.DEFAULT_TYPE)
     field = data['field']
 
     if field == 'photo':
-        if not update.message.photo:
-            await update.message.reply_text(message(lang, charreq_photo_invalid, 'charreq'))
+        if not update.effective_message.photo:
+            await update.effective_message.reply_text(message(lang, charreq_photo_invalid, 'charreq'))
             return WAITING_VALUE
-        photo_file_id = update.message.photo[-1].file_id
+        photo_file_id = update.effective_message.photo[-1].file_id
         description = None
         admin_preview_value = None  # фото не покажешь текстом
     else:
-        description = update.message.text.strip()
+        description = update.effective_message.text.strip()
+        if text_is_too_long(description):
+            await update.effective_message.reply_text(
+                message(lang, 'common.textTooLong', 'common', MAX_TEXT_LENGTH)
+            )
+            return WAITING_VALUE
         photo_file_id = None
         admin_preview_value = description
 
@@ -120,7 +126,7 @@ async def receive_edit_value(update: Update, context: ContextTypes.DEFAULT_TYPE)
         "Пользователь %s подал заявку на изменение персонажа #%d (поле %s)",
         user.id, data['character_id'], field,
     )
-    await update.message.reply_text(message(lang, charedit_submitted, 'charedit'))
+    await update.effective_message.reply_text(message(lang, charedit_submitted, 'charedit'))
 
     await notify_admin_new_character_request(context, request_id)  # используем общую функцию
     context.user_data.pop('charedit', None)
@@ -129,5 +135,5 @@ async def receive_edit_value(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def cancel_character_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)
     context.user_data.pop('charedit', None)
-    await update.message.reply_text(message(lang, charreq_cancelled, 'charreq'))
+    await update.effective_message.reply_text(message(lang, charreq_cancelled, 'charreq'))
     return ConversationHandler.END

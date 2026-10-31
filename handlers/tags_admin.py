@@ -19,11 +19,11 @@ logger = logging.getLogger(__name__)
 
 async def list_all_tags_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    thread_id = update.message.message_thread_id
+    thread_id = update.effective_message.message_thread_id
     lang = get_user_language(user.id)
 
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'), message_thread_id=thread_id)
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'), message_thread_id=thread_id)
         return
 
     tags = get_all_tags()
@@ -31,21 +31,21 @@ async def list_all_tags_command(update: Update, context: ContextTypes.DEFAULT_TY
 
     await context.bot.send_message(
         update.effective_chat.id, message(lang, char_all_list, 'char', names),
-        parse_mode='Markdown', message_thread_id=thread_id,
+        parse_mode=None, message_thread_id=thread_id,
     )
 
 
 async def rename_tag_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    thread_id = update.message.message_thread_id
+    thread_id = update.effective_message.message_thread_id
     lang = get_user_language(user.id)
 
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'), message_thread_id=thread_id)
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'), message_thread_id=thread_id)
         return
 
     if len(context.args) < 2:
-        await update.message.reply_text(message(lang, char_rename_no_argument, 'char'), message_thread_id=thread_id)
+        await update.effective_message.reply_text(message(lang, char_rename_no_argument, 'char'), message_thread_id=thread_id)
         return
 
     old_name = context.args[0].lower()
@@ -57,25 +57,24 @@ async def rename_tag_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if not tag:
         await context.bot.send_message(
             update.effective_chat.id, message(lang, 'sub.characterNotFound', 'sub'),
-            parse_mode='Markdown', message_thread_id=thread_id,
+            parse_mode=None, message_thread_id=thread_id,
         )
         return
 
     if existing:
         await context.bot.send_message(
             update.effective_chat.id, message(lang, char_rename_taken, 'char'),
-            parse_mode='Markdown', message_thread_id=thread_id,
+            parse_mode=None, message_thread_id=thread_id,
         )
         return
 
     rename_tag(tag['id'], new_name)
-    tag_storage.tags.pop(tag_storage.normalize(old_name), None)
-    tag_storage.add_to_cache(new_name)
+    tag_storage.rename(old_name, new_name)
     logger.info("Админ %s переименовал тег %s -> %s", user.id, old_name, new_name)
 
     await context.bot.send_message(
         update.effective_chat.id, message(lang, char_renamed, 'char', old_name, new_name),
-        parse_mode='Markdown', message_thread_id=thread_id,
+        parse_mode=None, message_thread_id=thread_id,
     )
 
 
@@ -84,10 +83,10 @@ async def _change_tag_status(update: Update, context: ContextTypes.DEFAULT_TYPE,
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return
 
     usage_key = {
@@ -97,18 +96,18 @@ async def _change_tag_status(update: Update, context: ContextTypes.DEFAULT_TYPE,
     }[target_status]
 
     if not context.args:
-        await update.message.reply_text(message(lang, usage_key, 'tagstatus'))
+        await update.effective_message.reply_text(message(lang, usage_key, 'tagstatus'))
         return
 
     name = context.args[0].lower()
     tag = get_tag_by_name(name)
 
     if not tag:
-        await update.message.reply_text(message(lang, tagstatus_not_found, 'tagstatus', name))
+        await update.effective_message.reply_text(message(lang, tagstatus_not_found, 'tagstatus', name))
         return
 
     if tag['status'] == target_status:
-        await update.message.reply_text(message(lang, tagstatus_already, 'tagstatus', name, target_status))
+        await update.effective_message.reply_text(message(lang, tagstatus_already, 'tagstatus', name, target_status))
         return
 
     set_tag_status(tag['id'], target_status)
@@ -117,11 +116,10 @@ async def _change_tag_status(update: Update, context: ContextTypes.DEFAULT_TYPE,
         tag_storage.add_to_cache(tag['name'])
         result_key = tagstatus_restored
     else:
-        tag_storage.tags.pop(tag_storage.normalize(tag['name']), None)
         result_key = tagstatus_deleted if target_status == 'DELETED' else tagstatus_blocked
 
     logger.info("Админ %s перевёл тег '%s' в статус %s", user.id, name, target_status)
-    await update.message.reply_text(message(lang, result_key, 'tagstatus', name))
+    await update.effective_message.reply_text(message(lang, result_key, 'tagstatus', name))
 
 
 async def delete_tag_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -67,14 +67,14 @@ async def inline_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # search_tags() уже отдаёт id вместе с name — лишний запрос
         # get_tag_by_name() на каждой итерации не нужен
         subs = get_tag_subscribers(tag['id'])
-        subs_str = ", ".join(s['username'] for s in subs)
+        subs_str = ", ".join(s['username'] for s in subs if s['username'])
         if subs_str:
             results.append(InlineQueryResultArticle(
                 id=str(uuid4()), title=tag['name'],
                 input_message_content=InputTextMessageContent(
                     f'#{tag["name"]}\n\n' + message(lang, inline_subscribers_prefix, 'inline', subs_str)
                 ),
-                reply_markup=create_subscribe_markup(tag['name']),
+                reply_markup=create_subscribe_markup(tag['id']),
             ))
 
     await query.answer(results, cache_time=0)

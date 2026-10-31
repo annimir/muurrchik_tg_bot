@@ -1,3 +1,4 @@
+import html
 import logging
 from datetime import date
 
@@ -47,9 +48,11 @@ async def check_character_birthdays(context: ContextTypes.DEFAULT_TYPE):
             logger.info("Владелец персонажа '%s' покинул чат, поздравление пропущено", row['name'])
             continue
 
-        mention = f'<a href="tg://user?id={owner_tg_id}">{member.user.full_name}</a>'
+        display_name = html.escape(member.user.full_name, quote=False)
+        character_name = html.escape(row['name'], quote=False)
+        mention = f'<a href="tg://user?id={owner_tg_id}">{display_name}</a>'
         key = CONGRATULATION_KEYS[row['id'] % len(CONGRATULATION_KEYS)]
-        text = message(lang, key, 'charbday', row['name'], mention)
+        text = message(lang, key, 'charbday', character_name, mention)
 
         try:
             await context.bot.send_message(chat_id=chat_id, text=text, parse_mode='HTML')

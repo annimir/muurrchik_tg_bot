@@ -30,7 +30,7 @@ async def mygames_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     all_games = get_all_games()
     selected = get_user_games(db_user['id'])
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         message(lang, games_prompt, 'games'),
         reply_markup=_build_keyboard(all_games, selected, lang),
     )

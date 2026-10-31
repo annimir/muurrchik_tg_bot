@@ -20,34 +20,48 @@
 ## Быстрый старт
  
 ```bash
-docker compose down -v   # если поднимали раньше — полная очистка (нет прод-данных)
-docker compose up -d
+cp config/config.example.yml config/config.dev.yml  # затем заполнить конфигурацию
+docker compose up -d --build
 ```
+
+Не используйте `docker compose down -v` на окружении с нужными данными: флаг `-v`
+удаляет volume PostgreSQL.
  
 `database/database_structure.sql` применяется автоматически при старте бота
 (`db.execute_file(...)` в `database/queries.py`) — вручную накатывать схему
 не нужно.
  
 ### Конфигурация
- 
-`config/config.dev.yml` (или `config.prod.yml`, переключается через `APP_ENV`):
- 
+
+Скопируйте пример и заполните его локально:
+
+```bash
+cp config/config.example.yml config/config.dev.yml
+```
+
+`config/config.dev.yml` и `config/config.prod.yml` содержат секреты, игнорируются
+Git и не копируются в Docker-образ. В контейнер конфигурация попадает через mount
+из `docker-compose.yml`; окружение переключается через `APP_ENV`.
+
 ```yaml
 telegram:
-  bot_token: "..."
- 
+  bot_token: "REPLACE_WITH_TELEGRAM_BOT_TOKEN"
+
 postgres:
   host: "postgres"
   port: 5432
   dbname: "bot_db"
   user: "bot_user"
-  password: "bot_password"
- 
+  password: "REPLACE_WITH_POSTGRES_PASSWORD"
+
 admin:
   user_id: 123456789  # tg_id первого администратора — используется только
                        # для начального заполнения таблицы admins, если она
                        # пуста; дальше администраторов добавляют командой
 ```
+
+PostgreSQL доступен с хоста только через `127.0.0.1:5432`; из других машин по
+сети подключиться к нему нельзя.
  
 ## Архитектура
  
@@ -62,7 +76,7 @@ admin:
   `tag_storage.py` (нечёткий поиск тегов), `admin.py` (`is_admin`),
   `flavor_roles.py`, `games.py`, `request_broadcast.py` (рассылка заявок
   нескольким админам и синхронизация копий уведомлений).
-- **`locale/`** — вся текстовая логика вынесена из кода: `keys.py` (константы
+- **`message/`** — вся текстовая логика вынесена из кода: `keys.py` (константы
   ключей), `loader.py` (`message(lang, key, section, *args)`),
   `translations/messages_{ru,en}.properties`.
 ### Данные
@@ -114,27 +128,51 @@ admin:
 а не отдельными командами.
  
 ## Известные ограничения и техдолг
- 
+
 - **Автоочистка неактивных (6 мес.)**: пользователи, вступившие до внедрения
   трекинга членства, не имеют записи в `user_chat_memberships` — могут ложно
   попасть под отсчёт при выходе из чата. Само-исправляется по мере активности.
-- **`/pendingrequests` / `/myclaimedrequests`**: рендерятся с `parse_mode=
-  'Markdown'` поверх списка, включающего сырой пользовательский текст (bio
-  карточки) — специальные символы в чьём-то `bio` могут сломать форматирование
-  всего списка.
 - **`view_characters.py`** (просмотр карточки конкретного персонажа отдельно
   от `/card`) не переписан после Этапа A архитектурного выравнивания — не
   подключён к боту.
 - **"Пересказ" (SUM-01 из BRD)** — сводка обсуждений топика за 24 часа —
   сознательно не реализован в этом раунде. Требует отключения Telegram
   Privacy Mode, лога сообщений чата и интеграции с LLM — отдельный раунд.
+
 ## Разработка
- 
-- Каждое новое пользовательское сообщение — через `locale/`, не хардкодить
+
+- Каждое новое пользовательское сообщение — через `message/`, не хардкодить
   текст в хендлерах.
 - Логирование — `logging`, не `print`; `logger.info` на значимые действия
   пользователей и админов, `logger.warning`/`error` на аномалии и сбои.
-- Реальных production-данных нет; при изменении схемы можно пересобирать
-  `database_structure.sql` начисто, без миграционных скриптов, до момента,
-  когда администратор перенесёт реальные данные (разово, вручную, после
-  завершения активной разработки).
+- Перед изменением схемы сделайте резервную копию и добавьте миграцию. Не
+  пересоздавайте volume PostgreSQL с рабочими данными.
+
+### Тесты
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Без `TEST_POSTGRES_DSN` выполняются unit-тесты, а интеграционные пропускаются.
+Для полного набора укажите DSN отдельной тестовой PostgreSQL:
+
+```bash
+export TEST_POSTGRES_DSN='host=localhost port=5432 dbname=test_bot user=test_user password=test_password'
+python -m unittest discover -s tests -v
+```
+
+Тесты очищают указанную базу перед каждым сценарием, поэтому нельзя использовать
+рабочую PostgreSQL.
+
+### CI/CD
+
+- `.github/workflows/ci.yml` запускает все тесты на PostgreSQL и Docker-сборку
+  для pull request и push в `master`/`main`.
+- `.github/workflows/cd.yml` после успешного CI публикует образ в GHCR с тегами
+  `latest` и `sha-<commit>`; ручной запуск доступен через **Run workflow**.
+- В настройках ветки `master` на GitHub включите защиту через pull request и
+  обязательные проверки **Unit and integration tests** и **Docker build**.
+
+Автоматического развёртывания на сервер нет: CD формирует версионированный
+образ, который можно безопасно забрать из GHCR и развернуть штатным способом.

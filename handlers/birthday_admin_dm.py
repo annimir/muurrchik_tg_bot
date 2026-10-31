@@ -41,17 +41,17 @@ async def start_admin_birthday(update: Update, context: ContextTypes.DEFAULT_TYP
     lang = get_user_language(update.effective_user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return ConversationHandler.END
     if not is_admin(update.effective_user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return ConversationHandler.END
 
     keyboard = [
         [InlineKeyboardButton(message(lang, admin_button_add, 'admin'), callback_data='action:add')],
         [InlineKeyboardButton(message(lang, admin_button_list, 'admin'), callback_data='action:list')],
     ]
-    await update.message.reply_text(message(lang, admin_choose_action, 'admin'), reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.effective_message.reply_text(message(lang, admin_choose_action, 'admin'), reply_markup=InlineKeyboardMarkup(keyboard))
     return MAIN_MENU
 
 
@@ -92,11 +92,11 @@ async def main_menu_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def receive_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    origin = update.message.forward_origin
+    origin = update.effective_message.forward_origin
     lang = get_user_language(update.effective_user.id)
 
     if origin is None or origin.type != 'user':
-        await update.message.reply_text(message(lang, admin_forward_invalid, 'admin'), reply_markup=_back_keyboard(lang))
+        await update.effective_message.reply_text(message(lang, admin_forward_invalid, 'admin'), reply_markup=_back_keyboard(lang))
         return WAITING_FORWARD
 
     target_user = origin.sender_user
@@ -104,7 +104,7 @@ async def receive_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['target_name'] = target_user.full_name
     context.user_data['target_tag'] = target_user.username or target_user.full_name
 
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         message(lang, admin_target_confirmed, 'admin', target_user.full_name),
         reply_markup=_back_keyboard(lang),
     )
@@ -172,10 +172,10 @@ async def go_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def receive_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)
-    parsed = _parse_date(update.message.text)
+    parsed = _parse_date(update.effective_message.text)
 
     if not parsed:
-        await update.message.reply_text(message(lang, admin_date_invalid, 'admin'), reply_markup=_back_keyboard(lang))
+        await update.effective_message.reply_text(message(lang, admin_date_invalid, 'admin'), reply_markup=_back_keyboard(lang))
         return WAITING_DATE
 
     day, month, year = parsed
@@ -190,7 +190,7 @@ async def receive_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
         day, month, context.user_data['target_tg_id'],
     )
 
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         message(lang, admin_saved, 'admin', context.user_data['target_name'], f'{day:02d}', f'{month:02d}')
     )
     context.user_data.pop('target_tg_id', None)
@@ -202,5 +202,5 @@ async def receive_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)
     context.user_data.clear()
-    await update.message.reply_text(message(lang, common_cancel, 'common'))
+    await update.effective_message.reply_text(message(lang, common_cancel, 'common'))
     return ConversationHandler.END

@@ -37,12 +37,12 @@ async def sync_all_copies(context, request_type, request_id, build_fn, exclude_a
             if is_photo:
                 await context.bot.edit_message_caption(
                     chat_id=admin_tg_id, message_id=note['message_id'],
-                    caption=text, parse_mode='Markdown', reply_markup=markup,
+                    caption=text, parse_mode=None, reply_markup=markup,
                 )
             else:
                 await context.bot.edit_message_text(
                     chat_id=admin_tg_id, message_id=note['message_id'],
-                    text=text, parse_mode='Markdown', reply_markup=markup,
+                    text=text, parse_mode=None, reply_markup=markup,
                 )
         except TelegramError as e:
             logger.warning(
@@ -63,7 +63,8 @@ async def claim_and_sync(context, request_type, request_id, admin_tg_id, build_c
     build_claimer_view(admin_tg_id) -> (text_or_caption, markup, is_photo)
     build_other_view(admin_tg_id) -> (text_or_caption, markup, is_photo)
     """
-    claim_request(request_type, request_id, admin_tg_id)
+    if not claim_request(request_type, request_id, admin_tg_id):
+        return False
 
     notifications = get_request_notifications(request_type, request_id)
 
@@ -77,15 +78,17 @@ async def claim_and_sync(context, request_type, request_id, admin_tg_id, build_c
             if is_photo:
                 await context.bot.edit_message_caption(
                     chat_id=target_admin_tg_id, message_id=note['message_id'],
-                    caption=text, parse_mode='Markdown', reply_markup=markup,
+                    caption=text, parse_mode=None, reply_markup=markup,
                 )
             else:
                 await context.bot.edit_message_text(
                     chat_id=target_admin_tg_id, message_id=note['message_id'],
-                    text=text, parse_mode='Markdown', reply_markup=markup,
+                    text=text, parse_mode=None, reply_markup=markup,
                 )
         except TelegramError as e:
             logger.warning(
                 "Не удалось обновить копию заявки %s#%d у админа %s: %s",
                 request_type, request_id, target_admin_tg_id, e,
             )
+
+    return True

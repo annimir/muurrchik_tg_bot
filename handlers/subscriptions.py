@@ -18,7 +18,7 @@ PAGE_SIZE = 40
 
 async def my_subscriptions(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    thread_id = update.message.message_thread_id
+    thread_id = update.effective_message.message_thread_id
 
     await auth(user.id, user.username)
     lang = get_user_language(user.id)
@@ -28,7 +28,7 @@ async def my_subscriptions(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not all_subs:
         await context.bot.send_message(
             update.effective_chat.id, message(lang, mysub_empty, 'mysub', user.username),
-            parse_mode='Markdown', message_thread_id=thread_id,
+            parse_mode=None, message_thread_id=thread_id,
         )
         return
 
@@ -37,19 +37,19 @@ async def my_subscriptions(update: Update, context: ContextTypes.DEFAULT_TYPE):
         names = ", ".join(s['name'] for s in page)
         text = message(lang, mysub_list, 'mysub', user.username, names) if i == 0 else names
         await context.bot.send_message(
-            update.effective_chat.id, text, parse_mode='Markdown', message_thread_id=thread_id,
+            update.effective_chat.id, text, parse_mode=None, message_thread_id=thread_id,
         )
 
 
 async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    thread_id = update.message.message_thread_id
+    thread_id = update.effective_message.message_thread_id
 
     await auth(user.id, user.username)
     lang = get_user_language(user.id)
 
     if not context.args:
-        await update.message.reply_text(message(lang, sub_no_argument, 'sub'), message_thread_id=thread_id)
+        await update.effective_message.reply_text(message(lang, sub_no_argument, 'sub'), message_thread_id=thread_id)
         return
 
     tag_name = context.args[0].lower()
@@ -59,7 +59,7 @@ async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.warning("Пользователь %s пытался подписаться на несуществующий тег %s", user.id, tag_name)
         await context.bot.send_message(
             update.effective_chat.id, message(lang, sub_character_not_found, 'sub'),
-            parse_mode='Markdown', message_thread_id=thread_id,
+            parse_mode=None, message_thread_id=thread_id,
         )
         return
 
@@ -68,7 +68,7 @@ async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info("Пользователь %s пытался подписаться на тег %s в статусе %s", user.id, tag_name, tag['status'])
         await context.bot.send_message(
             update.effective_chat.id, message(lang, sub_tag_unavailable, 'sub'),
-            parse_mode='Markdown', message_thread_id=thread_id,
+            parse_mode=None, message_thread_id=thread_id,
         )
         return
 
@@ -76,19 +76,19 @@ async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Пользователь %s подписался на тег %s", user.id, tag_name)
     await context.bot.send_message(
         update.effective_chat.id, message(lang, sub_success, 'sub', user.username, tag_name),
-        parse_mode='Markdown', message_thread_id=thread_id,
+        parse_mode=None, message_thread_id=thread_id,
     )
 
 
 async def unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    thread_id = update.message.message_thread_id
+    thread_id = update.effective_message.message_thread_id
 
     await auth(user.id, user.username)
     lang = get_user_language(user.id)
 
     if not context.args:
-        await update.message.reply_text(message(lang, sub_no_argument, 'sub'), message_thread_id=thread_id)
+        await update.effective_message.reply_text(message(lang, sub_no_argument, 'sub'), message_thread_id=thread_id)
         return
 
     tag_name = context.args[0].lower()
@@ -97,7 +97,7 @@ async def unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not tag:
         await context.bot.send_message(
             update.effective_chat.id, message(lang, sub_character_not_found, 'sub'),
-            parse_mode='Markdown', message_thread_id=thread_id,
+            parse_mode=None, message_thread_id=thread_id,
         )
         return
 
@@ -108,5 +108,5 @@ async def unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Пользователь %s отписался от тега %s", user.id, tag_name)
     await context.bot.send_message(
         update.effective_chat.id, message(lang, unsub_success, 'unsub', user.username, tag_name),
-        parse_mode='Markdown', message_thread_id=thread_id,
+        parse_mode=None, message_thread_id=thread_id,
     )

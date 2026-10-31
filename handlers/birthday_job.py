@@ -1,3 +1,4 @@
+import html
 import logging
 from datetime import date
 
@@ -43,7 +44,8 @@ async def check_birthdays(context: ContextTypes.DEFAULT_TYPE):
         if member.status in ('left', 'kicked'):
             continue
 
-        mention = f'<a href="tg://user?id={tg_id}">{member.user.full_name}</a>'
+        display_name = html.escape(member.user.full_name, quote=False)
+        mention = f'<a href="tg://user?id={tg_id}">{display_name}</a>'
         key = CONGRATULATION_KEYS[tg_id % len(CONGRATULATION_KEYS)]
         text = message(lang, key, 'birthday', mention)
 

@@ -4,6 +4,8 @@ common_back = 'common.back'
 common_not_admin = 'common.notAdmin'
 common_group_only = 'common.groupOnly'
 common_private_only = 'common.privateOnly'
+common_name_too_long = 'common.nameTooLong'
+common_text_too_long = 'common.textTooLong'
 
 # ==================== WELCOME ====================
 welcome_message = 'welcome.message'

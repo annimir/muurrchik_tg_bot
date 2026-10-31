@@ -25,20 +25,20 @@ async def add_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return
 
     if not context.args:
-        await update.message.reply_text(message(lang, admingames_usage_add, 'admingames'))
+        await update.effective_message.reply_text(message(lang, admingames_usage_add, 'admingames'))
         return
 
     name = ' '.join(context.args).strip()
 
     if get_game_by_name(name):
-        await update.message.reply_text(message(lang, admingames_already_exists, 'admingames', name))
+        await update.effective_message.reply_text(message(lang, admingames_already_exists, 'admingames', name))
         return
 
     base_slug = slugify_game_name(name)
@@ -50,7 +50,7 @@ async def add_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     add_game(code, name)
     logger.info("Админ %s добавил игру '%s' (code=%s)", user.id, name, code)
-    await update.message.reply_text(message(lang, admingames_added, 'admingames', name))
+    await update.effective_message.reply_text(message(lang, admingames_added, 'admingames', name))
 
 
 async def remove_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -58,28 +58,28 @@ async def remove_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return
 
     if not context.args:
-        await update.message.reply_text(message(lang, admingames_usage_remove, 'admingames'))
+        await update.effective_message.reply_text(message(lang, admingames_usage_remove, 'admingames'))
         return
 
     name = ' '.join(context.args).strip()
     game = get_game_by_name(name)
 
     if not game:
-        await update.message.reply_text(message(lang, admingames_not_found, 'admingames', name))
+        await update.effective_message.reply_text(message(lang, admingames_not_found, 'admingames', name))
         return
 
     affected_count = count_users_with_game(game['code'])
     remove_game(game['code'])
     logger.info("Админ %s удалил игру '%s', затронуто пользователей: %d", user.id, name, affected_count)
 
-    await update.message.reply_text(message(lang, admingames_removed, 'admingames', name, affected_count))
+    await update.effective_message.reply_text(message(lang, admingames_removed, 'admingames', name, affected_count))
 
 
 async def list_games_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -87,16 +87,16 @@ async def list_games_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return
 
     games = get_all_games()
     if not games:
-        await update.message.reply_text(message(lang, admingames_list_empty, 'admingames'))
+        await update.effective_message.reply_text(message(lang, admingames_list_empty, 'admingames'))
         return
 
     names = "\n".join(f'• {g["name"]}' for g in games)
-    await update.message.reply_text(f'{message(lang, admingames_list_header, "admingames")}\n{names}', parse_mode='Markdown')
+    await update.effective_message.reply_text(f'{message(lang, admingames_list_header, "admingames")}\n{names}', parse_mode=None)

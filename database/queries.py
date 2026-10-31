@@ -21,6 +21,16 @@ def create_user(tg_id, tag):
     db('INSERT INTO users (tg_id, tag) VALUES (%s, %s)', (tg_id, tag)).close()
 
 
+def ensure_user(tg_id, tag):
+    query = '''
+        INSERT INTO users (tg_id, tag)
+        VALUES (%s, %s)
+        ON CONFLICT (tg_id) DO UPDATE SET tag = EXCLUDED.tag
+        RETURNING *
+    '''
+    return db(query, (tg_id, tag)).one()
+
+
 def update_user_tag(tg_id, new_tag):
     db('UPDATE users SET tag = %s WHERE tg_id = %s', (new_tag, tg_id)).close()
 
@@ -277,6 +287,10 @@ def get_tag_by_name(name):
     return db('SELECT * FROM tag WHERE lower(name) = lower(%s)', (name,)).one()
 
 
+def get_tag_by_id(tag_id):
+    return db('SELECT * FROM tag WHERE id = %s', (tag_id,)).one()
+
+
 def create_tag(name, created_by_tg_id=None):
     query = '''
         INSERT INTO tag (name, status, created_by)
@@ -520,8 +534,12 @@ def apply_character_edit(character_id, description=None, photo_file_id=None, bir
 
 
 def set_character_primary(user_id, character_id):
-    db('UPDATE character SET is_primary = FALSE WHERE owner_user_id = %s', (user_id,)).close()
-    db('UPDATE character SET is_primary = TRUE WHERE id = %s AND owner_user_id = %s', (character_id, user_id)).close()
+    with db.transaction() as tx:
+        tx('UPDATE character SET is_primary = FALSE WHERE owner_user_id = %s', (user_id,)).close()
+        tx(
+            'UPDATE character SET is_primary = TRUE WHERE id = %s AND owner_user_id = %s',
+            (character_id, user_id),
+        ).close()
 
 
 def get_primary_character(user_id):
@@ -565,6 +583,94 @@ def update_character_request_field(request_id, field, value):
     if field not in allowed:
         raise ValueError(f'Недопустимое поле: {field}')
     db(f'UPDATE character_requests SET {field} = %s WHERE id = %s', (value, request_id)).close()
+
+
+class CharacterApprovalError(ValueError):
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
+def approve_character_create_request(request_id):
+    with db.transaction() as tx:
+        req = tx(
+            "SELECT * FROM character_requests WHERE id = %s AND status = 'pending' FOR UPDATE",
+            (request_id,),
+        ).one()
+        if not req or req['request_type'] != 'create':
+            return None
+
+        tx('SELECT id FROM users WHERE id = %s FOR UPDATE', (req['user_id'],)).one()
+        count = tx(
+            'SELECT COUNT(*) AS cnt FROM character WHERE owner_user_id = %s',
+            (req['user_id'],),
+        ).one()['cnt']
+        if count >= 3:
+            raise CharacterApprovalError('character_limit')
+
+        name_taken = tx(
+            'SELECT 1 FROM character WHERE lower(name) = lower(%s)',
+            (req['name'],),
+        ).one()
+        if name_taken:
+            raise CharacterApprovalError('character_name_taken')
+
+        is_primary = count == 0
+        character = tx(
+            '''
+            INSERT INTO character (owner_user_id, name, birth_date, photo_file_id, description, is_primary)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING *
+            ''',
+            (
+                req['user_id'], req['name'], req['birth_date'], req['photo_file_id'],
+                req['description'], is_primary,
+            ),
+        ).one()
+
+        owner = tx('SELECT tg_id FROM users WHERE id = %s', (req['user_id'],)).one()
+        existing_tag = tx('SELECT id FROM tag WHERE lower(name) = lower(%s)', (req['name'],)).one()
+        created_tag = None
+        if not existing_tag:
+            created_tag = tx(
+                "INSERT INTO tag (name, status, created_by) VALUES (%s, 'ACTIVE', %s) RETURNING *",
+                (req['name'], owner['tg_id'] if owner else None),
+            ).one()
+
+        tx(
+            "UPDATE character_requests SET status = 'approved', resolved_at = now() WHERE id = %s",
+            (request_id,),
+        ).close()
+        return {'request': req, 'character': character, 'created_tag': created_tag}
+
+
+def approve_character_edit_request(request_id):
+    with db.transaction() as tx:
+        req = tx(
+            "SELECT * FROM character_requests WHERE id = %s AND status = 'pending' FOR UPDATE",
+            (request_id,),
+        ).one()
+        if not req or req['request_type'] != 'edit':
+            return None
+
+        fields = []
+        params = []
+        for field in ('description', 'photo_file_id', 'birth_date'):
+            if req[field] is not None:
+                fields.append(f'{field} = %s')
+                params.append(req[field])
+        if fields:
+            params.append(req['character_id'])
+            tx(
+                f'UPDATE character SET {", ".join(fields)} WHERE id = %s',
+                tuple(params),
+            ).close()
+
+        tx(
+            "UPDATE character_requests SET status = 'approved', resolved_at = now() WHERE id = %s",
+            (request_id,),
+        ).close()
+        return req
 
 
 def get_user_character_requests(user_id):
@@ -614,6 +720,30 @@ def update_card_request_bio(request_id, bio):
     db('UPDATE card_requests SET bio = %s WHERE id = %s', (bio, request_id)).close()
 
 
+def approve_card_request(request_id):
+    with db.transaction() as tx:
+        req = tx(
+            "SELECT * FROM card_requests WHERE id = %s AND status = 'pending' FOR UPDATE",
+            (request_id,),
+        ).one()
+        if not req:
+            return None
+
+        tx(
+            '''
+            INSERT INTO user_card (user_id, bio)
+            VALUES (%s, %s)
+            ON CONFLICT (user_id) DO UPDATE SET bio = EXCLUDED.bio
+            ''',
+            (req['user_id'], req['bio']),
+        ).close()
+        tx(
+            "UPDATE card_requests SET status = 'approved', resolved_at = now() WHERE id = %s",
+            (request_id,),
+        ).close()
+        return req
+
+
 def get_user_card_requests(user_id):
     query = 'SELECT * FROM card_requests WHERE user_id = %s ORDER BY created_at DESC'
     return db(query, (user_id,)).all()
@@ -626,7 +756,13 @@ _REQUEST_TABLES = {'character': 'character_requests', 'card': 'card_requests'}
 
 def claim_request(request_type, request_id, admin_tg_id):
     table = _REQUEST_TABLES[request_type]
-    db(f'UPDATE {table} SET claimed_by = %s, claimed_at = now() WHERE id = %s', (admin_tg_id, request_id)).close()
+    query = f'''
+        UPDATE {table}
+        SET claimed_by = %s, claimed_at = now()
+        WHERE id = %s AND status = 'pending' AND claimed_by IS NULL
+        RETURNING id
+    '''
+    return db(query, (admin_tg_id, request_id)).one() is not None
 
 
 def release_request(request_type, request_id):
@@ -749,7 +885,12 @@ def get_position_holder_character(position_id):
 
 
 def assign_position_to_character(character_id, position_id):
-    db('UPDATE character SET position_id = %s WHERE id = %s', (position_id, character_id)).close()
+    with db.transaction() as tx:
+        tx('UPDATE character SET position_id = NULL WHERE position_id = %s', (position_id,)).close()
+        tx(
+            'UPDATE character SET position_id = %s WHERE id = %s',
+            (position_id, character_id),
+        ).close()
 
 
 def revoke_position_by_id(position_id):

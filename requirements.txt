@@ -1,5 +1,4 @@
-python-telegram-bot
-psycopg2-binary
-PyYAML
-rapidfuzz
 python-telegram-bot[job-queue]==22.8
+psycopg2-binary==2.9.12
+PyYAML==6.0.3
+rapidfuzz==3.14.5

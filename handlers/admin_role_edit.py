@@ -9,6 +9,7 @@ from database.queries import (
     get_user_language,
 )
 from services.admin import is_admin
+from services.validation import MAX_TEXT_LENGTH, text_is_too_long
 from message.loader import message
 from message.keys import (
     common_private_only, common_not_admin,
@@ -34,19 +35,19 @@ async def start_edit_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return ConversationHandler.END
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return ConversationHandler.END
 
     roles = get_all_flavor_roles()
     if not roles:
-        await update.message.reply_text(message(lang, roleedit_no_roles, 'roleedit'))
+        await update.effective_message.reply_text(message(lang, roleedit_no_roles, 'roleedit'))
         return ConversationHandler.END
 
     keyboard = [[InlineKeyboardButton(r['name'], callback_data=f'roleeditpick:{r["id"]}')] for r in roles]
-    await update.message.reply_text(message(lang, roleedit_choose_role, 'roleedit'), reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.effective_message.reply_text(message(lang, roleedit_choose_role, 'roleedit'), reply_markup=InlineKeyboardMarkup(keyboard))
     return CHOOSING_ROLE
 
 
@@ -89,25 +90,31 @@ async def receive_role_field_value(update: Update, context: ContextTypes.DEFAULT
     field = context.user_data['editing_role_field']
 
     if field == 'photo':
-        if not update.message.photo:
-            await update.message.reply_text(message(lang, roleedit_photo_invalid, 'roleedit'))
+        if not update.effective_message.photo:
+            await update.effective_message.reply_text(message(lang, roleedit_photo_invalid, 'roleedit'))
             return WAITING_VALUE
-        update_flavor_role_photo(role_id, update.message.photo[-1].file_id)
+        update_flavor_role_photo(role_id, update.effective_message.photo[-1].file_id)
 
     elif field == 'wiki_url':
-        url = update.message.text.strip()
+        url = update.effective_message.text.strip()
         if not (url.startswith('http://') or url.startswith('https://')):
-            await update.message.reply_text(message(lang, roleedit_wiki_invalid, 'roleedit'))
+            await update.effective_message.reply_text(message(lang, roleedit_wiki_invalid, 'roleedit'))
             return WAITING_VALUE
         update_flavor_role_wiki_url(role_id, url)
 
-    else:  # description
-        update_flavor_role_description(role_id, update.message.text.strip())
+    else:
+        description = update.effective_message.text.strip()
+        if text_is_too_long(description):
+            await update.effective_message.reply_text(
+                message(lang, 'common.textTooLong', 'common', MAX_TEXT_LENGTH)
+            )
+            return WAITING_VALUE
+        update_flavor_role_description(role_id, description)
 
     logger.info("Админ %s изменил поле '%s' роли #%d", update.effective_user.id, field, role_id)
 
     role = get_flavor_role_by_id(role_id)
-    await update.message.reply_text(message(lang, roleedit_saved, 'roleedit', role['name']))
+    await update.effective_message.reply_text(message(lang, roleedit_saved, 'roleedit', role['name']))
     context.user_data.pop('editing_role_id', None)
     context.user_data.pop('editing_role_field', None)
     return ConversationHandler.END

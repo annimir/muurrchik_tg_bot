@@ -34,17 +34,17 @@ async def start_add_affiliation(update: Update, context: ContextTypes.DEFAULT_TY
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return ConversationHandler.END
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return ConversationHandler.END
 
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton(message(lang, aff_button_root, 'aff'), callback_data='afftype:root')],
         [InlineKeyboardButton(message(lang, aff_button_child, 'aff'), callback_data='afftype:child')],
     ])
-    await update.message.reply_text(message(lang, aff_choose_type, 'aff'), reply_markup=keyboard)
+    await update.effective_message.reply_text(message(lang, aff_choose_type, 'aff'), reply_markup=keyboard)
     return CHOOSING_TYPE
 
 
@@ -86,17 +86,17 @@ async def choose_affiliation_parent(update: Update, context: ContextTypes.DEFAUL
 
 async def receive_affiliation_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)
-    name = update.message.text.strip()
+    name = update.effective_message.text.strip()
     data = context.user_data.get('new_affiliation', {'parent_id': None})
     parent_id = data['parent_id']
 
     if get_affiliation_by_name_and_parent(name, parent_id):
-        await update.message.reply_text(message(lang, aff_name_taken, 'aff'))
+        await update.effective_message.reply_text(message(lang, aff_name_taken, 'aff'))
         return WAITING_NAME
 
     add_affiliation(name, parent_id)
     logger.info("Админ %s добавил принадлежность '%s' (parent_id=%s)", update.effective_user.id, name, parent_id)
-    await update.message.reply_text(message(lang, aff_added, 'aff', name))
+    await update.effective_message.reply_text(message(lang, aff_added, 'aff', name))
     context.user_data.pop('new_affiliation', None)
     return ConversationHandler.END
 
@@ -106,22 +106,22 @@ async def start_remove_affiliation(update: Update, context: ContextTypes.DEFAULT
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return ConversationHandler.END
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return ConversationHandler.END
 
     tree = build_affiliation_tree_flat_with_depth()
     if not tree:
-        await update.message.reply_text(message(lang, aff_no_affiliations, 'aff'))
+        await update.effective_message.reply_text(message(lang, aff_no_affiliations, 'aff'))
         return ConversationHandler.END
 
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton(INDENT * depth + name, callback_data=f'affremove:{aff_id}')]
         for aff_id, name, depth in tree
     ])
-    await update.message.reply_text(message(lang, aff_choose_to_remove, 'aff'), reply_markup=keyboard)
+    await update.effective_message.reply_text(message(lang, aff_choose_to_remove, 'aff'), reply_markup=keyboard)
     return CHOOSING_REMOVE
 
 
@@ -146,22 +146,22 @@ async def list_affiliations_command(update: Update, context: ContextTypes.DEFAUL
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return
 
     tree = build_affiliation_tree_flat_with_depth()
     if not tree:
-        await update.message.reply_text(message(lang, aff_list_empty, 'aff'))
+        await update.effective_message.reply_text(message(lang, aff_list_empty, 'aff'))
         return
 
     lines = [message(lang, aff_list_header, 'aff')]
     for aff_id, name, depth in tree:
         lines.append(INDENT * depth + f'• {name}')
 
-    await update.message.reply_text('\n'.join(lines), parse_mode='Markdown')
+    await update.effective_message.reply_text('\n'.join(lines), parse_mode=None)
 
 
 async def start_assign_affiliation(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -169,22 +169,22 @@ async def start_assign_affiliation(update: Update, context: ContextTypes.DEFAULT
     lang = get_user_language(user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return ConversationHandler.END
     if not is_admin(user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return ConversationHandler.END
 
     tree = build_affiliation_tree_flat_with_depth()
     if not tree:
-        await update.message.reply_text(message(lang, aff_assign_no_affiliations, 'aff'))
+        await update.effective_message.reply_text(message(lang, aff_assign_no_affiliations, 'aff'))
         return ConversationHandler.END
 
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton(INDENT * depth + name, callback_data=f'affassign:{aff_id}')]
         for aff_id, name, depth in tree
     ])
-    await update.message.reply_text(message(lang, aff_assign_choose, 'aff'), reply_markup=keyboard)
+    await update.effective_message.reply_text(message(lang, aff_assign_choose, 'aff'), reply_markup=keyboard)
     return CHOOSING_AFF_FOR_ASSIGN
 
 
@@ -206,10 +206,10 @@ async def choose_affiliation_for_assign(update: Update, context: ContextTypes.DE
 
 async def receive_assign_affiliation_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)
-    origin = update.message.forward_origin
+    origin = update.effective_message.forward_origin
 
     if origin is None or origin.type != 'user':
-        await update.message.reply_text(message(lang, aff_assign_forward_invalid, 'aff'))
+        await update.effective_message.reply_text(message(lang, aff_assign_forward_invalid, 'aff'))
         return WAITING_AFF_ASSIGN_FORWARD
 
     target_user = origin.sender_user
@@ -220,17 +220,17 @@ async def receive_assign_affiliation_forward(update: Update, context: ContextTyp
 
     characters = get_user_characters(db_user['id'])
     if not characters:
-        await update.message.reply_text(message(lang, aff_assign_no_characters, 'aff'))
+        await update.effective_message.reply_text(message(lang, aff_assign_no_characters, 'aff'))
         context.user_data.pop('assign_affiliation', None)
         return ConversationHandler.END
 
     context.user_data['assign_affiliation']['target_name'] = target_user.full_name
 
     if len(characters) == 1:
-        return await _finalize_affiliation_assignment(update, context, characters[0], lang, via_message=update.message)
+        return await _finalize_affiliation_assignment(update, context, characters[0], lang, via_message=update.effective_message)
 
     keyboard = [[InlineKeyboardButton(c['name'], callback_data=f'affassigncharacter:{c["id"]}')] for c in characters]
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         message(lang, aff_assign_choose_character, 'aff', target_user.full_name),
         reply_markup=InlineKeyboardMarkup(keyboard),
     )

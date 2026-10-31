@@ -112,7 +112,8 @@ application = Application.builder().token(config.bot_token).post_init(register_b
 
 
 async def error_handler(update, context):
-    logger.error("Необработанное исключение: %s", update, exc_info=context.error)
+    update_id = getattr(update, 'update_id', None)
+    logger.error("Необработанное исключение (update_id=%s)", update_id, exc_info=context.error)
 
 
 application.add_error_handler(error_handler)

@@ -30,14 +30,14 @@ async def _check_alias_collision(update, lang, thread_id, alias) -> bool:
         return False
 
     if existing['status'] == 'ACTIVE':
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             message(lang, addtag_alias_taken, 'addtag', alias, existing['name']),
-            parse_mode='Markdown',
+            parse_mode=None,
         )
     else:
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             message(lang, addtag_alias_reserved, 'addtag', alias),
-            parse_mode='Markdown',
+            parse_mode=None,
         )
     return True
 
@@ -45,10 +45,10 @@ async def _check_alias_collision(update, lang, thread_id, alias) -> bool:
 async def addtag_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     lang = get_user_language(user.id)
-    thread_id = update.message.message_thread_id
+    thread_id = update.effective_message.message_thread_id
 
     if len(context.args) < 2:
-        await update.message.reply_text(message(lang, addtag_usage, 'addtag'), message_thread_id=thread_id)
+        await update.effective_message.reply_text(message(lang, addtag_usage, 'addtag'), message_thread_id=thread_id)
         return
 
     base_input = context.args[0]
@@ -63,9 +63,9 @@ async def addtag_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         main_name = result["tag"]
         _apply_alias(main_name, new_alias)
         logger.info("Пользователь %s добавил тег '%s' к '%s'", user.id, new_alias, main_name)
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             message(lang, addtag_success, 'addtag', new_alias, main_name),
-            parse_mode='Markdown', message_thread_id=thread_id,
+            parse_mode=None, message_thread_id=thread_id,
         )
         return
 
@@ -75,14 +75,14 @@ async def addtag_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton(message(lang, addtag_confirm_yes, 'addtag'), callback_data='addtagconfirm:yes'),
             InlineKeyboardButton(message(lang, addtag_confirm_no, 'addtag'), callback_data='addtagconfirm:no'),
         ]]
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             message(lang, addtag_suggest, 'addtag', result["tag"], new_alias, f'{result["score"]:.0f}'),
-            parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard), message_thread_id=thread_id,
+            parse_mode=None, reply_markup=InlineKeyboardMarkup(keyboard), message_thread_id=thread_id,
         )
         return
 
     logger.warning("Пользователь %s пытался добавить тег к несуществующему '%s'", user.id, base_input)
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         message(lang, addtag_base_not_found, 'addtag', base_input), message_thread_id=thread_id,
     )
 
@@ -115,11 +115,11 @@ async def addtag_confirm_callback(update: Update, context: ContextTypes.DEFAULT_
     if existing:
         key = addtag_alias_taken if existing['status'] == 'ACTIVE' else addtag_alias_reserved
         args = (alias, existing['name']) if existing['status'] == 'ACTIVE' else (alias,)
-        await query.edit_message_text(message(lang, key, 'addtag', *args), parse_mode='Markdown')
+        await query.edit_message_text(message(lang, key, 'addtag', *args), parse_mode=None)
         context.user_data.pop('pending_alias', None)
         return
 
     _apply_alias(main_name, alias)
     logger.info("Пользователь %s подтвердил тег '%s' к '%s'", user.id, alias, main_name)
-    await query.edit_message_text(message(lang, addtag_success, 'addtag', alias, main_name), parse_mode='Markdown')
+    await query.edit_message_text(message(lang, addtag_success, 'addtag', alias, main_name), parse_mode=None)
     context.user_data.pop('pending_alias', None)

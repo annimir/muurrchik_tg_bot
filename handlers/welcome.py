@@ -1,3 +1,4 @@
+import html
 import logging
 
 from telegram import Update
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
 
-    for member in update.message.new_chat_members:
+    for member in update.effective_message.new_chat_members:
         if member.is_bot:
             continue
 
@@ -34,11 +35,12 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
             logger.info("Пользователю %s назначена роль '%s'", member.id, role_name)
 
         lang = 'RU' if member.language_code == 'ru' else 'EN'
-        mention = f'<a href="tg://user?id={member.id}">{member.full_name}</a>'
+        display_name = html.escape(member.full_name, quote=False)
+        mention = f'<a href="tg://user?id={member.id}">{display_name}</a>'
         text = message(lang, welcome_message, 'welcome')
 
         if role_name:
             text += message(lang, welcome_role_assigned, 'welcome', role_name)
 
-        await update.message.reply_text(f'{mention}\n\n{text}', parse_mode='HTML')
+        await update.effective_message.reply_text(f'{mention}\n\n{text}', parse_mode='HTML')
         logger.info("Приветствие отправлено новому участнику %s в чате %s", member.id, chat_id)

@@ -78,7 +78,8 @@ def _build_card(db_user: dict, display_name: str, lang: str):
             quote_text = _esc(role['description'])
             if role['wiki_url']:
                 wiki_label = _esc(message(lang, card_wiki_link_label, 'card'))
-                quote_text += f'\n<a href="{role["wiki_url"]}">{wiki_label}</a>'
+                wiki_url = html.escape(role['wiki_url'], quote=True)
+                quote_text += f'\n<a href="{wiki_url}">{wiki_label}</a>'
         else:
             quote_text = _esc(message(lang, card_role_desc_none, 'card'))
 
@@ -89,19 +90,21 @@ def _build_card(db_user: dict, display_name: str, lang: str):
 
 
 async def _send_card(update: Update, db_user: dict, display_name: str, lang: str):
-    thread_id = update.message.message_thread_id
+    thread_id = update.effective_message.message_thread_id
     text, photo = _build_card(db_user, display_name, lang)
 
+    if photo and len(text) <= 1024:
+        await update.effective_message.reply_photo(photo=photo, caption=text, parse_mode='HTML', message_thread_id=thread_id)
+        return
     if photo:
-        await update.message.reply_photo(photo=photo, caption=text, parse_mode='HTML', message_thread_id=thread_id)
-    else:
-        await update.message.reply_text(text, parse_mode='HTML', message_thread_id=thread_id)
+        await update.effective_message.reply_photo(photo=photo, message_thread_id=thread_id)
+    await update.effective_message.reply_text(text, parse_mode='HTML', message_thread_id=thread_id)
 
 
 async def card_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     requester = update.effective_user
     lang = get_user_language(requester.id)
-    thread_id = update.message.message_thread_id
+    thread_id = update.effective_message.message_thread_id
 
     if not context.args:
         db_user = get_user_by_tg_id(requester.id)
@@ -113,7 +116,7 @@ async def card_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if not context.args[0].startswith('@'):
-        await update.message.reply_text(message(lang, card_usage, 'card'), message_thread_id=thread_id)
+        await update.effective_message.reply_text(message(lang, card_usage, 'card'), message_thread_id=thread_id)
         return
 
     username = context.args[0].lstrip('@')
@@ -121,7 +124,7 @@ async def card_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not target_user:
         logger.info("Карточка запрошена для неизвестного @%s пользователем %s", username, requester.id)
-        await update.message.reply_text(message(lang, card_user_not_found, 'card'), message_thread_id=thread_id)
+        await update.effective_message.reply_text(message(lang, card_user_not_found, 'card'), message_thread_id=thread_id)
         return
 
     await _send_card(update, target_user, f'@{username}', lang)

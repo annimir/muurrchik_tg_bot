@@ -18,18 +18,18 @@ async def setprimary_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     characters = get_user_characters(db_user['id']) if db_user else []
 
     if not characters:
-        await update.message.reply_text(message(lang, charprimary_no_characters, 'charprimary'))
+        await update.effective_message.reply_text(message(lang, charprimary_no_characters, 'charprimary'))
         return
 
     if len(characters) == 1:
-        await update.message.reply_text(message(lang, charprimary_only_one, 'charprimary'))
+        await update.effective_message.reply_text(message(lang, charprimary_only_one, 'charprimary'))
         return
 
     keyboard = [
         [InlineKeyboardButton(('⭐ ' if c['is_primary'] else '') + c['name'], callback_data=f'setprimary:{c["id"]}')]
         for c in characters
     ]
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         message(lang, charprimary_choose, 'charprimary'), reply_markup=InlineKeyboardMarkup(keyboard),
     )
 

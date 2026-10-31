@@ -1,11 +1,13 @@
+from contextlib import contextmanager
+
 from psycopg2.extras import RealDictCursor
 from psycopg2.pool import SimpleConnectionPool
 
+
 class QueryResult:
-    def __init__(self, cursor, conn, pool):
+    def __init__(self, cursor, on_close=None):
         self._cursor = cursor
-        self._conn = conn
-        self._pool = pool
+        self._on_close = on_close
         self._closed = False
 
     def one(self):
@@ -22,7 +24,8 @@ class QueryResult:
         if self._closed:
             return
         self._cursor.close()
-        self._pool.putconn(self._conn)
+        if self._on_close:
+            self._on_close()
         self._closed = True
 
 
@@ -39,6 +42,9 @@ class Database:
             with conn.cursor() as cur:
                 cur.execute(sql)
             conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
         finally:
             self._pool.putconn(conn)
 
@@ -53,7 +59,29 @@ class Database:
             cur.close()
             self._pool.putconn(conn)
             raise
-        return QueryResult(cur, conn, self._pool)
+        return QueryResult(cur, lambda: self._pool.putconn(conn))
+
+    @contextmanager
+    def transaction(self):
+        conn = self._pool.getconn()
+
+        def execute(query: str, params: tuple = ()):
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            try:
+                cur.execute(query, params)
+            except Exception:
+                cur.close()
+                raise
+            return QueryResult(cur)
+
+        try:
+            yield execute
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self._pool.putconn(conn)
 
     def close(self):
         self._pool.closeall()

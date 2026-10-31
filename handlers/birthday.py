@@ -33,7 +33,7 @@ def _parse_date(raw: str):
 
 async def _check_group(update: Update, lang: str) -> bool:
     if update.effective_chat.type not in ('group', 'supergroup'):
-        await update.message.reply_text(message(lang, common_group_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_group_only, 'common'))
         return False
     return True
 
@@ -46,20 +46,20 @@ async def set_birthday_command(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
     if not context.args:
-        await update.message.reply_text(message(lang, birthday_no_argument, 'birthday'))
+        await update.effective_message.reply_text(message(lang, birthday_no_argument, 'birthday'))
         return
 
     parsed = _parse_date(context.args[0])
     if not parsed:
         logger.warning("Пользователь %s ввёл некорректную дату: %s", user.id, context.args[0])
-        await update.message.reply_text(message(lang, birthday_no_correct, 'birthday'))
+        await update.effective_message.reply_text(message(lang, birthday_no_correct, 'birthday'))
         return
 
     day, month, year = parsed
     set_birthday(tg_id=user.id, tag=user.username or user.full_name, day=day, month=month, year=year)
     logger.info("Пользователь %s установил день рождения %02d.%02d", user.id, day, month)
 
-    await update.message.reply_text(message(lang, birthday_set, 'birthday', f'{day:02d}', f'{month:02d}'))
+    await update.effective_message.reply_text(message(lang, birthday_set, 'birthday', f'{day:02d}', f'{month:02d}'))
 
 
 async def my_birthday_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -71,10 +71,10 @@ async def my_birthday_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     row = get_birthday(user.id)
     if not row:
-        await update.message.reply_text(message(lang, birthday_not_found, 'birthday'))
+        await update.effective_message.reply_text(message(lang, birthday_not_found, 'birthday'))
         return
 
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         message(lang, birthday_mine, 'birthday', f'{row["day"]:02d}', f'{row["month"]:02d}')
     )
 
@@ -88,9 +88,9 @@ async def delete_birthday_command(update: Update, context: ContextTypes.DEFAULT_
 
     row = get_birthday(user.id)
     if not row:
-        await update.message.reply_text(message(lang, birthday_not_found, 'birthday'))
+        await update.effective_message.reply_text(message(lang, birthday_not_found, 'birthday'))
         return
 
     delete_birthday(user.id)
     logger.info("Пользователь %s удалил свой день рождения", user.id)
-    await update.message.reply_text(message(lang, birthday_deleted, 'birthday'))
+    await update.effective_message.reply_text(message(lang, birthday_deleted, 'birthday'))

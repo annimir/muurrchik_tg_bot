@@ -28,6 +28,13 @@ class TagStorage:
     def add_alias_to_cache(self, alias: str, main_name: str):
         self.tags[self.normalize(alias)] = main_name
 
+    def rename(self, old_name: str, new_name: str):
+        old_normalized = self.normalize(old_name)
+        for key, main_name in self.tags.items():
+            if self.normalize(main_name) == old_normalized:
+                self.tags[key] = new_name
+        self.tags[self.normalize(new_name)] = new_name
+
     def is_taken(self, tag: str) -> bool:
         return self.normalize(tag) in self.tags
 

@@ -7,6 +7,8 @@ from telegram.ext import ContextTypes, ConversationHandler
 from database.queries import get_user_by_tg_id, create_card_request, get_user_card_requests, get_user_language, \
     get_all_admin_ids
 from config import config
+from services.auth import auth
+from services.validation import MAX_TEXT_LENGTH, text_is_too_long
 from message.loader import message
 from message.keys import (
     cardreq_ask_bio, cardreq_submitted, cardreq_cancelled,
@@ -22,16 +24,21 @@ WAITING_BIO = range(1)[0]
 async def start_card_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)
     context.user_data['cardreq_chat_id'] = update.effective_chat.id
-    await update.message.reply_text(message(lang, cardreq_ask_bio, 'cardreq'))
+    await update.effective_message.reply_text(message(lang, cardreq_ask_bio, 'cardreq'))
     return WAITING_BIO
 
 
 async def receive_bio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     lang = get_user_language(user.id)
-    bio = update.message.text.strip()
+    bio = update.effective_message.text.strip()
+    if text_is_too_long(bio):
+        await update.effective_message.reply_text(
+            message(lang, 'common.textTooLong', 'common', MAX_TEXT_LENGTH)
+        )
+        return WAITING_BIO
 
-    db_user = get_user_by_tg_id(user.id)
+    db_user = await auth(user.id, user.username)
     chat_id = context.user_data.pop('cardreq_chat_id', update.effective_chat.id)
 
     request_id = create_card_request(
@@ -39,7 +46,7 @@ async def receive_bio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         requester_display_name=user.full_name, requester_username=user.username,
     )
     logger.info("Пользователь %s подал заявку #%d на изменение карточки", user.id, request_id)
-    await update.message.reply_text(message(lang, cardreq_submitted, 'cardreq'))
+    await update.effective_message.reply_text(message(lang, cardreq_submitted, 'cardreq'))
 
     await notify_admin_new_card_request(context, request_id)  # без bio/user
     return ConversationHandler.END
@@ -59,13 +66,13 @@ async def notify_admin_new_card_request(context, request_id):
         keyboard = InlineKeyboardMarkup([[
             InlineKeyboardButton(message(admin_lang_value, req_claim_button, 'reqclaim'), callback_data=f'cardreqaction:{request_id}:claim'),
         ]])
-        return await context.bot.send_message(admin_tg_id, text=text, parse_mode='Markdown', reply_markup=keyboard)
+        return await context.bot.send_message(admin_tg_id, text=text, parse_mode=None, reply_markup=keyboard)
 
     await broadcast_to_admins(context, 'card', request_id, send_fn)
 async def cancel_card_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)
     context.user_data.pop('cardreq_chat_id', None)
-    await update.message.reply_text(message(lang, cardreq_cancelled, 'cardreq'))
+    await update.effective_message.reply_text(message(lang, cardreq_cancelled, 'cardreq'))
     return ConversationHandler.END
 
 
@@ -77,7 +84,7 @@ async def my_card_requests(update: Update, context: ContextTypes.DEFAULT_TYPE):
     requests = get_user_card_requests(db_user['id']) if db_user else []
 
     if not requests:
-        await update.message.reply_text(message(lang, cardreq_my_empty, 'cardreq'))
+        await update.effective_message.reply_text(message(lang, cardreq_my_empty, 'cardreq'))
         return
 
     status_labels = {
@@ -92,4 +99,4 @@ async def my_card_requests(update: Update, context: ContextTypes.DEFAULT_TYPE):
         preview = req['bio'][:40] + ('…' if len(req['bio']) > 40 else '')
         lines.append(f'«{preview}» — {status_label}')
 
-    await update.message.reply_text('\n'.join(lines))
+    await update.effective_message.reply_text('\n'.join(lines))

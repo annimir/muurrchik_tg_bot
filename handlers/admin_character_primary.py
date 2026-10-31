@@ -22,22 +22,22 @@ async def start_admin_setprimary(update: Update, context: ContextTypes.DEFAULT_T
     lang = get_user_language(update.effective_user.id)
 
     if update.effective_chat.type != 'private':
-        await update.message.reply_text(message(lang, common_private_only, 'common'))
+        await update.effective_message.reply_text(message(lang, common_private_only, 'common'))
         return ConversationHandler.END
     if not is_admin(update.effective_user.id):
-        await update.message.reply_text(message(lang, common_not_admin, 'common'))
+        await update.effective_message.reply_text(message(lang, common_not_admin, 'common'))
         return ConversationHandler.END
 
-    await update.message.reply_text(message(lang, charprimary_admin_forward_prompt, 'charprimary'))
+    await update.effective_message.reply_text(message(lang, charprimary_admin_forward_prompt, 'charprimary'))
     return WAITING_FORWARD
 
 
 async def receive_admin_setprimary_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)
-    origin = update.message.forward_origin
+    origin = update.effective_message.forward_origin
 
     if origin is None or origin.type != 'user':
-        await update.message.reply_text(message(lang, charprimary_admin_forward_invalid, 'charprimary'))
+        await update.effective_message.reply_text(message(lang, charprimary_admin_forward_invalid, 'charprimary'))
         return WAITING_FORWARD
 
     target_user = origin.sender_user
@@ -48,7 +48,7 @@ async def receive_admin_setprimary_forward(update: Update, context: ContextTypes
 
     characters = get_user_characters(db_user['id'])
     if not characters:
-        await update.message.reply_text(message(lang, charprimary_admin_no_characters, 'charprimary'))
+        await update.effective_message.reply_text(message(lang, charprimary_admin_no_characters, 'charprimary'))
         return ConversationHandler.END
 
     context.user_data['admin_setprimary_target'] = {
@@ -59,7 +59,7 @@ async def receive_admin_setprimary_forward(update: Update, context: ContextTypes
         [InlineKeyboardButton(('⭐ ' if c['is_primary'] else '') + c['name'], callback_data=f'adminsetprimary:{c["id"]}')]
         for c in characters
     ]
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         message(lang, charprimary_admin_choose, 'charprimary', target_user.full_name),
         reply_markup=InlineKeyboardMarkup(keyboard),
     )

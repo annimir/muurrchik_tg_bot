@@ -16,19 +16,19 @@ logger = logging.getLogger(__name__)
 async def unsuball_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     lang = get_user_language(user.id)
-    thread_id = update.message.message_thread_id
+    thread_id = update.effective_message.message_thread_id
 
     count = count_active_subscriptions(user.id)
 
     if count == 0:
-        await update.message.reply_text(message(lang, unsuball_empty, 'unsuball'), message_thread_id=thread_id)
+        await update.effective_message.reply_text(message(lang, unsuball_empty, 'unsuball'), message_thread_id=thread_id)
         return
 
     keyboard = [[
         InlineKeyboardButton(message(lang, unsuball_confirm_yes, 'unsuball'), callback_data='unsuballconfirm:yes'),
         InlineKeyboardButton(message(lang, unsuball_confirm_no, 'unsuball'), callback_data='unsuballconfirm:no'),
     ]]
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         message(lang, unsuball_confirm, 'unsuball', count),
         reply_markup=InlineKeyboardMarkup(keyboard), message_thread_id=thread_id,
     )

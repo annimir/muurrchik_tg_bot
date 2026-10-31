@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 async def track_member_left(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    left_user = update.message.left_chat_member
+    left_user = update.effective_message.left_chat_member
     if left_user is None or left_user.is_bot:
         return
 

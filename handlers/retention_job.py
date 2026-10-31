@@ -23,12 +23,12 @@ async def send_retention_warnings(context: ContextTypes.DEFAULT_TYPE):
 
         try:
             await context.bot.send_message(chat_id=user['tg_id'], text=text)
-            logger.info("Предупреждение об удалении отправлено пользователю %s", user['tg_id'])
         except TelegramError as e:
-            # пользователь мог заблокировать бота — удаление всё равно состоится через 7 дней
             logger.warning("Не удалось отправить предупреждение пользователю %s: %s", user['tg_id'], e)
-        finally:
-            mark_user_warned(user['id'])
+            continue
+
+        mark_user_warned(user['id'])
+        logger.info("Предупреждение об удалении отправлено пользователю %s", user['tg_id'])
 
 
 async def run_retention_cleanup(context: ContextTypes.DEFAULT_TYPE):
