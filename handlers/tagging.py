@@ -10,6 +10,7 @@ from database.queries import (
 from services.tag_storage import tag_storage
 from services.mentions import mention_users
 from services.validation import MAX_NAME_LENGTH, name_is_too_long
+from services.video_links import extract_video_tags
 from message.loader import message
 from message.keys import tag_suggest, tag_created, tag_no_argument, tag_name_reserved
 
@@ -170,3 +171,34 @@ async def tag_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     unique_subscribers = list({row['tg_id']: row for row in all_subscribers}.values())
     if unique_subscribers:
         await mention_users(context, update.effective_chat.id, unique_subscribers, thread_id)
+
+
+async def link_tag_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.edited_message:
+        return
+
+    message_obj = update.effective_message
+    text = message_obj.text or ''
+    if message_obj.via_bot or message_obj.forward_origin:
+        return
+
+    tags = extract_video_tags(text)
+    if not tags:
+        return
+
+    all_subscribers = []
+    for tag_name in tags:
+        subs = await resolve_tag_subscribers(
+            update, context, tag_name, log_usage=True, media_type='video_link',
+        )
+        if subs:
+            all_subscribers.extend(subs)
+
+    unique_subscribers = list({row['tg_id']: row for row in all_subscribers}.values())
+    if unique_subscribers:
+        await mention_users(
+            context,
+            update.effective_chat.id,
+            unique_subscribers,
+            message_obj.message_thread_id,
+        )

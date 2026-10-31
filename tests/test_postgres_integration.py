@@ -140,6 +140,67 @@ class HandlerIntegrationTests(PostgresTestCase):
         await send_retention_warnings(context)
         self.assertIsNotNone(queries.get_user_by_id(user['id'])['deletion_warned_at'])
 
+    async def test_video_link_with_hashtag_notifies_subscribers(self):
+        from handlers.tagging import link_tag_handler
+
+        user = queries.ensure_user(100, 'user')
+        tag = queries.create_tag('videos')
+        queries.subscribe_tag(user['tg_id'], tag['id'])
+
+        for url in (
+            'https://youtu.be/video-id',
+            'https://www.instagram.com/reel/video-id/',
+            'https://www.tiktok.com/@user/video/123',
+        ):
+            with self.subTest(url=url):
+                send_message = AsyncMock()
+                update = SimpleNamespace(
+                    edited_message=None,
+                    effective_user=SimpleNamespace(id=100),
+                    effective_chat=SimpleNamespace(id=200),
+                    effective_message=SimpleNamespace(
+                        text=f'Смотрите {url} #videos',
+                        via_bot=False,
+                        forward_origin=None,
+                        message_thread_id=None,
+                        message_id=1,
+                    ),
+                )
+                context = SimpleNamespace(
+                    user_data={}, bot=SimpleNamespace(send_message=send_message),
+                )
+
+                await link_tag_handler(update, context)
+
+                send_message.assert_awaited_once()
+                self.assertIn('tg://user?id=100', send_message.await_args.kwargs['text'])
+
+    async def test_video_link_handler_requires_link_and_hashtag(self):
+        from handlers.tagging import link_tag_handler
+
+        send_message = AsyncMock()
+        update = SimpleNamespace(
+            edited_message=None,
+            effective_user=SimpleNamespace(id=100),
+            effective_chat=SimpleNamespace(id=200),
+            effective_message=SimpleNamespace(
+                text='Текст без ссылки #videos',
+                via_bot=False,
+                forward_origin=None,
+                message_thread_id=None,
+                message_id=1,
+            ),
+        )
+        context = SimpleNamespace(
+            user_data={}, bot=SimpleNamespace(send_message=send_message),
+        )
+
+        await link_tag_handler(update, context)
+        update.effective_message.text = 'https://youtu.be/video-id'
+        await link_tag_handler(update, context)
+
+        send_message.assert_not_awaited()
+
     def test_callback_data_uses_tag_id(self):
         from handlers.tagging import create_subscribe_markup
 
