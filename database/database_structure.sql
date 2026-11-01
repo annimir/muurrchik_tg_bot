@@ -252,6 +252,9 @@ CREATE TABLE IF NOT EXISTS youtube_api_usage (
 CREATE INDEX IF NOT EXISTS idx_youtube_api_usage_created_at
     ON youtube_api_usage (created_at);
 
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS idx_users_tag_trgm ON users USING gin (tag gin_trgm_ops);
+
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_file_id TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_updated_at TIMESTAMPTZ;
 

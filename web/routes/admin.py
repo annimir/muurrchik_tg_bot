@@ -13,10 +13,12 @@ from web.auth import (
 )
 from web.charts import build_daily_bars, build_line_chart
 from web.queries import (
-    assign_character, create_character, create_role, get_admin_overview,
+    assign_character, create_character, create_role, delete_character,
+    delete_role, get_admin_character, get_admin_overview, get_admin_role,
     get_daily_analytics, get_recent_audit, get_tag_daily_series,
     get_tag_popularity_for_day, list_admin_characters, list_admin_media,
-    list_admin_roles, list_admin_users, set_media_visibility,
+    list_admin_roles, list_admin_users, set_media_visibility, update_character,
+    update_role,
 )
 from web.rendering import templates
 
@@ -145,6 +147,67 @@ async def assign_character_action(
     return RedirectResponse('/admin/characters', status_code=303)
 
 
+def _character_edit_context(session, character, error=None):
+    return {
+        'character': character, 'csrf_token': session['csrf'],
+        'active_page': 'admin_characters', 'error': error,
+    }
+
+
+@router.get('/characters/{character_id}/edit', name='admin_edit_character')
+async def edit_character(request: Request, character_id: int, session=Depends(require_admin)):
+    character = get_admin_character(character_id)
+    if not character:
+        raise HTTPException(status_code=404, detail='Персонаж не найден')
+    return templates.TemplateResponse(
+        request=request, name='admin/character_edit.html',
+        context=_character_edit_context(session, character),
+    )
+
+
+@router.post('/characters/{character_id}/edit', name='admin_update_character')
+async def update_character_action(
+    request: Request,
+    character_id: int,
+    name: str = Form(...),
+    birth_date: str = Form(''),
+    description: str = Form(''),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    character = get_admin_character(character_id)
+    if not character:
+        raise HTTPException(status_code=404, detail='Персонаж не найден')
+    name = name.strip()
+    description = description.strip()
+    try:
+        if not 1 <= len(name) <= MAX_NAME_LENGTH:
+            raise ValueError(f'Имя должно содержать от 1 до {MAX_NAME_LENGTH} символов')
+        if len(description) > MAX_TEXT_LENGTH:
+            raise ValueError(f'Описание не должно превышать {MAX_TEXT_LENGTH} символов')
+        parsed_birth_date = date.fromisoformat(birth_date) if birth_date else None
+        update_character(session['tg_id'], character_id, name, parsed_birth_date, description or None)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/character_edit.html',
+            context=_character_edit_context(session, character, str(exc)), status_code=400,
+        )
+    return RedirectResponse('/admin/characters', status_code=303)
+
+
+@router.post('/characters/{character_id}/delete', name='admin_delete_character')
+async def delete_character_action(
+    character_id: int,
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        delete_character(session['tg_id'], character_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return RedirectResponse('/admin/characters', status_code=303)
+
+
 @router.get('/roles', name='admin_roles')
 async def roles(request: Request, session=Depends(require_admin)):
     return templates.TemplateResponse(
@@ -187,6 +250,69 @@ async def create_role_action(
             },
             status_code=400,
         )
+    return RedirectResponse('/admin/roles', status_code=303)
+
+
+def _role_edit_context(session, role, error=None):
+    return {
+        'role': role, 'csrf_token': session['csrf'],
+        'active_page': 'admin_roles', 'error': error,
+    }
+
+
+@router.get('/roles/{role_id}/edit', name='admin_edit_role')
+async def edit_role(request: Request, role_id: int, session=Depends(require_admin)):
+    role = get_admin_role(role_id)
+    if not role:
+        raise HTTPException(status_code=404, detail='Роль не найдена')
+    return templates.TemplateResponse(
+        request=request, name='admin/role_edit.html',
+        context=_role_edit_context(session, role),
+    )
+
+
+@router.post('/roles/{role_id}/edit', name='admin_update_role')
+async def update_role_action(
+    request: Request,
+    role_id: int,
+    name: str = Form(...),
+    description: str = Form(''),
+    wiki_url: str = Form(''),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    role = get_admin_role(role_id)
+    if not role:
+        raise HTTPException(status_code=404, detail='Роль не найдена')
+    name = name.strip()
+    description = description.strip()
+    wiki_url = wiki_url.strip()
+    try:
+        if not 1 <= len(name) <= MAX_NAME_LENGTH:
+            raise ValueError(f'Название должно содержать от 1 до {MAX_NAME_LENGTH} символов')
+        if len(description) > MAX_TEXT_LENGTH:
+            raise ValueError(f'Описание не должно превышать {MAX_TEXT_LENGTH} символов')
+        if wiki_url and (urlparse(wiki_url).scheme not in {'http', 'https'} or len(wiki_url) > 2048):
+            raise ValueError('Укажите корректную ссылку HTTP или HTTPS')
+        update_role(session['tg_id'], role_id, name, description or None, wiki_url or None)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/role_edit.html',
+            context=_role_edit_context(session, role, str(exc)), status_code=400,
+        )
+    return RedirectResponse('/admin/roles', status_code=303)
+
+
+@router.post('/roles/{role_id}/delete', name='admin_delete_role')
+async def delete_role_action(
+    role_id: int,
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        delete_role(session['tg_id'], role_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return RedirectResponse('/admin/roles', status_code=303)
 
 

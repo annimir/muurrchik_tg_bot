@@ -119,10 +119,11 @@ async def users(request: Request, q: str = '', page: int = Query(1, ge=1)):
 
 @router.get('/users/fragment', name='users_fragment')
 async def users_fragment(q: str = '', page: int = Query(1, ge=1)):
-    items, _, next_url = _user_page(page, q)
+    items, total, next_url = _user_page(page, q)
     return {
         'html': templates.get_template('_user_cards.html').render(users=items),
         'next_url': next_url,
+        'total': total,
     }
 
 

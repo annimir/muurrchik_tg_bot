@@ -36,6 +36,11 @@ class WebIntegrationTests(PostgresTestCase):
             tag['id'], 10, 100, 'photo', chat_id=200,
             media_file_id='photo-file', media_file_unique_id='photo-unique', caption='Forest photo',
         )
+        second_tag = queries.create_tag('forest')
+        queries.log_tag_usage(
+            second_tag['id'], 10, 100, 'photo', chat_id=200,
+            media_file_id='photo-file', media_file_unique_id='photo-unique', caption='Forest photo',
+        )
         queries.log_tag_usage(
             tag['id'], 11, 100, 'video_link', chat_id=200,
             media_url='https://youtu.be/video-id', caption='Video link',
@@ -58,6 +63,10 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertIn('muted playsinline', home.text)
         self.assertIn('data-media-open=', home.text)
         self.assertIn('Forest photo', catalog.text)
+        self.assertIn('#adventure', catalog.text)
+        self.assertIn('#forest', catalog.text)
+        self.assertIn('Автор:', catalog.text)
+        self.assertIn('player', catalog.text)
         self.assertNotIn('Video link', catalog.text)
         self.assertEqual(empty_filters.status_code, 200)
         self.assertIn('Forest photo', dated.text)
@@ -112,6 +121,41 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertEqual(response.status_code, 303)
         self.assertEqual(queries.get_character_by_id(character['id'])['owner_user_id'], second['id'])
         self.assertEqual(queries.db('SELECT COUNT(*) AS cnt FROM admin_audit_log').one()['cnt'], 3)
+
+    def test_admin_edits_and_deletes_characters_and_roles(self):
+        csrf = self.admin_session()
+        user = queries.ensure_user(100, 'player')
+        role_id = queries.add_flavor_role('Old role')
+        queries.set_user_flavor_role(user['id'], role_id)
+        first = queries.create_character_row(user['id'], 'First', None, None, 'Old', True)
+        second = queries.create_character_row(user['id'], 'Second', None, None, 'Other', False)
+
+        response = self.client.post(f'/admin/roles/{role_id}/edit', data={
+            'name': 'New role', 'description': 'Updated', 'wiki_url': '', 'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(queries.get_flavor_role_by_id(role_id)['name'], 'New role')
+
+        response = self.client.post(f'/admin/characters/{first["id"]}/edit', data={
+            'name': 'Renamed', 'birth_date': '2001-02-03',
+            'description': 'Updated', 'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(queries.get_character_by_id(first['id'])['name'], 'Renamed')
+
+        response = self.client.post(f'/admin/characters/{first["id"]}/delete', data={
+            'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertIsNone(queries.get_character_by_id(first['id']))
+        self.assertTrue(queries.get_character_by_id(second['id'])['is_primary'])
+
+        response = self.client.post(f'/admin/roles/{role_id}/delete', data={
+            'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertIsNone(queries.get_flavor_role_by_id(role_id))
+        self.assertIsNone(queries.get_user_by_id(user['id'])['flavor_role_id'])
 
     def test_media_moderation_keeps_analytics(self):
         csrf = self.admin_session()

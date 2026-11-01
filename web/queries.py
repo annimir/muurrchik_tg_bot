@@ -53,16 +53,28 @@ def list_media(
     }.get(sort)
     if order_by is None:
         raise ValueError('Неизвестная сортировка')
+    tag_visibility = "tu2.is_public = TRUE AND t2.status = 'ACTIVE'" if public_only else 'TRUE'
     query = f'''
-        SELECT * FROM (
+        SELECT media.*, u.id AS author_id, u.tag AS author_tag,
+            COALESCE((
+                SELECT STRING_AGG(t2.name, ', ' ORDER BY t2.name)
+                FROM tag_usage tu2
+                JOIN tag t2 ON t2.id = tu2.tag_id
+                WHERE COALESCE(tu2.media_file_unique_id, tu2.media_file_id, tu2.media_url, tu2.id::text) = media.media_key
+                    AND {tag_visibility}
+            ), media.tag_name) AS tag_names
+        FROM (
             SELECT DISTINCT ON (COALESCE(tu.media_file_unique_id, tu.media_file_id, tu.media_url, tu.id::text))
-                tu.id, tu.media_type, tu.media_file_id, tu.media_url, tu.caption,
-                tu.used_at, tu.is_public, t.id AS tag_id, t.name AS tag_name
+                tu.id, tu.media_type, tu.media_file_id, tu.media_file_unique_id, tu.media_url,
+                tu.caption, tu.used_at, tu.is_public, tu.author_tg_id,
+                t.id AS tag_id, t.name AS tag_name,
+                COALESCE(tu.media_file_unique_id, tu.media_file_id, tu.media_url, tu.id::text) AS media_key
             FROM tag_usage tu
             JOIN tag t ON t.id = tu.tag_id
             WHERE {where}
             ORDER BY COALESCE(tu.media_file_unique_id, tu.media_file_id, tu.media_url, tu.id::text), tu.used_at DESC
         ) media
+        LEFT JOIN users u ON u.tg_id = media.author_tg_id
         ORDER BY {order_by}
         LIMIT %s OFFSET %s
     '''
@@ -343,6 +355,71 @@ def assign_character(admin_tg_id, character_id, owner_user_id, is_primary=False)
         _audit(tx, admin_tg_id, 'assign', 'character', character_id, {
             'from_user_id': character['owner_user_id'], 'to_user_id': owner_user_id,
         })
+
+
+def get_admin_character(character_id):
+    return db('SELECT * FROM character WHERE id = %s', (character_id,)).one()
+
+
+def update_character(admin_tg_id, character_id, name, birth_date=None, description=None):
+    with db.transaction() as tx:
+        if not tx('SELECT 1 FROM character WHERE id = %s FOR UPDATE', (character_id,)).one():
+            raise ValueError('Персонаж не найден')
+        if tx(
+            'SELECT 1 FROM character WHERE lower(name) = lower(%s) AND id <> %s',
+            (name, character_id),
+        ).one():
+            raise ValueError('Персонаж с таким именем уже существует')
+        tx(
+            'UPDATE character SET name = %s, birth_date = %s, description = %s WHERE id = %s',
+            (name, birth_date, description, character_id),
+        ).close()
+        _audit(tx, admin_tg_id, 'update', 'character', character_id, {'name': name})
+
+
+def delete_character(admin_tg_id, character_id):
+    with db.transaction() as tx:
+        character = tx('DELETE FROM character WHERE id = %s RETURNING *', (character_id,)).one()
+        if not character:
+            raise ValueError('Персонаж не найден')
+        if character['is_primary']:
+            tx(
+                '''
+                UPDATE character SET is_primary = TRUE WHERE id = (
+                    SELECT id FROM character WHERE owner_user_id = %s ORDER BY created_at, id LIMIT 1
+                )
+                ''',
+                (character['owner_user_id'],),
+            ).close()
+        _audit(tx, admin_tg_id, 'delete', 'character', character_id, {'name': character['name']})
+
+
+def get_admin_role(role_id):
+    return db('SELECT * FROM flavor_roles WHERE id = %s', (role_id,)).one()
+
+
+def update_role(admin_tg_id, role_id, name, description=None, wiki_url=None):
+    with db.transaction() as tx:
+        if not tx('SELECT 1 FROM flavor_roles WHERE id = %s FOR UPDATE', (role_id,)).one():
+            raise ValueError('Роль не найдена')
+        if tx(
+            'SELECT 1 FROM flavor_roles WHERE lower(name) = lower(%s) AND id <> %s',
+            (name, role_id),
+        ).one():
+            raise ValueError('Роль с таким названием уже существует')
+        tx(
+            'UPDATE flavor_roles SET name = %s, description = %s, wiki_url = %s WHERE id = %s',
+            (name, description, wiki_url, role_id),
+        ).close()
+        _audit(tx, admin_tg_id, 'update', 'flavor_role', role_id, {'name': name})
+
+
+def delete_role(admin_tg_id, role_id):
+    with db.transaction() as tx:
+        role = tx('DELETE FROM flavor_roles WHERE id = %s RETURNING name', (role_id,)).one()
+        if not role:
+            raise ValueError('Роль не найдена')
+        _audit(tx, admin_tg_id, 'delete', 'flavor_role', role_id, {'name': role['name']})
 
 
 def set_media_visibility(admin_tg_id, usage_id, is_public):

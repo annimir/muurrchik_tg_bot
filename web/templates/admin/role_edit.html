@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Редактирование роли{% endblock %}
+{% block content %}
+{% include 'admin/_nav.html' %}
+<section class="page-heading"><div class="eyebrow">Редактор архива</div><h1>{{ role.name }}</h1></section>
+{% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+<section class="panel">
+    <form class="admin-form" method="post" action="/admin/roles/{{ role.id }}/edit">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>Название<input name="name" required maxlength="100" value="{{ role.name }}"></label>
+        <label>Ссылка на описание<input type="url" name="wiki_url" value="{{ role.wiki_url or '' }}" placeholder="https://..."></label>
+        <label class="form-wide">Описание<textarea name="description" rows="6" maxlength="5000">{{ role.description or '' }}</textarea></label>
+        <button class="button" type="submit">Сохранить</button>
+        <a class="button button-quiet" href="/admin/roles">Отмена</a>
+    </form>
+</section>
+<section class="panel danger-zone"><h2>Удаление</h2><p>У игроков с этой ролью она будет сброшена.</p><form method="post" action="/admin/roles/{{ role.id }}/delete" data-confirm="Удалить роль {{ role.name }}?"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button button-danger" type="submit">Удалить роль</button></form></section>
+{% endblock %}

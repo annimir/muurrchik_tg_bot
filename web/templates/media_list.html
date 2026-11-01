@@ -22,8 +22,17 @@
             <option value="video_link" {{ 'selected' if selected_kind == 'video_link' else '' }}>Ссылки на видео</option>
         </select>
     </label>
-    <label>С даты<input type="date" name="date_from" value="{{ date_from }}"></label>
-    <label>По дату<input type="date" name="date_to" value="{{ date_to }}"></label>
+    <div class="date-range-picker" data-date-range data-from="{{ date_from }}" data-to="{{ date_to }}">
+        <input type="hidden" name="date_from" value="{{ date_from }}">
+        <input type="hidden" name="date_to" value="{{ date_to }}">
+        <button class="button button-secondary date-range-toggle" type="button" data-date-toggle>Выбрать даты</button>
+        <div class="date-range-popup" hidden>
+            <div class="date-range-header"><button type="button" data-date-prev aria-label="Предыдущий месяц">‹</button><strong data-date-month></strong><button type="button" data-date-next aria-label="Следующий месяц">›</button></div>
+            <div class="date-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+            <div class="date-grid" data-date-grid></div>
+            <div class="date-range-actions"><button type="button" data-date-clear>Сбросить</button><button type="button" data-date-close>Готово</button></div>
+        </div>
+    </div>
     <label>Сортировка
         <select name="sort">
             <option value="newest" {{ 'selected' if selected_sort == 'newest' else '' }}>Сначала новые</option>
