@@ -1,6 +1,6 @@
 import logging
 
-from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from database.queries import get_user_characters, get_user_by_username, get_user_language

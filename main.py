@@ -93,7 +93,7 @@ from handlers.admin_affiliations import (
 )
 from handlers.admin_role_edit import (
     start_edit_role, choose_role_to_edit, choose_role_field, receive_role_field_value,
-    CHOOSING_ROLE, CHOOSING_FIELD, WAITING_VALUE,
+    CHOOSING_ROLE, CHOOSING_FIELD, WAITING_VALUE as ADMIN_ROLE_WAITING_VALUE,
 )
 from handlers.admin_card_requests import (
     card_request_action_callback, receive_card_edit_bio, EDITING_BIO,
@@ -379,7 +379,7 @@ edit_role_conv = ConversationHandler(
     states={
         CHOOSING_ROLE: [CallbackQueryHandler(choose_role_to_edit, pattern=r'^roleeditpick:')],
         CHOOSING_FIELD: [CallbackQueryHandler(choose_role_field, pattern=r'^roleeditfield:')],
-        WAITING_VALUE: [MessageHandler((filters.TEXT | filters.PHOTO) & ~filters.COMMAND, receive_role_field_value)],
+        ADMIN_ROLE_WAITING_VALUE: [MessageHandler((filters.TEXT | filters.PHOTO) & ~filters.COMMAND, receive_role_field_value)],
     },
     fallbacks=[],
 )

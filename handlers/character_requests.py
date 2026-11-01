@@ -3,12 +3,11 @@ import re
 from datetime import date
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.error import TelegramError
 from telegram.ext import ContextTypes, ConversationHandler
 
 from database.queries import (
-    get_user_by_tg_id, get_user_character_count, is_character_name_taken,
-    create_character_request, get_user_character_requests, get_character_by_id, get_user_language, get_all_admin_ids,
+    get_user_character_count, is_character_name_taken,
+    create_character_request, get_user_character_requests, get_character_by_id, get_user_language,
 )
 from services.auth import auth
 from services.validation import MAX_NAME_LENGTH, MAX_TEXT_LENGTH, name_is_too_long, text_is_too_long
