@@ -56,6 +56,18 @@ class WebIntegrationTests(PostgresTestCase):
         response = self.client.post('/admin/roles', data={'name': 'Role', 'csrf_token': csrf + 'bad'})
         self.assertEqual(response.status_code, 403)
 
+    def test_admin_dashboard_renders(self):
+        self.admin_session()
+        tag = queries.create_tag('daily')
+        queries.log_tag_usage(tag['id'], 10, 100, 'photo')
+
+        response = self.client.get('/admin')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Статистика сообщества', response.text)
+        self.assertIn('Использование тегов за 14 дней', response.text)
+        self.assertIn('#daily', response.text)
+
     def test_admin_creates_role_character_and_reassigns(self):
         csrf = self.admin_session()
         first = queries.ensure_user(100, 'first')

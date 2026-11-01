@@ -371,7 +371,7 @@ def get_tag_daily_series(days=14):
             COUNT(tu.id) FILTER (WHERE tu.media_type = 'video') AS video,
             COUNT(tu.id) FILTER (WHERE tu.media_type = 'video_link') AS video_link
         FROM generate_series(CURRENT_DATE - (%s - 1) * INTERVAL '1 day', CURRENT_DATE, INTERVAL '1 day') d(day)
-        LEFT JOIN tag_usage tu ON tu.used_at >= d.day AND tu.used_at < d.day + 1
+        LEFT JOIN tag_usage tu ON tu.used_at >= d.day AND tu.used_at < d.day + INTERVAL '1 day'
         GROUP BY d.day ORDER BY d.day
         ''',
         (days,),
