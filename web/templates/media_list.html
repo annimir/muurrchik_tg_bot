@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% from '_media.html' import media_card %}
+{% block title %}Коллекция медиа{% endblock %}
+{% block content %}
+<section class="page-heading">
+    <div class="eyebrow">Коллекция сообщества</div>
+    <h1>Фото и видео</h1>
+    <p>Находите нужные моменты по тегам и типу публикации.</p>
+</section>
+<form class="filters" method="get" action="/media">
+    <label>Тег
+        <select name="tag">
+            <option value="">Все теги</option>
+            {% for tag in tags %}<option value="{{ tag.id }}" {{ 'selected' if selected_tag == tag.id else '' }}>#{{ tag.name }}</option>{% endfor %}
+        </select>
+    </label>
+    <label>Тип
+        <select name="kind">
+            <option value="">Все материалы</option>
+            <option value="photo" {{ 'selected' if selected_kind == 'photo' else '' }}>Фото</option>
+            <option value="video" {{ 'selected' if selected_kind == 'video' else '' }}>Видео</option>
+            <option value="video_link" {{ 'selected' if selected_kind == 'video_link' else '' }}>Ссылки на видео</option>
+        </select>
+    </label>
+    <label>Сортировка
+        <select name="sort">
+            <option value="newest" {{ 'selected' if selected_sort == 'newest' else '' }}>Сначала новые</option>
+            <option value="oldest" {{ 'selected' if selected_sort == 'oldest' else '' }}>Сначала старые</option>
+            <option value="tag" {{ 'selected' if selected_sort == 'tag' else '' }}>По тегу</option>
+        </select>
+    </label>
+    <button class="button" type="submit">Применить</button>
+</form>
+<div class="results-count">Найдено: {{ pagination.total }}</div>
+{% if items %}
+<div class="media-grid">{% for item in items %}{{ media_card(item) }}{% endfor %}</div>
+{% else %}
+<div class="empty-state"><h3>Ничего не найдено</h3><p>Измените фильтры или выберите другой тег.</p></div>
+{% endif %}
+{% if pagination.pages > 1 %}
+<nav class="pagination" aria-label="Страницы">
+    {% if pagination.previous %}<a href="/media?tag={{ selected_tag or '' }}&kind={{ selected_kind or '' }}&sort={{ selected_sort }}&page={{ pagination.previous }}">Назад</a>{% endif %}
+    <span>Страница {{ pagination.page }} из {{ pagination.pages }}</span>
+    {% if pagination.next %}<a href="/media?tag={{ selected_tag or '' }}&kind={{ selected_kind or '' }}&sort={{ selected_sort }}&page={{ pagination.next }}">Далее</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

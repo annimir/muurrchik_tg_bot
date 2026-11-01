@@ -251,3 +251,28 @@ CREATE TABLE IF NOT EXISTS youtube_api_usage (
 
 CREATE INDEX IF NOT EXISTS idx_youtube_api_usage_created_at
     ON youtube_api_usage (created_at);
+
+ALTER TABLE tag_usage ADD COLUMN IF NOT EXISTS chat_id BIGINT;
+ALTER TABLE tag_usage ADD COLUMN IF NOT EXISTS message_thread_id BIGINT;
+ALTER TABLE tag_usage ADD COLUMN IF NOT EXISTS media_file_id TEXT;
+ALTER TABLE tag_usage ADD COLUMN IF NOT EXISTS media_file_unique_id TEXT;
+ALTER TABLE tag_usage ADD COLUMN IF NOT EXISTS media_url TEXT;
+ALTER TABLE tag_usage ADD COLUMN IF NOT EXISTS caption TEXT;
+ALTER TABLE tag_usage ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT TRUE;
+
+CREATE INDEX IF NOT EXISTS idx_tag_usage_used_at ON tag_usage (used_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tag_usage_public_media
+    ON tag_usage (used_at DESC) WHERE is_public = TRUE;
+
+CREATE TABLE IF NOT EXISTS admin_audit_log (
+    id          SERIAL PRIMARY KEY,
+    admin_tg_id BIGINT NOT NULL,
+    action      TEXT NOT NULL,
+    entity_type TEXT NOT NULL,
+    entity_id   TEXT,
+    details     JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_audit_log_created_at
+    ON admin_audit_log (created_at DESC);

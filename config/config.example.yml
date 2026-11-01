@@ -17,3 +17,11 @@ youtube:
   channel_handle: "@muuurrchik"
   target_chat_id: -1001234567890
   check_interval_seconds: 14400
+
+web:
+  secret_key: "REPLACE_WITH_LONG_RANDOM_SECRET"
+  session_ttl_seconds: 28800
+  media_cache_dir: "data/media"
+  public_base_url: "http://localhost:8000"
+  telegram_bot_username: "your_bot_username"
+  secure_cookies: false

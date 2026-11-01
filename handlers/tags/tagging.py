@@ -10,11 +10,33 @@ from database.queries import (
 from services.tag_storage import tag_storage
 from services.mentions import mention_users
 from services.validation import MAX_NAME_LENGTH, name_is_too_long
-from services.video_links import extract_video_tags
+from services.video_links import extract_video_tags, extract_video_url
 from message.loader import message
 from message.keys import tag_suggest, tag_created, tag_no_argument, tag_name_reserved
 
 logger = logging.getLogger(__name__)
+
+
+def _log_tag_message_usage(update: Update, tag_id: int, user_id: int, media_type: str):
+    message_obj = update.effective_message
+    metadata = {
+        'chat_id': update.effective_chat.id,
+        'message_thread_id': message_obj.message_thread_id,
+        'caption': message_obj.caption or message_obj.text,
+    }
+    if media_type == 'photo':
+        photo = message_obj.photo[-1]
+        metadata['media_file_id'] = photo.file_id
+        metadata['media_file_unique_id'] = photo.file_unique_id
+    elif media_type == 'video':
+        metadata['media_file_id'] = message_obj.video.file_id
+        metadata['media_file_unique_id'] = message_obj.video.file_unique_id
+    elif media_type == 'video_link':
+        metadata['media_url'] = extract_video_url(message_obj.text or '')
+
+    log_tag_usage(
+        tag_id, message_obj.message_id, user_id, media_type, **metadata,
+    )
 
 
 def create_subscribe_markup(tag_id: int):
@@ -62,7 +84,7 @@ async def resolve_tag_subscribers(
 
         touch_tag_last_used(tag['id'])
         if log_usage:
-            log_tag_usage(tag['id'], update.effective_message.message_id, user_id, media_type)
+            _log_tag_message_usage(update, tag['id'], user_id, media_type)
             logger.info(
                 "Зафиксировано использование тега '%s' (сообщение %s, тип %s)",
                 matched_name, update.effective_message.message_id, media_type,
@@ -101,7 +123,7 @@ async def resolve_tag_subscribers(
         tag = get_tag_by_name(collision['name'])
         touch_tag_last_used(tag['id'])
         if log_usage:
-            log_tag_usage(tag['id'], update.effective_message.message_id, user_id, media_type)
+            _log_tag_message_usage(update, tag['id'], user_id, media_type)
         return get_tag_subscribers(tag['id'])
 
     new_tag = create_tag(new_name, created_by_tg_id=user_id)
@@ -109,7 +131,7 @@ async def resolve_tag_subscribers(
     logger.info("Пользователь %s создал новый тег: %s", user_id, new_name)
 
     if log_usage:
-        log_tag_usage(new_tag['id'], update.effective_message.message_id, user_id, media_type)
+        _log_tag_message_usage(update, new_tag['id'], user_id, media_type)
 
     await update.effective_message.reply_text(
         message(lang, tag_created, 'tag', new_name),

@@ -35,5 +35,24 @@ services:
       - ./config/config.dev.yml:/app/config.dev.yml
       - ./logs:/app/logs
 
+  web:
+    build: .
+    command: ["uvicorn", "web.app:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+    restart: unless-stopped
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: dev
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./config/config.dev.yml:/app/config.dev.yml
+      - media_data:/app/data/media
+
 volumes:
   pgdata:
+  media_data:

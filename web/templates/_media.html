@@ -1,0 +1,31 @@
+{% macro media_card(item, admin=false) %}
+<article class="media-card {{ 'media-hidden' if not item.is_public else '' }}">
+    <div class="media-preview">
+        {% if item.media_type == 'photo' %}
+            <img src="/media/files/{{ item.id }}" alt="{{ item.caption or 'Фото по тегу ' + item.tag_name }}" loading="lazy">
+        {% elif item.media_type == 'video' %}
+            <video src="/media/files/{{ item.id }}" controls preload="metadata">Ваш браузер не поддерживает видео.</video>
+        {% else %}
+            <a class="external-media" href="{{ item.media_url }}" target="_blank" rel="noopener noreferrer">
+                <span class="external-media-mark" aria-hidden="true">▶</span>
+                <span>Открыть видео</span>
+            </a>
+        {% endif %}
+    </div>
+    <div class="media-body">
+        <div class="media-meta">
+            <a class="tag" href="/media?tag={{ item.tag_id }}">#{{ item.tag_name }}</a>
+            <span>{{ item.media_type|media_kind }}</span>
+        </div>
+        {% if item.caption %}<p class="caption">{{ item.caption }}</p>{% endif %}
+        <time datetime="{{ item.used_at.isoformat() }}">{{ item.used_at|datetime_ru }}</time>
+        {% if admin %}
+        <form method="post" action="/admin/media/{{ item.id }}/visibility" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="is_public" value="{{ 'false' if item.is_public else 'true' }}">
+            <button class="button button-small" type="submit">{{ 'Скрыть' if item.is_public else 'Показать' }}</button>
+        </form>
+        {% endif %}
+    </div>
+</article>
+{% endmacro %}

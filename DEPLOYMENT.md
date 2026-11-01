@@ -6,17 +6,18 @@
 
 ## 1. Целевая архитектура
 
-На сервере работают два контейнера:
+На сервере работают три контейнера:
 
-- `bot` — образ из `ghcr.io/annimir/muurrchik_tg_bot`;
+- `bot` — Telegram-бот из `ghcr.io/annimir/muurrchik_tg_bot`;
+- `web` — публичный сайт и административная панель из того же образа;
 - `postgres` — PostgreSQL 16 с постоянным Docker volume.
 
-Telegram-бот использует polling, поэтому:
+Telegram-бот использует polling, а web-сервис доступен только через Nginx по HTTPS:
 
-- входящие подключения к боту не нужны;
-- порты `80` и `443` открывать не требуется;
+- `web` слушает только `127.0.0.1:8000`, наружу открываются `80` и `443`;
 - PostgreSQL не должен быть доступен из интернета;
-- боту нужны только исходящие HTTPS-подключения к Telegram API.
+- контейнерам нужны только исходящие HTTPS-подключения;
+- вход через Telegram Login требует публичный HTTPS-домен.
 
 Для администрирования используется SSH, желательно через Tailscale или с
 ограничением по IP.
@@ -175,7 +176,10 @@ docker compose version
 
 - Telegram bot token;
 - параметры PostgreSQL;
-- Telegram ID первого администратора.
+- Telegram ID первого администратора;
+- `web.secret_key` из не менее чем 48 случайных байт;
+- `web.public_base_url` с HTTPS-доменом и `web.telegram_bot_username`;
+- `web.secure_cookies: true`.
 
 В `.env` вынести:
 
@@ -237,8 +241,29 @@ services:
         max-size: "20m"
         max-file: "5"
 
+  web:
+    image: ${IMAGE}:${IMAGE_TAG}
+    command: ["uvicorn", "web.app:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: prod
+      TZ: Europe/Moscow
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./config.prod.yml:/app/config.prod.yml:ro
+      - media_data:/app/data/media
+    logging:
+      options:
+        max-size: "20m"
+        max-file: "5"
+
 volumes:
   pgdata:
+  media_data:
 ```
 
 Важно:
@@ -251,6 +276,34 @@ volumes:
 
 Дополнительно добавить healthcheck для bot-контейнера: проверку соединения с
 PostgreSQL и работоспособности процесса.
+
+### 7.1. HTTPS и Telegram Login
+
+1. Направить A/AAAA-запись домена на сервер и открыть только порты `80` и `443`.
+2. Настроить TLS-сертификат, например через Certbot.
+3. В BotFather выполнить `/setdomain` и указать тот же домен, что в
+   `web.public_base_url`. Имя бота в `web.telegram_bot_username` задаётся без `@`.
+4. Настроить Nginx как reverse proxy к локальному web-контейнеру:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name paimon.example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 120s;
+    }
+}
+```
+
+После обновления конфигурации проверить вход администратора, выход, загрузку фото
+и воспроизведение видео. Не перенаправлять порт `8000` напрямую через firewall.
+`media_data` нужно включить в план резервного копирования либо регулярно очищать:
+это кэш, но повторная загрузка требует действующих Telegram `file_id` и трафик.
 
 ## 8. Перенос текущей базы на сервер
 

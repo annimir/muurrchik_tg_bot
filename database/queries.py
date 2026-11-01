@@ -416,12 +416,24 @@ def get_tag_subscribers(tag_id):
 
 # ==================== TAG_USAGE / СТАТИСТИКА ====================
 
-def log_tag_usage(tag_id, telegram_message_id, author_tg_id, media_type):
+def log_tag_usage(
+    tag_id, telegram_message_id, author_tg_id, media_type,
+    chat_id=None, message_thread_id=None, media_file_id=None,
+    media_file_unique_id=None, media_url=None, caption=None,
+):
     query = '''
-        INSERT INTO tag_usage (tag_id, telegram_message_id, author_tg_id, media_type)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO tag_usage (
+            tag_id, telegram_message_id, author_tg_id, media_type,
+            chat_id, message_thread_id, media_file_id, media_file_unique_id,
+            media_url, caption
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     '''
-    db(query, (tag_id, telegram_message_id, author_tg_id, media_type)).close()
+    db(query, (
+        tag_id, telegram_message_id, author_tg_id, media_type,
+        chat_id, message_thread_id, media_file_id, media_file_unique_id,
+        media_url, caption,
+    )).close()
 
 
 def get_tag_subscriber_count(tag_id) -> int:
