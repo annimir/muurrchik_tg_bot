@@ -28,6 +28,7 @@ from handlers.birthday_admin_dm import (
     MAIN_MENU, WAITING_FORWARD, WAITING_DATE, MANAGING_ENTRY,
 )
 from handlers.retention_job import send_retention_warnings, run_retention_cleanup
+from handlers.youtube_job import check_youtube_channel
 
 from handlers.subscriptions import my_subscriptions, subscribe, unsubscribe
 from handlers.unsuball import unsuball_command, unsuball_confirm_callback
@@ -169,6 +170,13 @@ application.job_queue.run_daily(check_birthdays, time=time(hour=9, minute=0, tzi
 application.job_queue.run_daily(check_character_birthdays, time=time(hour=9, minute=15, tzinfo=MOSCOW_TZ))
 application.job_queue.run_daily(send_retention_warnings, time=time(hour=10, minute=0, tzinfo=MOSCOW_TZ))
 application.job_queue.run_daily(run_retention_cleanup, time=time(hour=10, minute=30, tzinfo=MOSCOW_TZ))
+if config.youtube_enabled:
+    application.job_queue.run_repeating(
+        check_youtube_channel,
+        interval=config.youtube_check_interval_seconds,
+        first=30,
+        job_kwargs={'max_instances': 1, 'coalesce': True},
+    )
 
 # ---------- подписки ----------
 application.add_handler(CommandHandler('mysub', my_subscriptions))

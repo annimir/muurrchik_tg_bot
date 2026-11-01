@@ -227,3 +227,27 @@ ALTER TABLE character ADD COLUMN IF NOT EXISTS affiliation_id INTEGER REFERENCES
 ALTER TABLE flavor_roles ADD COLUMN IF NOT EXISTS photo_file_id TEXT;
 ALTER TABLE flavor_roles ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE flavor_roles ADD COLUMN IF NOT EXISTS wiki_url TEXT;
+
+CREATE TABLE IF NOT EXISTS youtube_publications (
+    id                  SERIAL PRIMARY KEY,
+    video_id            TEXT NOT NULL UNIQUE,
+    kind                TEXT NOT NULL CHECK (kind IN ('video', 'shorts')),
+    title               TEXT,
+    url                 TEXT NOT NULL,
+    published_at        TIMESTAMPTZ,
+    chat_id             BIGINT NOT NULL,
+    telegram_message_id BIGINT,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_youtube_publications_published_at
+    ON youtube_publications (published_at DESC);
+
+CREATE TABLE IF NOT EXISTS youtube_api_usage (
+    id          SERIAL PRIMARY KEY,
+    operation   TEXT NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_youtube_api_usage_created_at
+    ON youtube_api_usage (created_at);

@@ -20,6 +20,13 @@ class Config:
         # (is_admin, admin_lang и т.д.), но нигде явно не объявлялся здесь.
         self.admin_user_id: int = data["admin"]["user_id"]
 
+        youtube = data.get("youtube", {})
+        self.youtube_enabled: bool = youtube.get("enabled", False)
+        self.youtube_api_key: str | None = youtube.get("api_key")
+        self.youtube_channel_handle: str = youtube.get("channel_handle", "@muuurrchik")
+        self.youtube_target_chat_id: int | None = youtube.get("target_chat_id")
+        self.youtube_check_interval_seconds: int = youtube.get("check_interval_seconds", 4 * 60 * 60)
+
 
 def load_config() -> Config:
     env = os.getenv("APP_ENV", "dev")
