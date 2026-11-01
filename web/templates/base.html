@@ -6,6 +6,7 @@
     <meta name="description" content="Архив медиа, игроков и персонажей сообщества P.A.I.M.O.N.">
     <title>{% block title %}Архив сообщества{% endblock %} · P.A.I.M.O.N.</title>
     <link rel="stylesheet" href="/static/app.css">
+    <script src="/static/app.js" defer></script>
 </head>
 <body>
 <div class="sky" aria-hidden="true"></div>
@@ -28,5 +29,9 @@
     <span>P.A.I.M.O.N. · Неофициальный архив сообщества</span>
     <span>Берегите воспоминания и друг друга</span>
 </footer>
+<dialog id="media-dialog" class="media-dialog" aria-label="Просмотр медиа">
+    <button class="media-dialog-close" type="button" data-media-close aria-label="Закрыть">×</button>
+    <div class="media-dialog-content"></div>
+</dialog>
 </body>
 </html>

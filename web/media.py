@@ -39,6 +39,18 @@ class TelegramMediaStore:
             path = await self._download(file_id, digest, cache_key)
         return self._file_response(path)
 
+    async def get_profile_photo_file_id(self, tg_id):
+        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+            response = await client.get(
+                f'https://api.telegram.org/bot{self.bot_token}/getUserProfilePhotos',
+                params={'user_id': tg_id, 'limit': 1},
+            )
+            response.raise_for_status()
+            payload = response.json()
+        if not payload.get('ok') or not payload['result']['total_count']:
+            return None
+        return payload['result']['photos'][0][-1]['file_id']
+
     async def _download(self, file_id, digest, cache_key):
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:

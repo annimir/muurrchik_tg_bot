@@ -2,8 +2,8 @@
 {% block title %}{{ user.tag or 'Игрок' }}{% endblock %}
 {% block content %}
 <section class="profile-hero">
-    <span class="profile-initial profile-initial-large">{{ (user.tag or '?')[0]|upper }}</span>
-    <div><div class="eyebrow">Карточка игрока</div><h1>{{ user.tag or 'Путешественник' }}</h1><p>{{ user.role_name or 'Роль не назначена' }}</p></div>
+    <span class="profile-initial profile-initial-large">{{ (user.tag or '?')[0]|upper }}<img src="/media/users/{{ user.id }}/avatar" alt="Фото игрока {{ user.tag or '' }}" data-avatar-image></span>
+    <div><div class="eyebrow">Карточка игрока</div><h1>{{ user.tag or 'Путешественник' }}</h1><div class="profile-facts profile-facts-inline"><span>Роль: {{ user.role_name or 'не назначена' }}</span><span>Персонажей: {{ user.character_count }}</span><span>Подписок: {{ user.subscription_count }}</span></div></div>
 </section>
 <div class="detail-grid">
 <section class="panel"><h2>О игроке</h2><p class="preline">{{ user.bio or 'Игрок пока ничего не рассказал о себе.' }}</p>{% if user.role_description %}<h3>Роль: {{ user.role_name }}</h3><p class="preline">{{ user.role_description }}</p>{% endif %}{% if user.role_wiki_url %}<a class="text-link" href="{{ user.role_wiki_url }}" target="_blank" rel="noopener noreferrer">Подробнее о роли</a>{% endif %}</section>

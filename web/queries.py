@@ -19,7 +19,7 @@ def list_active_tags():
     return db("SELECT id, name FROM tag WHERE status = 'ACTIVE' ORDER BY name").all()
 
 
-def _media_filter(tag_id=None, kind=None, public_only=True):
+def _media_filter(tag_id=None, kind=None, public_only=True, date_from=None, date_to=None):
     where = ['(tu.media_file_id IS NOT NULL OR tu.media_url IS NOT NULL)']
     params = []
     if public_only:
@@ -32,11 +32,20 @@ def _media_filter(tag_id=None, kind=None, public_only=True):
             raise ValueError('Неизвестный тип медиа')
         where.append('tu.media_type = %s')
         params.append(kind)
+    if date_from:
+        where.append('tu.used_at >= %s::date')
+        params.append(date_from)
+    if date_to:
+        where.append('tu.used_at < %s::date + 1')
+        params.append(date_to)
     return ' AND '.join(where), params
 
 
-def list_media(tag_id=None, kind=None, sort='newest', limit=24, offset=0, public_only=True):
-    where, params = _media_filter(tag_id, kind, public_only)
+def list_media(
+    tag_id=None, kind=None, sort='newest', limit=24, offset=0,
+    public_only=True, date_from=None, date_to=None,
+):
+    where, params = _media_filter(tag_id, kind, public_only, date_from, date_to)
     order_by = {
         'newest': 'used_at DESC, id DESC',
         'oldest': 'used_at ASC, id ASC',
@@ -60,8 +69,8 @@ def list_media(tag_id=None, kind=None, sort='newest', limit=24, offset=0, public
     return db(query, (*params, limit, offset)).all()
 
 
-def count_media(tag_id=None, kind=None, public_only=True):
-    where, params = _media_filter(tag_id, kind, public_only)
+def count_media(tag_id=None, kind=None, public_only=True, date_from=None, date_to=None):
+    where, params = _media_filter(tag_id, kind, public_only, date_from, date_to)
     query = f'''
         SELECT COUNT(*) AS cnt FROM (
             SELECT DISTINCT COALESCE(tu.media_file_unique_id, tu.media_file_id, tu.media_url, tu.id::text)
@@ -85,9 +94,19 @@ def get_public_media(usage_id):
     ).one()
 
 
-def list_users(limit=30, offset=0):
+def _user_search(search):
+    where = 'u.left_at IS NULL'
+    params = []
+    if search and search.strip():
+        where += ' AND u.tag ILIKE %s'
+        params.append(f'%{search.strip()}%')
+    return where, params
+
+
+def list_users(limit=30, offset=0, search=None):
+    where, params = _user_search(search)
     return db(
-        '''
+        f'''
         SELECT u.id, u.tag, fr.name AS role_name, uc.bio,
             c.id AS character_id, c.name AS character_name,
             (SELECT COUNT(*) FROM character WHERE owner_user_id = u.id) AS character_count,
@@ -96,23 +115,26 @@ def list_users(limit=30, offset=0):
         LEFT JOIN flavor_roles fr ON fr.id = u.flavor_role_id
         LEFT JOIN user_card uc ON uc.user_id = u.id
         LEFT JOIN character c ON c.owner_user_id = u.id AND c.is_primary = TRUE
-        WHERE u.left_at IS NULL
+        WHERE {where}
         ORDER BY u.tag NULLS LAST, u.id
         LIMIT %s OFFSET %s
         ''',
-        (limit, offset),
+        (*params, limit, offset),
     ).all()
 
 
-def count_users():
-    return db('SELECT COUNT(*) AS cnt FROM users WHERE left_at IS NULL').one()['cnt']
+def count_users(search=None):
+    where, params = _user_search(search)
+    return db(f'SELECT COUNT(*) AS cnt FROM users u WHERE {where}', tuple(params)).one()['cnt']
 
 
 def get_public_user(user_id):
     return db(
         '''
         SELECT u.id, u.tag, fr.name AS role_name, fr.description AS role_description,
-            fr.wiki_url AS role_wiki_url, uc.bio
+            fr.wiki_url AS role_wiki_url, uc.bio,
+            (SELECT COUNT(*) FROM character WHERE owner_user_id = u.id) AS character_count,
+            (SELECT COUNT(*) FROM subscription WHERE user_id = u.id AND active = TRUE) AS subscription_count
         FROM users u
         LEFT JOIN flavor_roles fr ON fr.id = u.flavor_role_id
         LEFT JOIN user_card uc ON uc.user_id = u.id
@@ -120,6 +142,20 @@ def get_public_user(user_id):
         ''',
         (user_id,),
     ).one()
+
+
+def get_user_avatar_data(user_id):
+    return db(
+        'SELECT tg_id, avatar_file_id, avatar_updated_at FROM users WHERE id = %s AND left_at IS NULL',
+        (user_id,),
+    ).one()
+
+
+def update_user_avatar(user_id, file_id):
+    db(
+        'UPDATE users SET avatar_file_id = %s, avatar_updated_at = now() WHERE id = %s',
+        (file_id, user_id),
+    ).close()
 
 
 def get_public_user_games(user_id):

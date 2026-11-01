@@ -2,17 +2,19 @@
 {% block title %}Игроки{% endblock %}
 {% block content %}
 <section class="page-heading"><div class="eyebrow">Жители сообщества</div><h1>Игроки</h1><p>Карточки, роли и основные персонажи участников.</p></section>
+<form class="users-search" method="get" action="/users">
+    <label>Поиск по имени<input type="search" name="q" value="{{ search }}" placeholder="Введите @username или часть имени"></label>
+    <button class="button" type="submit">Найти</button>
+    {% if search %}<a class="button button-quiet" href="/users">Сбросить</a>{% endif %}
+</form>
+<div class="results-count">Найдено: {{ total }}</div>
 {% if users %}
-<div class="card-grid">
-{% for user in users %}
-<a class="profile-card" href="/users/{{ user.id }}">
-    <span class="profile-initial">{{ (user.tag or '?')[0]|upper }}</span>
-    <span class="profile-content"><strong>{{ user.tag or 'Путешественник' }}</strong><small>{{ user.role_name or 'Роль не назначена' }}</small></span>
-    <span class="profile-detail">{% if user.character_name %}Основной: {{ user.character_name }}{% else %}Персонажей: {{ user.character_count }}{% endif %}</span>
-    <span class="profile-detail">Подписок: {{ user.subscription_count }}</span>
-</a>
-{% endfor %}
+<div class="card-grid" data-users-grid>{% include '_user_cards.html' %}</div>
+<div class="scroll-sentinel {{ 'is-complete' if not has_more else '' }}" data-users-sentinel data-next-url="{{ next_url or '' }}" aria-live="polite">
+    {{ 'Прокрутите ниже для загрузки' if has_more else 'Все игроки загружены' }}
 </div>
-{% else %}<div class="empty-state"><h3>Карточек пока нет</h3></div>{% endif %}
-{% if pagination.pages > 1 %}<nav class="pagination">{% if pagination.previous %}<a href="/users?page={{ pagination.previous }}">Назад</a>{% endif %}<span>Страница {{ pagination.page }} из {{ pagination.pages }}</span>{% if pagination.next %}<a href="/users?page={{ pagination.next }}">Далее</a>{% endif %}</nav>{% endif %}
+{% else %}
+<div class="empty-state"><h3>Игроки не найдены</h3><p>Попробуйте изменить поисковый запрос.</p></div>
+{% endif %}
+<noscript><nav class="pagination">{% if page > 1 %}<a href="/users?q={{ search }}&page={{ page - 1 }}">Назад</a>{% endif %}{% if has_more %}<a href="/users?q={{ search }}&page={{ page + 1 }}">Далее</a>{% endif %}</nav></noscript>
 {% endblock %}

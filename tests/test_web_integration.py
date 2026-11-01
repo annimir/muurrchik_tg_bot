@@ -1,6 +1,9 @@
 import unittest
+from datetime import date
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 
+from fastapi import Response
 from fastapi.testclient import TestClient
 
 from tests.postgres_support import TEST_POSTGRES_DSN, PostgresTestCase, queries
@@ -37,15 +40,30 @@ class WebIntegrationTests(PostgresTestCase):
             tag['id'], 11, 100, 'video_link', chat_id=200,
             media_url='https://youtu.be/video-id', caption='Video link',
         )
+        queries.log_tag_usage(
+            tag['id'], 12, 100, 'video', chat_id=200,
+            media_file_id='video-file', media_file_unique_id='video-unique', caption='Muted video',
+        )
 
         home = self.client.get('/')
         catalog = self.client.get('/media?kind=photo')
+        empty_filters = self.client.get('/media?tag=&kind=&date_from=&date_to=')
+        today = date.today().isoformat()
+        dated = self.client.get(f'/media?date_from={today}&date_to={today}')
+        outside = self.client.get('/media?date_to=2000-01-01')
         characters = self.client.get('/characters')
 
         self.assertEqual(home.status_code, 200)
         self.assertIn('Летопись', home.text)
+        self.assertIn('muted playsinline', home.text)
+        self.assertIn('data-media-open=', home.text)
         self.assertIn('Forest photo', catalog.text)
         self.assertNotIn('Video link', catalog.text)
+        self.assertEqual(empty_filters.status_code, 200)
+        self.assertIn('Forest photo', dated.text)
+        self.assertIn('Video link', dated.text)
+        self.assertIn('Muted video', dated.text)
+        self.assertNotIn('Forest photo', outside.text)
         self.assertIn('Hero', characters.text)
 
     def test_admin_requires_telegram_session_and_csrf(self):
@@ -118,6 +136,41 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertEqual(queries.db('SELECT COUNT(*) AS cnt FROM tag_usage WHERE is_public').one()['cnt'], 0)
         from web.queries import get_daily_analytics
         self.assertEqual(get_daily_analytics(__import__('datetime').date.today())['total'], 2)
+
+    def test_users_search_and_infinite_scroll(self):
+        for index in range(14):
+            queries.ensure_user(1000 + index, f'player-{index:02}')
+        queries.ensure_user(2000, 'needle')
+
+        first_page = self.client.get('/users')
+        second_page = self.client.get('/users/fragment?page=2')
+        search = self.client.get('/users?q=needle')
+
+        self.assertEqual(first_page.status_code, 200)
+        self.assertEqual(first_page.text.count('class="profile-card"'), 12)
+        self.assertEqual(second_page.status_code, 200)
+        self.assertEqual(second_page.json()['html'].count('class="profile-card"'), 2)
+        self.assertIsNone(second_page.json()['next_url'])
+        self.assertEqual(search.text.count('class="profile-card"'), 1)
+        self.assertIn('needle', search.text)
+        self.assertNotIn('player-00', search.text)
+
+    def test_user_avatar_is_cached(self):
+        user = queries.ensure_user(100, 'player')
+        store = SimpleNamespace(
+            get_profile_photo_file_id=AsyncMock(return_value='avatar-file'),
+            get_response=AsyncMock(return_value=Response(content=b'avatar', media_type='image/jpeg')),
+        )
+
+        with patch('web.routes.public.get_media_store', return_value=store):
+            first = self.client.get(f'/media/users/{user["id"]}/avatar')
+            second = self.client.get(f'/media/users/{user["id"]}/avatar')
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(store.get_profile_photo_file_id.await_count, 1)
+        self.assertEqual(store.get_response.await_count, 2)
+        self.assertEqual(queries.get_user_by_id(user['id'])['avatar_file_id'], 'avatar-file')
 
     def test_telegram_metadata_is_persisted(self):
         from handlers.tags.tagging import _log_tag_message_usage
