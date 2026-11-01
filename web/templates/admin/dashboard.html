@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Панель администратора{% endblock %}
+{% block content %}
+{% include 'admin/_nav.html' %}
+<section class="page-heading"><div class="eyebrow">Панель администратора</div><h1>Статистика сообщества</h1></section>
+<section class="stats-grid"><div class="stat-card"><strong>{{ overview.users }}</strong><span>игроков</span></div><div class="stat-card"><strong>{{ overview.characters }}</strong><span>персонажей</span></div><div class="stat-card"><strong>{{ overview.roles }}</strong><span>ролей</span></div><div class="stat-card"><strong>{{ overview.tags }}</strong><span>активных тегов</span></div></section>
+<div class="dashboard-grid">
+<section class="panel panel-wide">
+    <div class="section-heading"><div><div class="eyebrow">Динамика</div><h2>Использование тегов за 14 дней</h2></div></div>
+    <div class="chart-legend">{% for series in chart.series %}<span><i style="--series-color: {{ series.color }}"></i>{{ series.label }}</span>{% endfor %}</div>
+    <svg class="line-chart" viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img" aria-label="График использования тегов за последние 14 дней">
+        {% for offset in [0, 1, 2, 3, 4] %}<line class="chart-grid" x1="{{ chart.padding }}" y1="{{ chart.padding + offset * (chart.height - chart.padding * 2) / 4 }}" x2="{{ chart.width - chart.padding }}" y2="{{ chart.padding + offset * (chart.height - chart.padding * 2) / 4 }}"></line>{% endfor %}
+        {% for series in chart.series %}<polyline fill="none" stroke="{{ series.color }}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="{{ series.points }}"></polyline>{% endfor %}
+        {% for label in chart.labels %}<text x="{{ label.x }}" y="{{ chart.height - 5 }}" text-anchor="middle">{{ label.label }}</text>{% endfor %}
+        <text x="4" y="{{ chart.padding + 4 }}">{{ chart.maximum }}</text><text x="18" y="{{ chart.height - chart.padding }}">0</text>
+    </svg>
+</section>
+<section class="panel">
+    <div class="section-heading"><h2>Теги за день</h2></div>
+    <form class="date-filter" method="get" action="/admin"><input type="date" name="day" value="{{ selected_day.isoformat() }}" max="{{ selected_day.isoformat() }}"><button class="button button-small" type="submit">Показать</button></form>
+    <div class="daily-bars">{% for bar in daily_bars %}<div class="bar-row"><span>{{ bar.label }}</span><div class="bar-track"><i style="--bar-width: {{ bar.percent }}%; --bar-color: {{ bar.color }}"></i></div><strong>{{ bar.value }}</strong></div>{% endfor %}</div>
+</section>
+<section class="panel"><h2>Популярные теги</h2><p class="muted">За {{ selected_day|date_ru }}</p>{% if popular_tags %}<ol class="ranking">{% for tag in popular_tags %}<li><a href="/media?tag={{ tag.id }}">#{{ tag.name }}</a><strong>{{ tag.cnt }}</strong></li>{% endfor %}</ol>{% else %}<p>Данных за этот день нет.</p>{% endif %}</section>
+<section class="panel"><h2>Самые редкие теги</h2><p class="muted">За {{ selected_day|date_ru }}</p>{% if rare_tags %}<ol class="ranking">{% for tag in rare_tags %}<li><a href="/media?tag={{ tag.id }}">#{{ tag.name }}</a><strong>{{ tag.cnt }}</strong></li>{% endfor %}</ol>{% else %}<p>Данных за этот день нет.</p>{% endif %}</section>
+<section class="panel panel-wide"><h2>Последние действия администраторов</h2>{% if audit %}<div class="table-wrap"><table><thead><tr><th>Дата</th><th>Действие</th><th>Объект</th><th>Администратор</th></tr></thead><tbody>{% for entry in audit %}<tr><td>{{ entry.created_at|datetime_ru }}</td><td>{{ entry.action }}</td><td>{{ entry.entity_type }} #{{ entry.entity_id }}</td><td>{{ entry.admin_tg_id }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p>Действий через дашборд пока не было.</p>{% endif %}</section>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Редактирование персонажа{% endblock %}
+{% block content %}
+{% include 'admin/_nav.html' %}
+<section class="page-heading"><div class="eyebrow">Редактор архива</div><h1>{{ character.name }}</h1></section>
+{% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+<section class="panel">
+    <form class="admin-form" method="post" action="/admin/characters/{{ character.id }}/edit">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>Имя<input name="name" required maxlength="100" value="{{ character.name }}"></label>
+        <label>День рождения<input type="date" name="birth_date" value="{{ character.birth_date.isoformat() if character.birth_date else '' }}"></label>
+        <label class="form-wide">Описание<textarea name="description" rows="6" maxlength="5000">{{ character.description or '' }}</textarea></label>
+        <button class="button" type="submit">Сохранить</button>
+        <a class="button button-quiet" href="/admin/characters">Отмена</a>
+    </form>
+</section>
+<section class="panel danger-zone"><h2>Удаление</h2><p>Персонаж будет удалён из архива. Если он был основным, другой персонаж игрока станет основным автоматически.</p><form method="post" action="/admin/characters/{{ character.id }}/delete" data-confirm="Удалить персонажа {{ character.name }}?"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button button-danger" type="submit">Удалить персонажа</button></form></section>
+{% endblock %}

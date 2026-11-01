@@ -15,6 +15,13 @@ if TEST_POSTGRES_DSN:
         youtube_channel_handle='@muuurrchik',
         youtube_target_chat_id=200,
         youtube_check_interval_seconds=14400,
+        bot_token='123456:test-token',
+        web_secret_key='test-secret-key',
+        web_session_ttl_seconds=28800,
+        web_media_cache_dir='data/test-media',
+        web_public_base_url='http://testserver',
+        web_telegram_bot_username='test_bot',
+        web_secure_cookies=False,
     )
     sys.modules['config.config'] = config_module
     from database import queries
@@ -25,7 +32,7 @@ class PostgresTestCase(unittest.IsolatedAsyncioTestCase):
         queries.db(
             '''
             TRUNCATE users, tag, games, flavor_roles, positions, affiliations, admins, chats,
-            youtube_publications, youtube_api_usage
+            youtube_publications, youtube_api_usage, admin_audit_log
             RESTART IDENTITY CASCADE
             '''
         ).close()

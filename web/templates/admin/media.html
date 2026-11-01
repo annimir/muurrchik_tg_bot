@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% from '_media.html' import media_card %}
+{% block title %}Модерация медиа{% endblock %}
+{% block content %}
+{% include 'admin/_nav.html' %}
+<section class="page-heading"><div class="eyebrow">Публичная выдача</div><h1>Модерация медиа</h1><p>Скрытые публикации остаются в статистике, но исчезают из общего архива.</p></section>
+{% if items %}<div class="media-grid">{% for item in items %}{{ media_card(item, admin=true) }}{% endfor %}</div>{% else %}<div class="empty-state"><h3>Медиа пока нет</h3></div>{% endif %}
+{% endblock %}

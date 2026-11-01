@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Архив медиа, игроков и персонажей сообщества P.A.I.M.O.N.">
+    <title>{% block title %}Архив сообщества{% endblock %} · P.A.I.M.O.N.</title>
+    <link rel="stylesheet" href="/static/app.css">
+    <script src="/static/app.js" defer></script>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+<header class="site-header">
+    <a class="brand" href="/" aria-label="P.A.I.M.O.N. — на главную">
+        <span class="brand-emblem">P</span>
+        <span><strong>P.A.I.M.O.N.</strong><small>Летопись сообщества</small></span>
+    </a>
+    <nav class="main-nav" aria-label="Основная навигация">
+        <a class="{{ 'active' if active_page == 'media' else '' }}" href="/media">Медиа</a>
+        <a class="{{ 'active' if active_page == 'users' else '' }}" href="/users">Игроки</a>
+        <a class="{{ 'active' if active_page == 'characters' else '' }}" href="/characters">Персонажи</a>
+        <a class="admin-link" href="/admin">Админам</a>
+    </nav>
+</header>
+<main class="page">
+    {% block content %}{% endblock %}
+</main>
+<footer class="site-footer">
+    <span>P.A.I.M.O.N. · Неофициальный архив сообщества</span>
+    <span>Берегите воспоминания и друг друга</span>
+</footer>
+<dialog id="media-dialog" class="media-dialog" aria-label="Просмотр медиа">
+    <button class="media-dialog-close" type="button" data-media-close aria-label="Закрыть">×</button>
+    <div class="media-dialog-content"></div>
+</dialog>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Игроки{% endblock %}
+{% block content %}
+<section class="page-heading"><div class="eyebrow">Жители сообщества</div><h1>Игроки</h1><p>Карточки, роли и основные персонажи участников.</p></section>
+<form class="users-search" method="get" action="/users" data-users-search>
+    <label>Поиск по имени<input type="search" name="q" value="{{ search }}" placeholder="Введите @username или часть имени"></label>
+    <button class="button" type="submit">Найти</button>
+    {% if search %}<a class="button button-quiet" href="/users">Сбросить</a>{% endif %}
+</form>
+<div class="results-count" data-users-count>Найдено: {{ total }}</div>
+<div class="card-grid" data-users-grid>{% include '_user_cards.html' %}</div>
+<div class="empty-state" data-users-empty {{ 'hidden' if users else '' }}><h3>Игроки не найдены</h3><p>Попробуйте изменить поисковый запрос.</p></div>
+<div class="scroll-sentinel {{ 'is-complete' if not has_more else '' }}" data-users-sentinel data-next-url="{{ next_url or '' }}" aria-live="polite">
+    {{ 'Прокрутите ниже для загрузки' if has_more else 'Все игроки загружены' }}
+</div>
+<noscript><nav class="pagination">{% if page > 1 %}<a href="/users?q={{ search }}&page={{ page - 1 }}">Назад</a>{% endif %}{% if has_more %}<a href="/users?q={{ search }}&page={{ page + 1 }}">Далее</a>{% endif %}</nav></noscript>
+{% endblock %}

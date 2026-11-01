@@ -27,6 +27,14 @@ class Config:
         self.youtube_target_chat_id: int | None = youtube.get("target_chat_id")
         self.youtube_check_interval_seconds: int = youtube.get("check_interval_seconds", 4 * 60 * 60)
 
+        web = data.get("web", {})
+        self.web_secret_key: str | None = web.get("secret_key")
+        self.web_session_ttl_seconds: int = web.get("session_ttl_seconds", 8 * 60 * 60)
+        self.web_media_cache_dir: str = web.get("media_cache_dir", "data/media")
+        self.web_public_base_url: str = web.get("public_base_url", "http://localhost:8000")
+        self.web_telegram_bot_username: str = web.get("telegram_bot_username", "")
+        self.web_secure_cookies: bool = web.get("secure_cookies", False)
+
 
 def load_config() -> Config:
     env = os.getenv("APP_ENV", "dev")

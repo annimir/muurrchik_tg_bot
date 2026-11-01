@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Управление персонажами{% endblock %}
+{% block content %}
+{% include 'admin/_nav.html' %}
+<section class="page-heading"><div class="eyebrow">Редактор архива</div><h1>Персонажи</h1></section>
+{% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+<section class="panel">
+    <h2>Добавить персонажа</h2>
+    <form class="admin-form" method="post" action="/admin/characters">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>Игрок<select name="owner_user_id" required>{% for user in users %}<option value="{{ user.id }}">{{ user.tag or 'Игрок #' + user.id|string }}</option>{% endfor %}</select></label>
+        <label>Имя<input name="name" required maxlength="100"></label>
+        <label>День рождения<input type="date" name="birth_date"></label>
+        <label class="form-wide">Описание<textarea name="description" rows="4" maxlength="5000"></textarea></label>
+        <label class="checkbox"><input type="checkbox" name="is_primary" value="true"> Основной персонаж</label>
+        <button class="button" type="submit">Добавить</button>
+    </form>
+</section>
+<section class="panel">
+    <h2>Назначить персонажа игроку</h2>
+    <div class="table-wrap"><table><thead><tr><th>Персонаж</th><th>Владелец</th><th>Статус</th><th>Новый владелец</th><th>Действия</th></tr></thead><tbody>
+    {% for character in characters %}<tr><td>{{ character.name }}</td><td>{{ character.owner_tag or character.owner_id }}</td><td>{{ 'Основной' if character.is_primary else 'Дополнительный' }}</td><td><form class="assign-form" method="post" action="/admin/characters/{{ character.id }}/assign"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><select name="owner_user_id">{% for user in users %}<option value="{{ user.id }}" {{ 'selected' if user.id == character.owner_id else '' }}>{{ user.tag or 'Игрок #' + user.id|string }}</option>{% endfor %}</select><label class="checkbox"><input type="checkbox" name="is_primary" value="true" {{ 'checked' if character.is_primary else '' }}> Основной</label><button class="button button-small" type="submit">Сохранить</button></form></td><td><a class="button button-small button-quiet" href="/admin/characters/{{ character.id }}/edit">Редактировать</a></td></tr>{% endfor %}
+    </tbody></table></div>
+</section>
+{% endblock %}

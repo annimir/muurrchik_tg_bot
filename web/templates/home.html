@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% from '_media.html' import media_card %}
+{% block title %}Летопись сообщества{% endblock %}
+{% block content %}
+<section class="hero">
+    <div class="eyebrow">Архив памятных моментов</div>
+    <h1>Летопись нашего <em>Тейвата</em></h1>
+    <p>Фотографии, видео, истории игроков и персонажей — собранные в одном месте.</p>
+    <div class="hero-actions">
+        <a class="button" href="/media">Открыть коллекцию</a>
+        <a class="button button-secondary" href="/characters">Найти персонажа</a>
+    </div>
+</section>
+<section class="stats-grid" aria-label="Статистика архива">
+    <div class="stat-card"><strong>{{ stats.media }}</strong><span>материалов</span></div>
+    <div class="stat-card"><strong>{{ stats.tags }}</strong><span>активных тегов</span></div>
+    <div class="stat-card"><strong>{{ stats.users }}</strong><span>игроков</span></div>
+    <div class="stat-card"><strong>{{ stats.characters }}</strong><span>персонажей</span></div>
+</section>
+<section class="section-heading">
+    <div><div class="eyebrow">Свежие страницы</div><h2>Недавно добавленное</h2></div>
+    <a href="/media">Вся коллекция <span aria-hidden="true">→</span></a>
+</section>
+{% if latest_media %}
+<div class="media-grid">{% for item in latest_media %}{{ media_card(item) }}{% endfor %}</div>
+{% else %}
+<div class="empty-state"><h3>Архив пока пуст</h3><p>Новые фото и видео появятся здесь после публикации в Telegram с тегами.</p></div>
+{% endif %}
+{% endblock %}
