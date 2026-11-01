@@ -10,3 +10,10 @@ postgres:
 
 admin:
   user_id: 123456789
+
+youtube:
+  enabled: false
+  api_key: "REPLACE_WITH_YOUTUBE_API_KEY"
+  channel_handle: "@muuurrchik"
+  target_chat_id: -1001234567890
+  check_interval_seconds: 14400

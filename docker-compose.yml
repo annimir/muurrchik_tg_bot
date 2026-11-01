@@ -19,6 +19,13 @@ services:
   bot:
     build: .
     restart: unless-stopped
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    extra_hosts:
+      - "www.youtube.com:142.251.156.4"
+      - "youtube.com:142.251.156.4"
+      - "m.youtube.com:142.251.156.4"
     depends_on:
       postgres:
         condition: service_healthy

@@ -969,3 +969,42 @@ def get_user_flavor_role_full(user_id):
         WHERE u.id = %s
     '''
     return db(query, (user_id,)).one()
+
+
+# ==================== YOUTUBE ====================
+
+def get_existing_youtube_video_ids(video_ids):
+    if not video_ids:
+        return set()
+    rows = db(
+        'SELECT video_id FROM youtube_publications WHERE video_id = ANY(%s)',
+        (list(video_ids),),
+    ).all()
+    return {row['video_id'] for row in rows}
+
+
+def record_youtube_publication(video_id, kind, title, url, published_at, chat_id, message_id):
+    query = '''
+        INSERT INTO youtube_publications
+            (video_id, kind, title, url, published_at, chat_id, telegram_message_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (video_id) DO NOTHING
+        RETURNING id
+    '''
+    row = db(
+        query,
+        (video_id, kind, title, url, published_at, chat_id, message_id),
+    ).one()
+    return row is not None
+
+
+def log_youtube_api_request(operation):
+    db('INSERT INTO youtube_api_usage (operation) VALUES (%s)', (operation,)).close()
+
+
+def count_youtube_api_requests_since(since):
+    row = db(
+        'SELECT COUNT(*) AS cnt FROM youtube_api_usage WHERE created_at >= %s',
+        (since,),
+    ).one()
+    return row['cnt']
