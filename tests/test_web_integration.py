@@ -52,8 +52,8 @@ class WebIntegrationTests(PostgresTestCase):
         response = self.client.get('/admin', follow_redirects=False)
         self.assertEqual(response.status_code, 303)
 
-        token, _ = self.admin_session()
-        response = self.client.post('/admin/roles', data={'name': 'Role', 'csrf_token': token + 'bad'})
+        csrf = self.admin_session()
+        response = self.client.post('/admin/roles', data={'name': 'Role', 'csrf_token': csrf + 'bad'})
         self.assertEqual(response.status_code, 403)
 
     def test_admin_creates_role_character_and_reassigns(self):

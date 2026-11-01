@@ -22,7 +22,7 @@ def _log_tag_message_usage(update: Update, tag_id: int, user_id: int, media_type
     metadata = {
         'chat_id': update.effective_chat.id,
         'message_thread_id': message_obj.message_thread_id,
-        'caption': message_obj.caption or message_obj.text,
+        'caption': getattr(message_obj, 'caption', None) or getattr(message_obj, 'text', None),
     }
     if media_type == 'photo':
         photo = message_obj.photo[-1]
