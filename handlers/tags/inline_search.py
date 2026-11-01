@@ -10,7 +10,7 @@ from database.queries import (
     get_tag_subscribers, search_tags, get_user_language,
 )
 from services.admin import is_admin
-from handlers.tagging import create_subscribe_markup
+from handlers.tags.tagging import create_subscribe_markup
 from message.loader import message
 from message.keys import inline_top_all, inline_top_users, inline_top15, inline_subscribers_prefix, inline_top_usage, inline_top_usage_admin
 

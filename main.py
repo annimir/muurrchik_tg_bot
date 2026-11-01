@@ -14,77 +14,77 @@ from database.queries import get_active_tags, get_all_tag_aliases, bootstrap_adm
 from services.bot_commands import register_bot_commands
 from services.tag_storage import tag_storage
 
-from handlers.welcome import welcome_new_member
-from handlers.chat_tracking import track_bot_membership
-from handlers.membership_tracking import track_member_left
-from handlers.language import language_command
+from handlers.chats.welcome import welcome_new_member
+from handlers.chats.tracking import track_bot_membership
+from handlers.chats.membership import track_member_left
+from handlers.users.language import language_command
 
-from handlers.birthday import set_birthday_command, my_birthday_command, delete_birthday_command
-from handlers.birthday_job import check_birthdays
-from handlers.character_birthday_job import check_character_birthdays
-from handlers.birthday_admin_dm import (
+from handlers.birthdays.commands import set_birthday_command, my_birthday_command, delete_birthday_command
+from handlers.birthdays.job import check_birthdays
+from handlers.characters.birthday_job import check_character_birthdays
+from handlers.birthdays.admin_dm import (
     start_admin_birthday, main_menu_router, receive_forward,
     select_existing_user, manage_entry_router, go_back, receive_date, cancel,
     MAIN_MENU, WAITING_FORWARD, WAITING_DATE, MANAGING_ENTRY,
 )
-from handlers.retention_job import send_retention_warnings, run_retention_cleanup
-from handlers.youtube_job import check_youtube_channel
+from handlers.jobs.retention import send_retention_warnings, run_retention_cleanup
+from handlers.jobs.youtube import check_youtube_channel
 
-from handlers.subscriptions import my_subscriptions, subscribe, unsubscribe
-from handlers.unsuball import unsuball_command, unsuball_confirm_callback
+from handlers.tags.subscriptions import my_subscriptions, subscribe, unsubscribe
+from handlers.tags.unsuball import unsuball_command, unsuball_confirm_callback
 
-from handlers.tags_admin import (
+from handlers.tags.admin import (
     list_all_tags_command, rename_tag_command,
     delete_tag_command, block_tag_command, restore_tag_command,
 )
-from handlers.addtag import addtag_command, addtag_confirm_callback
-from handlers.tag_stats import tagstats_command
+from handlers.tags.addtag import addtag_command, addtag_confirm_callback
+from handlers.tags.stats import tagstats_command
 
-from handlers.user_profile import update_me
-from handlers.tagging import media_tag_handler, link_tag_handler, tag_command
-from handlers.inline_search import inline_search
-from handlers.callbacks import callback_router
+from handlers.users.profile import update_me
+from handlers.tags.tagging import media_tag_handler, link_tag_handler, tag_command
+from handlers.tags.inline_search import inline_search
+from handlers.tags.callbacks import callback_router
 
-from handlers.admin_roles import (
+from handlers.admin.roles import (
     add_role_command, remove_role_command, list_roles_command,
     start_reroll_role, receive_reroll_forward, WAITING_REROLL_FORWARD,
     backfill_cards_command, start_set_role, receive_set_role_forward, choose_specific_role,
     WAITING_SETROLE_FORWARD, CHOOSING_SPECIFIC_ROLE,
 )
-from handlers.games import mygames_command, toggle_game_callback, games_done_callback
-from handlers.admin_games import add_game_command, remove_game_command, list_games_command
+from handlers.games.commands import mygames_command, toggle_game_callback, games_done_callback
+from handlers.games.admin import add_game_command, remove_game_command, list_games_command
 
-from handlers.character_requests import (
+from handlers.characters.requests import (
     start_character_request, ask_name, ask_birthdate, ask_description, ask_photo,
     cancel_character_request, my_character_requests,
     ASK_NAME, ASK_BIRTHDATE, ASK_DESCRIPTION, ASK_PHOTO,
 )
-from handlers.admin_character_requests import (
+from handlers.characters.admin_requests import (
     character_request_action_callback, choose_charreq_edit_field, receive_charreq_edit_value,
     EDITING_FIELD, EDITING_VALUE,
 )
-from handlers.character_edit import (
+from handlers.characters.edit import (
     start_character_edit, pick_character, choose_field, receive_edit_value, cancel_character_edit,
     CHOOSE_CHARACTER, CHOOSE_FIELD, WAITING_VALUE,
 )
-from handlers.character_primary import setprimary_command, setprimary_callback
-from handlers.admin_character_primary import (
+from handlers.characters.primary import setprimary_command, setprimary_callback
+from handlers.characters.admin_primary import (
     start_admin_setprimary, receive_admin_setprimary_forward, admin_setprimary_callback,
     WAITING_FORWARD as ADMIN_SETPRIMARY_WAITING_FORWARD, CHOOSING_CHARACTER,
 )
 
-from handlers.card import card_command
-from handlers.card_request import (
+from handlers.cards.view import card_command
+from handlers.cards.requests import (
     start_card_request, receive_bio, cancel_card_request, my_card_requests,
     WAITING_BIO,
 )
-from handlers.admin_positions import (
+from handlers.admin.positions import (
     add_position_command, remove_position_command, list_positions_command,
     start_assign_position, choose_position_for_assign, receive_assign_position_forward,
     choose_character_for_position, start_revoke_position, choose_revoke_position,
     CHOOSING_POSITION, WAITING_ASSIGN_FORWARD, CHOOSING_CHARACTER_FOR_POSITION, CHOOSING_REVOKE_POSITION,
 )
-from handlers.admin_affiliations import (
+from handlers.admin.affiliations import (
     start_add_affiliation, choose_affiliation_type, choose_affiliation_parent, receive_affiliation_name,
     start_remove_affiliation, choose_affiliation_to_remove, list_affiliations_command,
     start_assign_affiliation, choose_affiliation_for_assign, receive_assign_affiliation_forward,
@@ -92,19 +92,19 @@ from handlers.admin_affiliations import (
     CHOOSING_TYPE, CHOOSING_PARENT, WAITING_NAME, CHOOSING_REMOVE,
     CHOOSING_AFF_FOR_ASSIGN, WAITING_AFF_ASSIGN_FORWARD, CHOOSING_CHARACTER_FOR_AFF,
 )
-from handlers.admin_role_edit import (
+from handlers.admin.role_edit import (
     start_edit_role, choose_role_to_edit, choose_role_field, receive_role_field_value,
     CHOOSING_ROLE, CHOOSING_FIELD, WAITING_VALUE as ADMIN_ROLE_WAITING_VALUE,
 )
-from handlers.admin_card_requests import (
+from handlers.cards.admin_requests import (
     card_request_action_callback, receive_card_edit_bio, EDITING_BIO,
 )
 
-from handlers.admin_management import (
+from handlers.admin.management import (
     start_add_admin, receive_add_forward, start_remove_admin, receive_remove_forward,
     list_admins_command, WAITING_ADD_FORWARD, WAITING_REMOVE_FORWARD,
 )
-from handlers.admin_request_queue import pending_requests_command, my_claimed_requests_command
+from handlers.admin.request_queue import pending_requests_command, my_claimed_requests_command
 
 setup_logging()
 logger = logging.getLogger(__name__)

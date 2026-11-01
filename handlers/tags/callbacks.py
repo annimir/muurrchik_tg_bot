@@ -10,7 +10,7 @@ from database.queries import (
     get_tag_by_id, get_tag_by_name, subscribe_tag, get_tag_subscribers,
     create_tag, touch_tag_last_used, get_user_language, find_any_tag_or_alias_owner,
 )
-from handlers.tagging import create_subscribe_markup
+from handlers.tags.tagging import create_subscribe_markup
 from message.loader import message
 from message.keys import (
     sub_character_not_found, sub_success, sub_tag_unavailable,

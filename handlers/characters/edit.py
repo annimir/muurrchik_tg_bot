@@ -7,7 +7,7 @@ from database.queries import (
     get_user_by_tg_id, get_user_characters, get_character_by_id,
     create_character_request, get_user_language,
 )
-from handlers.character_requests import notify_admin_new_character_request
+from handlers.characters.requests import notify_admin_new_character_request
 from services.validation import MAX_TEXT_LENGTH, text_is_too_long
 from message.loader import message
 from message.keys import (
