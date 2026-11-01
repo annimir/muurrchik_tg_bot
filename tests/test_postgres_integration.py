@@ -69,7 +69,7 @@ class DatabaseIntegrationTests(PostgresTestCase):
 @unittest.skipUnless(TEST_POSTGRES_DSN, 'Требуется TEST_POSTGRES_DSN')
 class HandlerIntegrationTests(PostgresTestCase):
     async def test_language_command_creates_missing_user(self):
-        from handlers.language import language_command
+        from handlers.users.language import language_command
 
         reply = AsyncMock()
         update = SimpleNamespace(
@@ -84,7 +84,7 @@ class HandlerIntegrationTests(PostgresTestCase):
         reply.assert_awaited_once()
 
     async def test_tagstats_supports_edited_message(self):
-        from handlers.tag_stats import tagstats_command
+        from handlers.tags.stats import tagstats_command
 
         queries.create_tag('Tag')
         reply = AsyncMock()
@@ -101,7 +101,7 @@ class HandlerIntegrationTests(PostgresTestCase):
         reply.assert_awaited_once()
 
     async def test_character_request_creates_missing_user(self):
-        from handlers.character_requests import ask_photo
+        from handlers.characters.requests import ask_photo
 
         reply = AsyncMock()
         update = SimpleNamespace(
@@ -119,7 +119,7 @@ class HandlerIntegrationTests(PostgresTestCase):
             }
         })
 
-        with patch('handlers.character_requests.notify_admin_new_character_request', new=AsyncMock()):
+        with patch('handlers.characters.requests.notify_admin_new_character_request', new=AsyncMock()):
             state = await ask_photo(update, context)
 
         self.assertEqual(state, ConversationHandler.END)
@@ -127,7 +127,7 @@ class HandlerIntegrationTests(PostgresTestCase):
         self.assertEqual(len(queries.get_user_character_requests(1)), 1)
 
     async def test_retention_marks_warning_only_after_delivery(self):
-        from handlers.retention_job import send_retention_warnings
+        from handlers.jobs.retention import send_retention_warnings
 
         user = queries.ensure_user(100, 'user')
         queries.db("UPDATE users SET left_at = now() - interval '7 months'").close()
@@ -141,7 +141,7 @@ class HandlerIntegrationTests(PostgresTestCase):
         self.assertIsNotNone(queries.get_user_by_id(user['id'])['deletion_warned_at'])
 
     async def test_video_link_with_hashtag_notifies_subscribers(self):
-        from handlers.tagging import link_tag_handler
+        from handlers.tags.tagging import link_tag_handler
 
         user = queries.ensure_user(100, 'user')
         tag = queries.create_tag('videos')
@@ -176,7 +176,7 @@ class HandlerIntegrationTests(PostgresTestCase):
                 self.assertIn('tg://user?id=100', send_message.await_args.kwargs['text'])
 
     async def test_video_link_handler_requires_link_and_hashtag(self):
-        from handlers.tagging import link_tag_handler
+        from handlers.tags.tagging import link_tag_handler
 
         send_message = AsyncMock()
         update = SimpleNamespace(
@@ -202,7 +202,7 @@ class HandlerIntegrationTests(PostgresTestCase):
         send_message.assert_not_awaited()
 
     def test_callback_data_uses_tag_id(self):
-        from handlers.tagging import create_subscribe_markup
+        from handlers.tags.tagging import create_subscribe_markup
 
         button = create_subscribe_markup(123).inline_keyboard[0][0]
 

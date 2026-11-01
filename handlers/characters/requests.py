@@ -137,7 +137,7 @@ async def notify_admin_new_character_request(context, request_id):
     character_edit.py импортирует и вызывает эту же функцию, а не свою копию.
     """
     from database.queries import get_character_request_by_id
-    from handlers.admin_character_requests import _build_character_request_content
+    from handlers.characters.admin_requests import _build_character_request_content
     from services.request_broadcast import broadcast_to_admins
     from message.keys import req_claim_button
 

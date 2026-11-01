@@ -82,7 +82,7 @@ class YouTubeClientTests(unittest.IsolatedAsyncioTestCase):
 @unittest.skipUnless(TEST_POSTGRES_DSN, 'Требуется TEST_POSTGRES_DSN')
 class YouTubeJobIntegrationTests(PostgresTestCase):
     async def test_publishes_latest_video_and_shorts_once(self):
-        import handlers.youtube_job as job
+        import handlers.jobs.youtube as job
 
         user = queries.ensure_user(100, 'user')
         for tag_name in ('muuurrchik', 'video', 'shorts'):

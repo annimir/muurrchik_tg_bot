@@ -52,7 +52,7 @@ async def receive_bio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def notify_admin_new_card_request(context, request_id):
     from database.queries import get_card_request_by_id
-    from handlers.admin_card_requests import _build_card_request_content
+    from handlers.cards.admin_requests import _build_card_request_content
     from services.request_broadcast import broadcast_to_admins
     from message.keys import req_claim_button
 
