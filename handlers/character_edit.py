@@ -99,7 +99,6 @@ async def receive_edit_value(update: Update, context: ContextTypes.DEFAULT_TYPE)
             return WAITING_VALUE
         photo_file_id = update.effective_message.photo[-1].file_id
         description = None
-        admin_preview_value = None  # фото не покажешь текстом
     else:
         description = update.effective_message.text.strip()
         if text_is_too_long(description):
@@ -108,7 +107,6 @@ async def receive_edit_value(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
             return WAITING_VALUE
         photo_file_id = None
-        admin_preview_value = description
 
     db_user = get_user_by_tg_id(user.id)
     request_id = create_character_request(

@@ -1,18 +1,16 @@
 import logging
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.error import TelegramError
 from telegram.ext import ContextTypes, ConversationHandler
 
-from database.queries import get_user_by_tg_id, create_card_request, get_user_card_requests, get_user_language, \
-    get_all_admin_ids
-from config import config
+from database.queries import (
+    get_user_by_tg_id, create_card_request, get_user_card_requests, get_user_language,
+)
 from services.auth import auth
 from services.validation import MAX_TEXT_LENGTH, text_is_too_long
 from message.loader import message
 from message.keys import (
     cardreq_ask_bio, cardreq_submitted, cardreq_cancelled,
-    cardreq_admin_notification, cardreq_admin_button_approve, cardreq_admin_button_edit, cardreq_admin_button_reject,
     cardreq_my_empty, cardreq_my_status_pending, cardreq_my_status_approved, cardreq_my_status_rejected,
 )
 

@@ -838,9 +838,6 @@ def remove_game(code):
 def count_users_with_game(code) -> int:
     return db('SELECT COUNT(*) AS cnt FROM user_games WHERE game_code = %s', (code,)).one()['cnt']
 
-def get_flavor_role_by_id(role_id):
-    return db('SELECT id, name FROM flavor_roles WHERE id = %s', (role_id,)).one()
-
 def get_all_positions():
     return db('SELECT id, name FROM positions ORDER BY name').all()
 
