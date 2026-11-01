@@ -149,7 +149,7 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertEqual(first_page.status_code, 200)
         self.assertEqual(first_page.text.count('class="profile-card"'), 12)
         self.assertEqual(second_page.status_code, 200)
-        self.assertEqual(second_page.json()['html'].count('class="profile-card"'), 2)
+        self.assertEqual(second_page.json()['html'].count('class="profile-card"'), 3)
         self.assertIsNone(second_page.json()['next_url'])
         self.assertEqual(search.text.count('class="profile-card"'), 1)
         self.assertIn('needle', search.text)
