@@ -2,6 +2,7 @@ from math import ceil
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
+from web.chat_insights import get_chat_insights
 from web.lore import get_lore
 from web.media import get_media_store
 from web.queries import (
@@ -49,6 +50,18 @@ async def lore(request: Request, game: str = ''):
         request=request,
         name='lore.html',
         context={**lore_page, 'active_page': 'lore'},
+    )
+
+
+@router.get('/insights', name='chat_insights')
+async def chat_insights(request: Request, period: str = 'all'):
+    insights_page = get_chat_insights(period)
+    if insights_page is None:
+        raise HTTPException(status_code=404, detail='Период не найден')
+    return templates.TemplateResponse(
+        request=request,
+        name='insights.html',
+        context={**insights_page, 'active_page': 'insights'},
     )
 
 

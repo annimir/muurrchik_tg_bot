@@ -7,6 +7,7 @@
     <title>{% block title %}Архив сообщества{% endblock %} · P.A.I.M.O.N.</title>
     <link rel="stylesheet" href="/static/app.css">
     <script src="/static/app.js" defer></script>
+    {% block scripts %}{% endblock %}
 </head>
 <body>
 <div class="sky" aria-hidden="true"></div>
@@ -18,6 +19,7 @@
     <nav class="main-nav" aria-label="Основная навигация">
         <a class="{{ 'active' if active_page == 'media' else '' }}" href="/media">Медиа</a>
         <a class="{{ 'active' if active_page == 'lore' else '' }}" href="/lore">Лор</a>
+        <a class="{{ 'active' if active_page == 'insights' else '' }}" href="/insights">Карта чата</a>
         <a class="{{ 'active' if active_page == 'users' else '' }}" href="/users">Игроки</a>
         <a class="{{ 'active' if active_page == 'characters' else '' }}" href="/characters">Персонажи</a>
         <a class="admin-link" href="/admin">Админам</a>

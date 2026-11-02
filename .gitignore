@@ -15,6 +15,7 @@ config/config.prod.yml
 *.db
 *.sqlite
 *.sqlite3
+result.json
 
 logs/
 backups/

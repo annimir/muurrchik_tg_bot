@@ -42,8 +42,13 @@ def media_url(tag_ids=(), kind='', sort='newest', date_from='', date_to='', page
     return f'/media?{urlencode(params)}'
 
 
+def number_ru(value):
+    return f'{value:,}'.replace(',', ' ')
+
+
 templates.env.filters['datetime_ru'] = datetime_ru
 templates.env.filters['date_ru'] = date_ru
 templates.env.filters['media_kind'] = media_kind
 templates.env.filters['media_caption'] = media_caption
+templates.env.filters['number_ru'] = number_ru
 templates.env.globals['media_url'] = media_url
