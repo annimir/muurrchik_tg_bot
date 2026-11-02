@@ -1,6 +1,8 @@
 .git
 .gitignore
 .idea
+.browser-check
+result.json
 .venv
 venv
 

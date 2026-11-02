@@ -9,6 +9,7 @@
 <section class="panel"><h2>О игроке</h2><p class="preline">{{ user.bio or 'Игрок пока ничего не рассказал о себе.' }}</p>{% if user.role_description %}<h3>Роль: {{ user.role_name }}</h3><p class="preline">{{ user.role_description }}</p>{% endif %}{% if user.role_wiki_url %}<a class="text-link" href="{{ user.role_wiki_url }}" target="_blank" rel="noopener noreferrer">Подробнее о роли</a>{% endif %}</section>
 <section class="panel"><h2>Игры</h2>{% if games %}<div class="badge-list">{% for game in games %}<span class="badge">{{ game.name }}</span>{% endfor %}</div>{% else %}<p>Игры не указаны.</p>{% endif %}</section>
 </div>
+<section class="panel"><h2>Подписки</h2>{% if subscriptions %}<div class="badge-list">{% for tag in subscriptions %}<a class="badge" href="/media?tag={{ tag.id }}">{{ tag.name }}</a>{% endfor %}</div>{% else %}<p>Активных подписок нет.</p>{% endif %}</section>
 <section class="section-heading"><h2>Персонажи</h2><a href="/characters">Все персонажи</a></section>
 {% if characters %}<div class="card-grid">{% for character in characters %}<a class="profile-card" href="/characters/{{ character.id }}"><span class="profile-content"><strong>{{ character.name }}</strong><small>{{ character.position_name or character.affiliation_name or 'Без должности' }}</small></span>{% if character.is_primary %}<span class="badge">Основной</span>{% endif %}</a>{% endfor %}</div>{% else %}<div class="empty-state"><p>У игрока пока нет персонажей.</p></div>{% endif %}
 {% endblock %}

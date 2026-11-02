@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Лор сообщества{% endblock %}
+{% block content %}
+<section class="page-heading">
+    <div class="eyebrow">Неофициальная летопись</div>
+    <h1>Лор сообщества</h1>
+    <p>Шуточная история игр глазами чата. Сюжеты собраны из переписки, а команды, реклама, флуд и личные темы остались за страницами.</p>
+</section>
+<nav class="lore-grid" aria-label="Категории лора">
+    {% for game in games %}<a class="lore-game-card {{ 'is-active' if selected_game == game.key else '' }}" href="/lore?game={{ game.key }}#chronology">
+        <span class="eyebrow">{{ game.name }}</span>
+        <strong>{{ game.title }}</strong>
+        <p>{{ game.description }}</p>
+        <small>{{ game.entry_count }} событий</small>
+    </a>{% endfor %}
+</nav>
+<section class="panel lore-chronology" id="chronology">
+    <div class="section-heading"><div><div class="eyebrow">Хронология</div><h2>{{ selected_game_name }}</h2></div>{% if selected_game %}<a href="/lore#chronology">Все события</a>{% endif %}</div>
+    <ol class="lore-timeline">
+        {% for entry in entries %}<li class="lore-event">
+            <time datetime="{{ entry.date.isoformat() }}">{{ entry.date|date_ru }}</time>
+            <article>
+                <div class="eyebrow">{{ game_names[entry.game] }}</div>
+                <h3>{{ entry.title }}</h3>
+                <p>{{ entry.text }}</p>
+                <a class="text-link lore-source" href="{{ entry.source_url }}" target="_blank" rel="noopener noreferrer">Исходное сообщение</a>
+            </article>
+        </li>{% endfor %}
+    </ol>
+</section>
+{% endblock %}

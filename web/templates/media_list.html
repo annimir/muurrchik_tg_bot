@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from '_media.html' import media_card %}
+{% from '_media.html' import media_card with context %}
 {% block title %}Коллекция медиа{% endblock %}
 {% block content %}
 <section class="page-heading">
@@ -8,20 +8,28 @@
     <p>Находите нужные моменты по тегам, типу публикации и дате.</p>
 </section>
 <form class="filters" method="get" action="/media">
-    <label>Тег
-        <select name="tag">
-            <option value="">Все теги</option>
-            {% for tag in tags %}<option value="{{ tag.id }}" {{ 'selected' if selected_tag == tag.id else '' }}>#{{ tag.name }}</option>{% endfor %}
-        </select>
-    </label>
-    <label>Тип
-        <select name="kind">
-            <option value="">Все материалы</option>
-            <option value="photo" {{ 'selected' if selected_kind == 'photo' else '' }}>Фото</option>
-            <option value="video" {{ 'selected' if selected_kind == 'video' else '' }}>Видео</option>
-            <option value="video_link" {{ 'selected' if selected_kind == 'video_link' else '' }}>Ссылки на видео</option>
-        </select>
-    </label>
+    <div class="filter-dropdown" data-filter-dropdown data-tag-filter>
+        <button class="button button-secondary filter-dropdown-toggle" type="button" data-filter-toggle aria-expanded="false">{{ tag_filter_label }}</button>
+        <div class="filter-popup filter-popup-tags" hidden>
+            <div class="filter-search-label"><input type="search" placeholder="Название тега" aria-label="Поиск по названию тега" autocomplete="off" data-tag-search></div>
+            <div class="filter-options" data-tag-options>
+                {% for tag in tags %}<label class="filter-option" data-tag-option data-tag-name="{{ tag.name|lower }}"><input type="checkbox" name="tag" value="{{ tag.id }}" {{ 'checked' if tag.id in selected_tag_ids else '' }}><span>{{ tag.name }}</span></label>{% endfor %}
+            </div>
+            <p class="filter-empty" data-tag-empty hidden>Теги не найдены.</p>
+            <div class="filter-popup-actions"><button type="button" data-tags-clear>Сбросить</button><button type="button" data-filter-close>Готово</button></div>
+        </div>
+    </div>
+    <div class="filter-dropdown" data-filter-dropdown data-choice-filter data-default-label="Все материалы" data-default-value="">
+        <button class="button button-secondary filter-dropdown-toggle" type="button" data-filter-toggle aria-expanded="false">{{ kind_filter_label }}</button>
+        <div class="filter-popup" hidden>
+            <div class="filter-options">
+                <label class="filter-option"><input type="checkbox" name="kind" value="photo" {{ 'checked' if 'photo' in selected_kinds else '' }}><span>Фото</span></label>
+                <label class="filter-option"><input type="checkbox" name="kind" value="video" {{ 'checked' if 'video' in selected_kinds else '' }}><span>Видео</span></label>
+                <label class="filter-option"><input type="checkbox" name="kind" value="video_link" {{ 'checked' if 'video_link' in selected_kinds else '' }}><span>Ссылки на видео</span></label>
+            </div>
+            <div class="filter-popup-actions"><button type="button" data-filter-close>Готово</button></div>
+        </div>
+    </div>
     <div class="date-range-picker" data-date-range data-from="{{ date_from }}" data-to="{{ date_to }}">
         <input type="hidden" name="date_from" value="{{ date_from }}">
         <input type="hidden" name="date_to" value="{{ date_to }}">
@@ -33,13 +41,17 @@
             <div class="date-range-actions"><button type="button" data-date-clear>Сбросить</button><button type="button" data-date-close>Готово</button></div>
         </div>
     </div>
-    <label>Сортировка
-        <select name="sort">
-            <option value="newest" {{ 'selected' if selected_sort == 'newest' else '' }}>Сначала новые</option>
-            <option value="oldest" {{ 'selected' if selected_sort == 'oldest' else '' }}>Сначала старые</option>
-            <option value="tag" {{ 'selected' if selected_sort == 'tag' else '' }}>По тегу</option>
-        </select>
-    </label>
+    <div class="filter-dropdown" data-filter-dropdown data-choice-filter data-default-label="Сначала новые" data-default-value="newest">
+        <button class="button button-secondary filter-dropdown-toggle" type="button" data-filter-toggle aria-expanded="false">{{ sort_filter_label }}</button>
+        <div class="filter-popup" hidden>
+            <div class="filter-options">
+                <label class="filter-option"><input type="checkbox" name="sort" value="newest" {{ 'checked' if 'newest' in selected_sorts else '' }}><span>Сначала новые</span></label>
+                <label class="filter-option"><input type="checkbox" name="sort" value="oldest" {{ 'checked' if 'oldest' in selected_sorts else '' }}><span>Сначала старые</span></label>
+                <label class="filter-option"><input type="checkbox" name="sort" value="tag" {{ 'checked' if 'tag' in selected_sorts else '' }}><span>По тегу</span></label>
+            </div>
+            <div class="filter-popup-actions"><button type="button" data-filter-close>Готово</button></div>
+        </div>
+    </div>
     <button class="button" type="submit">Применить</button>
     <a class="button button-quiet" href="/media">Сбросить</a>
 </form>
@@ -47,13 +59,13 @@
 {% if items %}
 <div class="media-grid">{% for item in items %}{{ media_card(item) }}{% endfor %}</div>
 {% else %}
-<div class="empty-state"><h3>Ничего не найдено</h3><p>Измените фильтры или выберите другой тег и период.</p></div>
+<div class="empty-state"><h3>Ничего не найдено</h3><p>Измените фильтры или выберите другие теги и период.</p></div>
 {% endif %}
 {% if pagination.pages > 1 %}
 <nav class="pagination" aria-label="Страницы">
-    {% if pagination.previous %}<a href="/media?tag={{ selected_tag or '' }}&kind={{ selected_kind or '' }}&date_from={{ date_from }}&date_to={{ date_to }}&sort={{ selected_sort }}&page={{ pagination.previous }}">Назад</a>{% endif %}
+    {% if pagination.previous %}<a href="{{ media_url(tag_ids=selected_tag_ids, kind=selected_kinds, sort=selected_sorts, date_from=date_from, date_to=date_to, page=pagination.previous) }}">Назад</a>{% endif %}
     <span>Страница {{ pagination.page }} из {{ pagination.pages }}</span>
-    {% if pagination.next %}<a href="/media?tag={{ selected_tag or '' }}&kind={{ selected_kind or '' }}&date_from={{ date_from }}&date_to={{ date_to }}&sort={{ selected_sort }}&page={{ pagination.next }}">Далее</a>{% endif %}
+    {% if pagination.next %}<a href="{{ media_url(tag_ids=selected_tag_ids, kind=selected_kinds, sort=selected_sorts, date_from=date_from, date_to=date_to, page=pagination.next) }}">Далее</a>{% endif %}
 </nav>
 {% endif %}
 {% endblock %}

@@ -188,6 +188,24 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); }
 .pagination { display: flex; align-items: center; justify-content: center; gap: 22px; margin-top: 32px; }
 .pagination a { color: var(--gold); }
 
+.lore-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-bottom: 32px; }
+.lore-game-card { display: flex; flex-direction: column; padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); transition: border-color .16s ease, transform .16s ease; }
+.lore-game-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+.lore-game-card.is-active { border-color: var(--teal); box-shadow: 0 0 0 1px var(--teal); }
+.lore-game-card strong { margin: 10px 0; color: var(--gold-light); font: 400 1.45rem Georgia, serif; }
+.lore-game-card p { flex: 1; color: var(--muted); }
+.lore-game-card small { color: var(--teal); }
+.lore-chronology { scroll-margin-top: 24px; }
+.lore-timeline { position: relative; display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.lore-event { position: relative; display: grid; grid-template-columns: 120px 1fr; gap: 24px; padding: 22px 0; border-bottom: 1px solid rgba(184,194,207,.13); }
+.lore-event:last-child { border-bottom: 0; }
+.lore-event > time { color: var(--gold); font-size: .9rem; }
+.lore-event article { position: relative; padding-left: 22px; border-left: 1px solid var(--line); }
+.lore-event article::before { content: ""; position: absolute; top: 9px; left: -5px; width: 9px; height: 9px; border-radius: 50%; background: var(--teal); }
+.lore-event h3 { margin: 5px 0 8px; color: var(--gold-light); font-size: 1.35rem; }
+.lore-event p { margin-bottom: 10px; }
+.lore-source { font-size: .82rem; }
+
 .card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .profile-card, .character-card { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; padding: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
 .profile-card:hover, .character-card:hover { border-color: var(--gold); }
@@ -225,6 +243,21 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); }
 .line-chart { width: 100%; height: auto; overflow: visible; }
 .line-chart text { fill: var(--muted); font-size: 10px; }
 .chart-grid { stroke: rgba(184,194,207,.15); stroke-width: 1; }
+.period-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.period-button.is-active { border-color: var(--teal); box-shadow: 0 0 0 1px var(--teal); color: var(--gold-light); }
+.custom-period-form { display: flex; align-items: end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+[data-tag-usage-panel][aria-busy="true"] .line-chart { opacity: .6; }
+.subscription-chart { display: grid; grid-template-columns: minmax(180px, 280px) 1fr; align-items: center; gap: 28px; }
+.pie-chart { width: 100%; height: auto; transform: rotate(0deg); }
+.pie-chart-base { fill: none; stroke: rgba(184,194,207,.1); stroke-width: 6; }
+.pie-segment { fill: none; stroke-width: 6; }
+.pie-chart-total { fill: var(--gold-light); font: 400 5px Georgia, serif; text-anchor: middle; }
+.pie-chart-caption { fill: var(--muted); font-size: 1.8px; text-anchor: middle; }
+.pie-legend { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.pie-legend li { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 9px; }
+.pie-legend i { width: 10px; height: 10px; border-radius: 50%; background: var(--series-color); }
+.pie-legend strong { color: var(--gold-light); font-weight: 500; }
+.pie-legend small { color: var(--muted); }
 .date-filter { margin-bottom: 24px; }
 .daily-bars { display: grid; gap: 15px; }
 .bar-row { display: grid; grid-template-columns: 60px 1fr 35px; align-items: center; gap: 12px; }
@@ -236,6 +269,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); }
 .ranking li a { flex: 1; }
 .admin-form { align-items: end; }
 .admin-form .form-wide { flex: 1 1 100%; }
+.game-options { margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 5px; }
+.game-options legend { padding: 0 8px; color: var(--muted); font-size: .87rem; }
+.game-options-list { display: flex; flex-wrap: wrap; gap: 12px 22px; }
+.game-options small, .admin-form label small { color: var(--muted); }
 .assign-form { align-items: center; gap: 9px; }
 .form-error { padding: 13px 17px; margin-bottom: 20px; border: 1px solid rgba(241,166,166,.5); border-radius: 5px; color: var(--danger); background: rgba(130,40,50,.15); }
 .danger-zone { border-color: rgba(241,166,166,.35); }
@@ -253,6 +290,7 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
     .site-header { align-items: flex-start; flex-direction: column; }
     .main-nav .admin-link { margin-left: 0; }
     .media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .lore-grid { grid-template-columns: 1fr; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .dashboard-grid { grid-template-columns: 1fr; }
     .panel-wide { grid-column: auto; }
@@ -263,11 +301,16 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
     .page { padding-top: 32px; }
     .hero { padding: 40px 0; }
     .media-grid, .card-grid, .detail-grid { grid-template-columns: 1fr; }
+    .lore-event { grid-template-columns: 1fr; gap: 8px; }
     .profile-hero, .character-hero { align-items: flex-start; flex-direction: column; }
     .character-portrait-large { width: 170px; height: 215px; }
     .site-footer { flex-direction: column; }
     .filters, .admin-form { align-items: stretch; flex-direction: column; }
     .filters label, .filters button, .admin-form label, .admin-form button, input, select { width: 100%; }
+    .subscription-chart { grid-template-columns: 1fr; }
+    .custom-period-form { align-items: stretch; flex-direction: column; }
+    .custom-period-form .date-range-picker, .custom-period-form .date-range-toggle { width: 100%; }
+    .pie-chart { max-width: 260px; margin: 0 auto; }
     .admin-toolbar { align-items: flex-start; flex-direction: column; }
     .stats-grid { gap: 10px; }
     .stat-card { padding: 17px; }
@@ -377,8 +420,35 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
 .date-grid button.in-range { background: rgba(121, 199, 192, .13); }
 .date-grid button.is-start, .date-grid button.is-end { background: var(--gold); color: var(--night); }
 .date-range-actions { margin-top: 14px; }
+.filter-dropdown { position: relative; }
+.filter-dropdown-toggle { min-width: 210px; max-width: 310px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filter-popup {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 20;
+    width: 280px;
+    padding: 12px;
+    border: 1px solid var(--gold);
+    border-radius: 8px;
+    background: var(--panel-solid);
+    box-shadow: var(--shadow);
+}
+.filter-popup-tags { width: 330px; }
+.filter-search-label { margin-bottom: 10px; }
+.filter-search-label input { width: 100%; min-width: 0; }
+.filter-options { display: grid; gap: 3px; max-height: 280px; overflow-y: auto; }
+.filter-option { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 5px; color: var(--ink); cursor: pointer; }
+.filter-option[hidden] { display: none; }
+.filter-option:hover { background: rgba(121, 199, 192, .12); }
+.filter-option input { min-width: auto; width: 17px; height: 17px; margin: 0; accent-color: var(--gold); }
+.filter-popup-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; }
+.filter-popup-actions button { border: 0; background: transparent; color: var(--gold); cursor: pointer; padding: 6px 10px; }
+.filter-empty { margin: 10px 8px; color: var(--muted); }
+.filter-dropdown.has-value .filter-dropdown-toggle, .date-range-picker.has-value .date-range-toggle { border-color: var(--teal); }
 @media (max-width: 620px) {
-    .date-range-popup { left: auto; right: 0; width: min(330px, calc(100vw - 30px)); }
+    .date-range-popup, .filter-popup { left: auto; right: 0; width: min(330px, calc(100vw - 30px)); }
+    .filter-dropdown, .filter-dropdown-toggle { width: 100%; max-width: none; }
 }
 .scroll-sentinel { min-height: 54px; padding: 18px; text-align: center; color: var(--muted); cursor: pointer; }
 .scroll-sentinel.is-complete { cursor: default; }
