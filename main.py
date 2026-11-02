@@ -202,7 +202,7 @@ application.add_handler(CommandHandler('updateme', update_me))
 
 # ---------- тегирование ----------
 application.add_handler(CommandHandler('tag', tag_command))
-application.add_handler(MessageHandler((filters.PHOTO | filters.VIDEO) & filters.CAPTION, media_tag_handler))
+application.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, media_tag_handler))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, link_tag_handler), group=1)
 
 # ---------- inline ----------
