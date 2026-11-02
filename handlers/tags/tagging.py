@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
@@ -141,38 +142,103 @@ async def resolve_tag_subscribers(
     return None
 
 
+MEDIA_GROUP_DELAY = 0.75
+MEDIA_GROUPS_KEY = 'tag_media_groups'
+
+
+def _media_type(message_obj):
+    if message_obj.photo:
+        return 'photo'
+    if message_obj.video:
+        return 'video'
+    return None
+
+
+def _active_tag_id(tag_name):
+    result = tag_storage.find(tag_name)
+    if result['status'] not in {'found', 'new'}:
+        return None
+    tag = get_tag_by_name(result['tag'])
+    return tag['id'] if tag and tag['status'] == 'ACTIVE' else None
+
+
+async def _process_tagged_media(update, context, updates):
+    caption = update.effective_message.caption or ''
+    tags = [word[1:] for word in caption.split() if word.startswith('#')]
+    user_id = update.effective_user.id
+    all_subscribers = []
+    tag_ids = []
+    for tag_name in tags:
+        subscribers = await resolve_tag_subscribers(update, context, tag_name)
+        if subscribers:
+            all_subscribers.extend(subscribers)
+        tag_id = _active_tag_id(tag_name)
+        if tag_id is not None:
+            tag_ids.append(tag_id)
+
+    for media_update in sorted(updates, key=lambda item: item.effective_message.message_id):
+        message_obj = media_update.effective_message
+        media_type = _media_type(message_obj)
+        for tag_id in tag_ids:
+            _log_tag_message_usage(media_update, tag_id, user_id, media_type)
+
+    unique_subscribers = list({row['tg_id']: row for row in all_subscribers}.values())
+    if unique_subscribers:
+        await mention_users(
+            context, update.effective_chat.id, unique_subscribers,
+            update.effective_message.message_thread_id,
+        )
+
+
+async def _process_media_group_after_delay(context, key):
+    try:
+        await asyncio.sleep(MEDIA_GROUP_DELAY)
+        albums = context.bot_data.get(MEDIA_GROUPS_KEY, {})
+        album = albums.pop(key, None)
+        if not album:
+            return
+        caption_update = next(
+            (
+                item for item in album['updates']
+                if item.effective_message.caption and '#' in item.effective_message.caption
+            ),
+            None,
+        )
+        if caption_update:
+            await _process_tagged_media(caption_update, context, album['updates'])
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        logger.exception("Не удалось обработать медиагруппу %s", key)
+
+
+def _queue_media_group(update, context):
+    message_obj = update.effective_message
+    key = (update.effective_chat.id, message_obj.media_group_id)
+    albums = context.bot_data.setdefault(MEDIA_GROUPS_KEY, {})
+    album = albums.setdefault(key, {'updates': [], 'task': None})
+    if album['task'] and not album['task'].done():
+        album['task'].cancel()
+    album['updates'].append(update)
+    album['task'] = asyncio.create_task(_process_media_group_after_delay(context, key))
+
+
 async def media_tag_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.edited_message:
         return
 
     message_obj = update.effective_message
-    thread_id = message_obj.message_thread_id
-
     if message_obj.via_bot or message_obj.forward_origin:
+        return
+    if not _media_type(message_obj):
+        logger.warning("media_tag_handler вызван для сообщения без фото/видео (id=%s)", message_obj.message_id)
+        return
+    if message_obj.media_group_id:
+        _queue_media_group(update, context)
         return
     if not message_obj.caption or '#' not in message_obj.caption:
         return
-
-    if message_obj.photo:
-        media_type = 'photo'
-    elif message_obj.video:
-        media_type = 'video'
-    else:
-        logger.warning("media_tag_handler вызван для сообщения без фото/видео (id=%s)", message_obj.message_id)
-        return
-
-    tags = [w[1:] for w in message_obj.caption.split() if w.startswith('#')]
-    all_subscribers = []
-    for tag_name in tags:
-        subs = await resolve_tag_subscribers(
-            update, context, tag_name, log_usage=True, media_type=media_type,
-        )
-        if subs:
-            all_subscribers.extend(subs)
-
-    unique_subscribers = list({row['tg_id']: row for row in all_subscribers}.values())
-    if unique_subscribers:
-        await mention_users(context, update.effective_chat.id, unique_subscribers, thread_id)
+    await _process_tagged_media(update, context, [update])
 
 
 async def tag_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

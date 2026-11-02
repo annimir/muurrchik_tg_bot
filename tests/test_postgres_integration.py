@@ -201,6 +201,66 @@ class HandlerIntegrationTests(PostgresTestCase):
 
         send_message.assert_not_awaited()
 
+    async def test_media_group_tags_every_photo_regardless_of_caption_position(self):
+        import asyncio
+        from handlers.tags import tagging
+        from web.queries import list_media
+
+        user = queries.ensure_user(100, 'user')
+        tag = queries.create_tag('album-photos')
+        queries.subscribe_tag(user['tg_id'], tag['id'])
+
+        def media_update(message_id, group_id, caption):
+            return SimpleNamespace(
+                edited_message=None,
+                effective_user=SimpleNamespace(id=100),
+                effective_chat=SimpleNamespace(id=200),
+                effective_message=SimpleNamespace(
+                    message_id=message_id,
+                    message_thread_id=None,
+                    media_group_id=group_id,
+                    caption=caption,
+                    via_bot=False,
+                    forward_origin=None,
+                    photo=[SimpleNamespace(
+                        file_id=f'file-{group_id}-{message_id}',
+                        file_unique_id=f'unique-{group_id}-{message_id}',
+                    )],
+                    video=None,
+                    reply_text=AsyncMock(),
+                ),
+            )
+
+        for caption_index in range(3):
+            with self.subTest(caption_index=caption_index):
+                queries.db('DELETE FROM tag_usage').close()
+                context = SimpleNamespace(
+                    user_data={}, bot_data={},
+                    bot=SimpleNamespace(send_message=AsyncMock()),
+                )
+                group_id = f'album-{caption_index}'
+                updates = [
+                    media_update(index + 1, group_id, '#album-photos' if index == caption_index else None)
+                    for index in range(3)
+                ]
+
+                with patch.object(tagging, 'MEDIA_GROUP_DELAY', 0):
+                    for update in updates:
+                        await tagging.media_tag_handler(update, context)
+                    await asyncio.sleep(0.01)
+
+                rows = queries.db(
+                    'SELECT * FROM tag_usage ORDER BY telegram_message_id'
+                ).all()
+                self.assertEqual(len(rows), 3)
+                self.assertEqual(
+                    [row['media_file_unique_id'] for row in rows],
+                    [f'unique-{group_id}-{index}' for index in range(1, 4)],
+                )
+                self.assertEqual(len(list_media(limit=24)), 3)
+                context.bot.send_message.assert_awaited_once()
+                self.assertEqual(context.bot_data[tagging.MEDIA_GROUPS_KEY], {})
+
     def test_callback_data_uses_tag_id(self):
         from handlers.tags.tagging import create_subscribe_markup
 
