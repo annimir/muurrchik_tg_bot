@@ -15,7 +15,7 @@ def _load_parser(language: str) -> configparser.ConfigParser:
     if language not in LANGUAGE_PATHS:
         language = DEFAULT_LANGUAGE
 
-    parser = configparser.ConfigParser(allow_no_value=True, delimiters=('=',))
+    parser = configparser.ConfigParser(allow_no_value=True, delimiters=('=',), interpolation=None)
     parser.read(LANGUAGE_PATHS[language], encoding='utf-8')
     return parser
 

@@ -209,7 +209,7 @@ application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, link_tag
 application.add_handler(InlineQueryHandler(inline_search))
 
 # ---------- callback-и тегов ----------
-application.add_handler(CallbackQueryHandler(callback_router, pattern=r'^(subscribe|tag|new)/'))
+application.add_handler(CallbackQueryHandler(callback_router, pattern=r'^(subscribe|tag|new)/|^cancel$'))
 
 # ---------- роли ----------
 application.add_handler(CommandHandler('add_role', add_role_command, filters=filters.ChatType.PRIVATE))

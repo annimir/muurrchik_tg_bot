@@ -100,6 +100,26 @@ class HandlerIntegrationTests(PostgresTestCase):
 
         reply.assert_awaited_once()
 
+    async def test_tag_suggestion_with_percent_does_not_crash(self):
+        from handlers.tags.tagging import resolve_tag_subscribers
+
+        queries.create_tag('еимия')
+        reply = AsyncMock()
+        update = SimpleNamespace(
+            effective_user=SimpleNamespace(id=100),
+            effective_message=SimpleNamespace(message_thread_id=None, reply_text=reply),
+        )
+        context = SimpleNamespace(user_data={})
+        suggestion = {'status': 'suggest', 'tag': 'еимия', 'score': 66.66666666666667}
+
+        with patch('handlers.tags.tagging.tag_storage.find', return_value=suggestion):
+            result = await resolve_tag_subscribers(update, context, 'митя')
+
+        self.assertIsNone(result)
+        reply.assert_awaited_once()
+        self.assertIn('67%', reply.await_args.args[0])
+        self.assertEqual(context.user_data['pending_new_tag'], 'митя')
+
     async def test_character_request_creates_missing_user(self):
         from handlers.characters.requests import ask_photo
 
@@ -261,10 +281,102 @@ class HandlerIntegrationTests(PostgresTestCase):
                 context.bot.send_message.assert_awaited_once()
                 self.assertEqual(context.bot_data[tagging.MEDIA_GROUPS_KEY], {})
 
+    async def test_tag_suggestion_choices_subscribe_and_log_media(self):
+        from handlers.tags.callbacks import callback_router
+        from handlers.tags.tagging import create_yes_no_markup
+
+        queries.ensure_user(100, 'user')
+        existing = queries.create_tag('Арлекино')
+        markup = create_yes_no_markup(existing['id'], 100, 'RU', 'Арлекино', 'Арлекииино')
+        self.assertEqual(markup.inline_keyboard[0][0].text, 'Да, использовать #Арлекино')
+        self.assertEqual(markup.inline_keyboard[1][0].text, 'Создать #Арлекииино и подписаться')
+
+        def media_update(message_id):
+            return SimpleNamespace(
+                effective_chat=SimpleNamespace(id=200),
+                effective_message=SimpleNamespace(
+                    message_id=message_id, message_thread_id=None,
+                    caption='#Арлекииино', text=None,
+                    photo=[SimpleNamespace(
+                        file_id=f'file-{message_id}', file_unique_id=f'unique-{message_id}',
+                    )],
+                    video=None,
+                ),
+            )
+
+        def callback(data):
+            return SimpleNamespace(
+                data=data,
+                from_user=SimpleNamespace(id=100, username='user'),
+                message=SimpleNamespace(
+                    chat=SimpleNamespace(id=200), message_thread_id=None, message_id=500,
+                ),
+                answer=AsyncMock(),
+            )
+
+        def context():
+            return SimpleNamespace(
+                user_data={
+                    'pending_new_tag': 'Арлекииино',
+                    'pending_tag_usage': [(media_update(1), 'photo'), (media_update(2), 'photo')],
+                },
+                bot=SimpleNamespace(send_message=AsyncMock(), delete_message=AsyncMock()),
+            )
+
+        accept_context = context()
+        await callback_router(SimpleNamespace(callback_query=callback(
+            f'tag/{existing["id"]}/100',
+        )), accept_context)
+
+        accepted_rows = queries.db('SELECT * FROM tag_usage ORDER BY telegram_message_id').all()
+        self.assertEqual(len(accepted_rows), 2)
+        self.assertTrue(all(row['tag_id'] == existing['id'] for row in accepted_rows))
+        self.assertEqual(queries.get_user_subscriptions(100), [])
+        self.assertNotIn('pending_new_tag', accept_context.user_data)
+        self.assertNotIn('pending_tag_usage', accept_context.user_data)
+
+        queries.db('DELETE FROM tag_usage').close()
+        create_context = context()
+        create_context.user_data['pending_tag_usage'] = [(media_update(3), 'photo')]
+        await callback_router(
+            SimpleNamespace(callback_query=callback('new/100')), create_context,
+        )
+
+        created = queries.get_tag_by_name('Арлекииино')
+        self.assertIsNotNone(created)
+        self.assertEqual(
+            [row['name'] for row in queries.get_user_subscriptions(100)], ['Арлекииино'],
+        )
+        created_usage = queries.db('SELECT * FROM tag_usage').one()
+        self.assertEqual(created_usage['tag_id'], created['id'])
+        self.assertEqual(created_usage['media_file_unique_id'], 'unique-3')
+        self.assertIn('подписались', create_context.bot.send_message.await_args.args[1])
+
     def test_callback_data_uses_tag_id(self):
         from handlers.tags.tagging import create_subscribe_markup
 
-        button = create_subscribe_markup(123).inline_keyboard[0][0]
+        subscribe_button, cancel_button = create_subscribe_markup(123).inline_keyboard[0]
 
-        self.assertEqual(button.callback_data, 'subscribe/123')
-        self.assertLessEqual(len(button.callback_data.encode()), 64)
+        self.assertEqual(subscribe_button.callback_data, 'subscribe/123')
+        self.assertLessEqual(len(subscribe_button.callback_data.encode()), 64)
+        self.assertEqual(cancel_button.text, 'Отмена')
+        self.assertEqual(cancel_button.callback_data, 'cancel')
+
+    async def test_cancel_subscription_prompt_deletes_message(self):
+        from handlers.tags.callbacks import callback_router
+
+        queries.ensure_user(100, 'user')
+        delete_message = AsyncMock()
+        call = SimpleNamespace(
+            data='cancel',
+            from_user=SimpleNamespace(id=100, username='user'),
+            message=SimpleNamespace(
+                chat=SimpleNamespace(id=200), message_thread_id=None, message_id=500,
+            ),
+            answer=AsyncMock(),
+        )
+        context = SimpleNamespace(bot=SimpleNamespace(delete_message=delete_message))
+
+        await callback_router(SimpleNamespace(callback_query=call), context)
+
+        delete_message.assert_awaited_once_with(200, 500)

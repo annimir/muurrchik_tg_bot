@@ -85,6 +85,9 @@ tagstatus_restored = 'tagstatus.restored'
 
 # ==================== TAGGING / АЛИАСЫ ====================
 tag_suggest = 'tag.suggest'
+tag_use_suggested = 'tag.useSuggested'
+tag_create_and_subscribe = 'tag.createAndSubscribe'
+tag_created_subscribed = 'tag.createdSubscribed'
 tag_created = 'tag.created'
 tag_no_argument = 'tag.noArgument'
 tag_name_reserved = 'tag.nameReserved'
