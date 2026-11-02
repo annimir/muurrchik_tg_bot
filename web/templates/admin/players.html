@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Управление игроками{% endblock %}
+{% block content %}
+{% include 'admin/_nav.html' %}
+<section class="page-heading"><div class="eyebrow">Редактор архива</div><h1>Игроки</h1><p>Изменяйте информацию профиля, дату рождения и игры.</p></section>
+<section class="panel">
+    {% if players %}<div class="table-wrap"><table><thead><tr><th>Игрок</th><th>О игроке</th><th>День рождения</th><th>Игры</th><th>Действия</th></tr></thead><tbody>
+    {% for player in players %}<tr>
+        <td><a class="text-link" href="/users/{{ player.id }}">{{ player.tag or 'Игрок #' + player.id|string }}</a></td>
+        <td>{{ player.bio|truncate(100) if player.bio else '—' }}</td>
+        <td>{% if player.day %}{% if player.year %}{{ '%02d.%02d.%04d'|format(player.day, player.month, player.year) }}{% else %}{{ '%02d.%02d'|format(player.day, player.month) }}{% endif %}{% else %}—{% endif %}</td>
+        <td>{{ player.game_names or '—' }}</td>
+        <td><a class="button button-small button-quiet" href="/admin/players/{{ player.id }}/edit">Редактировать</a></td>
+    </tr>{% endfor %}
+    </tbody></table></div>{% else %}<p>Игроков пока нет.</p>{% endif %}
+</section>
+{% endblock %}

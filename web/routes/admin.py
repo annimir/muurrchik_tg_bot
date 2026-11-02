@@ -14,11 +14,11 @@ from web.auth import (
 from web.charts import build_daily_bars, build_line_chart, build_pie_chart
 from web.queries import (
     assign_character, create_character, create_role, delete_character,
-    delete_role, get_admin_character, get_admin_overview, get_admin_role,
-    get_daily_analytics, get_recent_audit, get_tag_popularity_for_day,
+    delete_role, get_admin_character, get_admin_overview, get_admin_player,
+    get_admin_role, get_daily_analytics, get_recent_audit, get_tag_popularity_for_day,
     get_tag_subscription_popularity, get_tag_usage_bounds, get_tag_usage_series,
-    list_admin_characters,
-    list_admin_media, list_admin_roles, list_admin_users, set_media_visibility,
+    list_admin_characters, list_admin_media, list_admin_players, list_admin_roles,
+    list_admin_users, list_games, set_media_visibility, update_admin_player,
     update_character, update_role,
 )
 from web.rendering import templates
@@ -171,6 +171,84 @@ async def dashboard(
             'active_page': 'dashboard',
         },
     )
+
+
+def _parse_player_birthday(value):
+    value = value.strip()
+    if not value:
+        return None
+    try:
+        if '.' in value:
+            day_text, month_text = value.split('.')
+            birthday = {'day': int(day_text), 'month': int(month_text), 'year': None}
+            date(2000, birthday['month'], birthday['day'])
+        else:
+            parsed = date.fromisoformat(value)
+            birthday = {'day': parsed.day, 'month': parsed.month, 'year': parsed.year}
+    except (TypeError, ValueError):
+        raise ValueError('Укажите дату в формате ДД.ММ или ГГГГ-ММ-ДД') from None
+    if birthday['year'] and date(birthday['year'], birthday['month'], birthday['day']) > date.today():
+        raise ValueError('Дата рождения не может быть в будущем')
+    return birthday
+
+
+@router.get('/players', name='admin_players')
+async def players(request: Request, session=Depends(require_admin)):
+    return templates.TemplateResponse(
+        request=request,
+        name='admin/players.html',
+        context={
+            'players': list_admin_players(), 'csrf_token': session['csrf'],
+            'active_page': 'admin_players',
+        },
+    )
+
+
+def _player_edit_context(session, player, error=None, birthday_input=None):
+    return {
+        'player': player, 'games': list_games(), 'birthday_input': birthday_input,
+        'csrf_token': session['csrf'], 'active_page': 'admin_players', 'error': error,
+    }
+
+
+@router.get('/players/{user_id}/edit', name='admin_edit_player')
+async def edit_player(request: Request, user_id: int, session=Depends(require_admin)):
+    player = get_admin_player(user_id)
+    if not player:
+        raise HTTPException(status_code=404, detail='Игрок не найден')
+    return templates.TemplateResponse(
+        request=request, name='admin/player_edit.html',
+        context=_player_edit_context(session, player),
+    )
+
+
+@router.post('/players/{user_id}/edit', name='admin_update_player')
+async def update_player_action(
+    request: Request,
+    user_id: int,
+    bio: str = Form(''),
+    birthday: str = Form(''),
+    games: list[str] = Form(default=[]),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    player = get_admin_player(user_id)
+    if not player:
+        raise HTTPException(status_code=404, detail='Игрок не найден')
+    bio = bio.strip()
+    try:
+        if len(bio) > MAX_TEXT_LENGTH:
+            raise ValueError(f'Информация не должна превышать {MAX_TEXT_LENGTH} символов')
+        parsed_birthday = _parse_player_birthday(birthday)
+        update_admin_player(session['tg_id'], user_id, bio, parsed_birthday, games)
+    except ValueError as exc:
+        submitted_player = {**player, 'bio': bio, 'game_codes': games}
+        return templates.TemplateResponse(
+            request=request, name='admin/player_edit.html',
+            context=_player_edit_context(session, submitted_player, str(exc), birthday),
+            status_code=400,
+        )
+    return RedirectResponse('/admin/players', status_code=303)
 
 
 def _characters_context(session, error=None):

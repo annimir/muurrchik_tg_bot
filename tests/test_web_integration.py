@@ -251,6 +251,81 @@ class WebIntegrationTests(PostgresTestCase):
             400,
         )
 
+    def test_admin_edits_player_profile(self):
+        csrf = self.admin_session()
+        user = queries.ensure_user(100, 'player')
+        queries.db(
+            '''
+            INSERT INTO games (code, name) VALUES
+                ('genshin', 'Genshin Impact'), ('hsr', 'Honkai: Star Rail'), ('zzz', 'Zenless Zone Zero')
+            ON CONFLICT (code) DO NOTHING
+            '''
+        ).close()
+
+        listing = self.client.get('/admin/players')
+        editor = self.client.get(f'/admin/players/{user["id"]}/edit')
+        self.assertEqual(listing.status_code, 200)
+        self.assertIn('player', listing.text)
+        self.assertEqual(editor.status_code, 200)
+        self.assertIn('Genshin Impact', editor.text)
+
+        response = self.client.post(f'/admin/players/{user["id"]}/edit', data={
+            'bio': 'Player biography', 'birthday': '05.02', 'games': ['genshin', 'zzz'],
+            'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(queries.get_user_card(user['id'])['bio'], 'Player biography')
+        self.assertEqual(queries.get_birthday(100), {'day': 5, 'month': 2, 'year': None})
+        self.assertEqual(queries.get_user_games(user['id']), {'genshin', 'zzz'})
+        public_profile = self.client.get(f'/users/{user["id"]}')
+        self.assertIn('Player biography', public_profile.text)
+        self.assertIn('Genshin Impact', public_profile.text)
+        self.assertIn('Zenless Zone Zero', public_profile.text)
+
+        response = self.client.post(f'/admin/players/{user["id"]}/edit', data={
+            'bio': 'Updated biography', 'birthday': '2000-02-29', 'games': ['hsr'],
+            'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(queries.get_birthday(100), {'day': 29, 'month': 2, 'year': 2000})
+        self.assertEqual(queries.get_user_games(user['id']), {'hsr'})
+        self.assertIn('2000-02-29', self.client.get(f'/admin/players/{user["id"]}/edit').text)
+
+        response = self.client.post(f'/admin/players/{user["id"]}/edit', data={
+            'bio': '', 'birthday': '', 'games': [], 'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertIsNone(queries.get_user_card(user['id'])['bio'])
+        self.assertIsNone(queries.get_birthday(100))
+        self.assertEqual(queries.get_user_games(user['id']), set())
+        self.assertEqual(
+            queries.db("SELECT COUNT(*) AS cnt FROM admin_audit_log WHERE entity_type = 'user'").one()['cnt'],
+            3,
+        )
+
+    def test_admin_player_validation_is_atomic(self):
+        csrf = self.admin_session()
+        user = queries.ensure_user(100, 'player')
+        url = f'/admin/players/{user["id"]}/edit'
+
+        invalid_responses = [
+            self.client.post(url, data={'bio': 'x' * 601, 'birthday': '', 'csrf_token': csrf}),
+            self.client.post(url, data={'bio': 'Bio', 'birthday': '31.02', 'csrf_token': csrf}),
+            self.client.post(url, data={'bio': 'Bio', 'birthday': '3000-01-01', 'csrf_token': csrf}),
+            self.client.post(url, data={
+                'bio': 'Bio', 'birthday': '05.02', 'games': ['unknown'], 'csrf_token': csrf,
+            }),
+        ]
+
+        self.assertEqual([response.status_code for response in invalid_responses], [400] * 4)
+        self.assertIsNone(queries.get_user_card(user['id']))
+        self.assertIsNone(queries.get_birthday(100))
+        self.assertEqual(queries.get_user_games(user['id']), set())
+        self.assertEqual(self.client.get('/admin/players/999/edit').status_code, 404)
+        self.assertEqual(self.client.post(
+            '/admin/players/999/edit', data={'bio': '', 'birthday': '', 'csrf_token': csrf},
+        ).status_code, 404)
+
     def test_admin_creates_role_character_and_reassigns(self):
         csrf = self.admin_session()
         first = queries.ensure_user(100, 'first')

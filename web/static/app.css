@@ -269,6 +269,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); }
 .ranking li a { flex: 1; }
 .admin-form { align-items: end; }
 .admin-form .form-wide { flex: 1 1 100%; }
+.game-options { margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 5px; }
+.game-options legend { padding: 0 8px; color: var(--muted); font-size: .87rem; }
+.game-options-list { display: flex; flex-wrap: wrap; gap: 12px 22px; }
+.game-options small, .admin-form label small { color: var(--muted); }
 .assign-form { align-items: center; gap: 9px; }
 .form-error { padding: 13px 17px; margin-bottom: 20px; border: 1px solid rgba(241,166,166,.5); border-radius: 5px; color: var(--danger); background: rgba(130,40,50,.15); }
 .danger-zone { border-color: rgba(241,166,166,.35); }

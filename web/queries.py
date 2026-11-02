@@ -304,6 +304,81 @@ def list_admin_users():
     return db('SELECT id, tag FROM users WHERE left_at IS NULL ORDER BY tag NULLS LAST, id').all()
 
 
+def list_admin_players():
+    return db(
+        '''
+        SELECT u.id, u.tag, uc.bio, b.day, b.month, b.year,
+            (SELECT STRING_AGG(g.name, ', ' ORDER BY g.name)
+             FROM user_games ug JOIN games g ON g.code = ug.game_code
+             WHERE ug.user_id = u.id) AS game_names
+        FROM users u
+        LEFT JOIN user_card uc ON uc.user_id = u.id
+        LEFT JOIN birthdays b ON b.user_id = u.id
+        WHERE u.left_at IS NULL
+        ORDER BY u.tag NULLS LAST, u.id
+        '''
+    ).all()
+
+
+def get_admin_player(user_id):
+    return db(
+        '''
+        SELECT u.id, u.tag, uc.bio, b.day, b.month, b.year,
+            COALESCE((SELECT array_agg(ug.game_code ORDER BY ug.game_code)
+                      FROM user_games ug WHERE ug.user_id = u.id), ARRAY[]::text[]) AS game_codes
+        FROM users u
+        LEFT JOIN user_card uc ON uc.user_id = u.id
+        LEFT JOIN birthdays b ON b.user_id = u.id
+        WHERE u.id = %s AND u.left_at IS NULL
+        ''',
+        (user_id,),
+    ).one()
+
+
+def list_games():
+    return db('SELECT code, name FROM games ORDER BY name').all()
+
+
+def update_admin_player(admin_tg_id, user_id, bio, birthday, game_codes):
+    game_codes = sorted(set(game_codes))
+    with db.transaction() as tx:
+        if not tx('SELECT id FROM users WHERE id = %s AND left_at IS NULL FOR UPDATE', (user_id,)).one():
+            raise ValueError('Игрок не найден')
+        valid_games = {row['code'] for row in tx('SELECT code FROM games').all()}
+        if not set(game_codes) <= valid_games:
+            raise ValueError('Выбрана неизвестная игра')
+        tx(
+            '''
+            INSERT INTO user_card (user_id, bio) VALUES (%s, %s)
+            ON CONFLICT (user_id) DO UPDATE SET bio = EXCLUDED.bio
+            ''',
+            (user_id, bio or None),
+        ).close()
+        if birthday:
+            tx(
+                '''
+                INSERT INTO birthdays (user_id, day, month, year) VALUES (%s, %s, %s, %s)
+                ON CONFLICT (user_id) DO UPDATE SET
+                    day = EXCLUDED.day, month = EXCLUDED.month, year = EXCLUDED.year
+                ''',
+                (user_id, birthday['day'], birthday['month'], birthday['year']),
+            ).close()
+        else:
+            tx('DELETE FROM birthdays WHERE user_id = %s', (user_id,)).close()
+        tx('DELETE FROM user_games WHERE user_id = %s', (user_id,)).close()
+        if game_codes:
+            tx(
+                '''
+                INSERT INTO user_games (user_id, game_code)
+                SELECT %s, UNNEST(%s::text[])
+                ''',
+                (user_id, game_codes),
+            ).close()
+        _audit(tx, admin_tg_id, 'update', 'user', user_id, {
+            'birthday': birthday, 'games': game_codes, 'bio_length': len(bio),
+        })
+
+
 def list_admin_characters():
     return db(
         '''
