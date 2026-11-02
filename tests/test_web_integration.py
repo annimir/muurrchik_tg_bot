@@ -32,14 +32,19 @@ class WebIntegrationTests(PostgresTestCase):
         user = queries.ensure_user(100, 'player')
         queries.create_character_row(user['id'], 'Hero', None, None, 'Description', True)
         tag = queries.create_tag('adventure')
+        caption = 'Forest photo #adventure #forest'
         queries.log_tag_usage(
             tag['id'], 10, 100, 'photo', chat_id=200,
-            media_file_id='photo-file', media_file_unique_id='photo-unique', caption='Forest photo',
+            media_file_id='photo-file', media_file_unique_id='photo-unique', caption=caption,
         )
         second_tag = queries.create_tag('forest')
         queries.log_tag_usage(
             second_tag['id'], 10, 100, 'photo', chat_id=200,
-            media_file_id='photo-file', media_file_unique_id='photo-unique', caption='Forest photo',
+            media_file_id='photo-file', media_file_unique_id='photo-unique', caption=caption,
+        )
+        queries.log_tag_usage(
+            tag['id'], 13, 100, 'photo', chat_id=200,
+            media_file_id='photo-file', media_file_unique_id='photo-unique', caption=caption,
         )
         queries.log_tag_usage(
             tag['id'], 11, 100, 'video_link', chat_id=200,
@@ -52,6 +57,10 @@ class WebIntegrationTests(PostgresTestCase):
 
         home = self.client.get('/')
         catalog = self.client.get('/media?kind=photo')
+        multiple_tags = self.client.get(f'/media?tag={tag["id"]}&tag={second_tag["id"]}')
+        single_tag = self.client.get(f'/media?tag={second_tag["id"]}')
+        multiple_kinds = self.client.get('/media?kind=photo&kind=video')
+        multiple_sorts = self.client.get('/media?sort=oldest&sort=tag')
         empty_filters = self.client.get('/media?tag=&kind=&date_from=&date_to=')
         today = date.today().isoformat()
         dated = self.client.get(f'/media?date_from={today}&date_to={today}')
@@ -62,18 +71,120 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertIn('Летопись', home.text)
         self.assertIn('muted playsinline', home.text)
         self.assertIn('data-media-open=', home.text)
+        self.assertIn(f'href="/media?tag={tag["id"]}&amp;sort=newest"', home.text)
         self.assertIn('Forest photo', catalog.text)
-        self.assertIn('#adventure', catalog.text)
-        self.assertIn('#forest', catalog.text)
+        self.assertIn('>adventure</a>', catalog.text)
+        self.assertIn('>forest</a>', catalog.text)
+        self.assertEqual(catalog.text.count('>adventure</a>'), 1)
+        self.assertIn(
+            f'href="/media?tag={tag["id"]}&amp;kind=photo&amp;sort=newest"', catalog.text,
+        )
+        self.assertNotIn('#adventure', catalog.text)
+        self.assertNotIn('#forest', catalog.text)
+        self.assertNotIn('Найти тег', catalog.text)
+        self.assertIn('data-tag-search', catalog.text)
+        self.assertIn('data-tag-name="adventure"', catalog.text)
+        self.assertIn('data-filter-dropdown', catalog.text)
         self.assertIn('Автор:', catalog.text)
         self.assertIn('player', catalog.text)
         self.assertNotIn('Video link', catalog.text)
+        self.assertIn('Forest photo', multiple_tags.text)
+        self.assertIn('Video link', multiple_tags.text)
+        self.assertIn(f'value="{tag["id"]}" checked', multiple_tags.text)
+        self.assertIn(f'value="{second_tag["id"]}" checked', multiple_tags.text)
+        self.assertIn('Forest photo', single_tag.text)
+        self.assertNotIn('Video link', single_tag.text)
+        self.assertIn('Forest photo', multiple_kinds.text)
+        self.assertIn('Muted video', multiple_kinds.text)
+        self.assertNotIn('Video link', multiple_kinds.text)
+        self.assertIn('name="kind" value="photo" checked', multiple_kinds.text)
+        self.assertIn('name="kind" value="video" checked', multiple_kinds.text)
+        self.assertEqual(multiple_sorts.status_code, 200)
+        self.assertIn('name="sort" value="oldest" checked', multiple_sorts.text)
+        self.assertIn('name="sort" value="tag" checked', multiple_sorts.text)
         self.assertEqual(empty_filters.status_code, 200)
+        self.assertEqual(self.client.get('/media?tag=unknown').status_code, 400)
+        self.assertEqual(self.client.get('/media?tag=0').status_code, 400)
+        self.assertEqual(self.client.get('/media?kind=unknown').status_code, 400)
+        self.assertEqual(self.client.get('/media?sort=unknown').status_code, 400)
         self.assertIn('Forest photo', dated.text)
         self.assertIn('Video link', dated.text)
         self.assertIn('Muted video', dated.text)
         self.assertNotIn('Forest photo', outside.text)
         self.assertIn('Hero', characters.text)
+
+    def test_media_tag_filter_sorts_latin_then_cyrillic(self):
+        for name in ('яблоко', 'Zulu', 'Арбуз', 'alpha'):
+            queries.create_tag(name)
+
+        response = self.client.get('/media')
+
+        self.assertEqual(response.status_code, 200)
+        positions = [response.text.index(f'data-tag-name="{name}"') for name in ('alpha', 'zulu', 'арбуз', 'яблоко')]
+        self.assertEqual(positions, sorted(positions))
+
+    def test_tag_search_uses_indexed_case_insensitive_prefix(self):
+        for name in ('Алиса', 'Арлекино', 'Алина', 'Борис', 'Мария', 'Самовар', 'alpha', 'ALINA'):
+            queries.create_tag(name)
+        inactive = queries.create_tag('Автомат')
+        queries.db("UPDATE tag SET status = 'DELETED' WHERE id = %s", (inactive['id'],)).close()
+
+        russian = self.client.get('/tags/search?q=а')
+        english = self.client.get('/tags/search?q=AL')
+        middle = self.client.get('/tags/search?q=ма')
+        wildcard = self.client.get('/tags/search?q=%25')
+
+        self.assertEqual(russian.status_code, 200)
+        self.assertEqual(
+            {tag['name'].casefold() for tag in russian.json()['tags']},
+            {'алиса', 'арлекино', 'алина'},
+        )
+        self.assertEqual({tag['name'].casefold() for tag in english.json()['tags']}, {'alpha', 'alina'})
+        self.assertEqual([tag['name'].casefold() for tag in middle.json()['tags']], ['мария'])
+        self.assertEqual(wildcard.json()['tags'], [])
+        self.assertTrue(queries.db(
+            "SELECT 1 AS present FROM pg_indexes WHERE indexname = 'tag_active_name_lower_prefix_idx'",
+        ).one()['present'])
+
+    def test_lore_categories_and_chronology(self):
+        all_events = self.client.get('/lore')
+        genshin = self.client.get('/lore?game=genshin')
+        hsr = self.client.get('/lore?game=hsr')
+        zzz = self.client.get('/lore?game=zzz')
+
+        self.assertEqual(all_events.status_code, 200)
+        self.assertIn('href="/lore"', all_events.text)
+        self.assertIn('Genshin Impact', all_events.text)
+        self.assertIn('HSR', all_events.text)
+        self.assertIn('ZZZ', all_events.text)
+        self.assertEqual(all_events.text.count('class="lore-event"'), 91)
+        self.assertEqual(genshin.text.count('class="lore-event"'), 32)
+        self.assertIn('32 событий', all_events.text)
+        self.assertEqual(hsr.text.count('class="lore-event"'), 31)
+        self.assertEqual(zzz.text.count('class="lore-event"'), 28)
+        self.assertIn('Кто съел коней Варки', genshin.text)
+        self.assertIn('Genshin — реклама Яндекса', genshin.text)
+        self.assertNotIn('Хорни-экспресс получил бухгалтерию', genshin.text)
+        self.assertIn('Билд Блейда без Блейда', hsr.text)
+        self.assertIn('Пять Банбу в одном предвестнике', zzz.text)
+        self.assertIn('https://t.me/c/1825070005/389499', genshin.text)
+        self.assertLess(all_events.text.index('Фурина C2'), all_events.text.index('Гарант ушёл не в тот баннер'))
+        self.assertLess(all_events.text.index('Секретный квест'), all_events.text.index('Чаепитие, предсказанное чатом'))
+        self.assertEqual(self.client.get('/lore?game=unknown').status_code, 404)
+
+    def test_user_profile_lists_only_active_subscriptions(self):
+        user = queries.ensure_user(100, 'player')
+        active_tag = queries.create_tag('active-subscription')
+        inactive_tag = queries.create_tag('inactive-subscription')
+        queries.subscribe_tag(100, active_tag['id'])
+        queries.subscribe_tag(100, inactive_tag['id'])
+        queries.unsubscribe_tag(100, inactive_tag['id'])
+
+        response = self.client.get(f'/users/{user["id"]}')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(f'href="/media?tag={active_tag["id"]}">active-subscription</a>', response.text)
+        self.assertNotIn('inactive-subscription', response.text)
 
     def test_admin_requires_telegram_session_and_csrf(self):
         response = self.client.get('/admin', follow_redirects=False)
@@ -85,15 +196,60 @@ class WebIntegrationTests(PostgresTestCase):
 
     def test_admin_dashboard_renders(self):
         self.admin_session()
+        queries.ensure_user(100, 'first')
+        queries.ensure_user(200, 'second')
         tag = queries.create_tag('daily')
+        inactive_tag = queries.create_tag('inactive')
         queries.log_tag_usage(tag['id'], 10, 100, 'photo')
+        queries.subscribe_tag(100, tag['id'])
+        queries.subscribe_tag(200, tag['id'])
+        queries.subscribe_tag(100, inactive_tag['id'])
+        queries.unsubscribe_tag(100, inactive_tag['id'])
 
         response = self.client.get('/admin')
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('Статистика сообщества', response.text)
-        self.assertIn('Использование тегов за 14 дней', response.text)
-        self.assertIn('#daily', response.text)
+        self.assertIn('Использование тегов', response.text)
+        self.assertIn('За две недели', response.text)
+        self.assertIn('Популярность тегов среди подписок', response.text)
+        self.assertIn('<text class="pie-chart-total" x="21" y="21">2</text>', response.text)
+        self.assertIn('>daily</a>', response.text)
+        self.assertNotIn('#daily', response.text)
+        self.assertNotIn('inactive', response.text)
+
+    def test_admin_tag_usage_period_filters(self):
+        self.admin_session()
+        tag = queries.create_tag('periods')
+        queries.log_tag_usage(tag['id'], 10, 100, 'photo')
+
+        for period in ('all', 'hour', 'day', 'week', 'two_weeks'):
+            with self.subTest(period=period):
+                response = self.client.get(f'/admin?period={period}&date_from=&date_to=')
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(f'data-period="{period}" aria-pressed="true"', response.text)
+                fragment = self.client.get(f'/admin/tag-usage/fragment?period={period}')
+                self.assertEqual(fragment.status_code, 200)
+                self.assertIn(f'data-period="{period}" aria-pressed="true"', fragment.json()['html'])
+                self.assertNotIn('<!doctype html>', fragment.json()['html'])
+
+        today = date.today().isoformat()
+        custom = self.client.get(f'/admin?period=custom&date_from={today}&date_to={today}')
+        self.assertEqual(custom.status_code, 200)
+        self.assertIn('data-period="custom" aria-pressed="true"', custom.text)
+        self.assertIn('data-date-range', custom.text)
+        custom_fragment = self.client.get(
+            f'/admin/tag-usage/fragment?period=custom&date_from={today}&date_to={today}',
+        )
+        self.assertEqual(custom_fragment.status_code, 200)
+        self.assertIn('data-usage-form', custom_fragment.json()['html'])
+        self.assertEqual(self.client.get('/admin?period=custom').status_code, 400)
+        self.assertEqual(self.client.get('/admin?period=unknown').status_code, 400)
+        self.assertEqual(self.client.get('/admin/tag-usage/fragment?period=unknown').status_code, 400)
+        self.assertEqual(
+            self.client.get('/admin?period=custom&date_from=2026-02-02&date_to=2026-02-01').status_code,
+            400,
+        )
 
     def test_admin_creates_role_character_and_reassigns(self):
         csrf = self.admin_session()

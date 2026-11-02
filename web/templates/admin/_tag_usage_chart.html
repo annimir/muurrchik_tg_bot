@@ -1,0 +1,28 @@
+<div class="section-heading"><div><div class="eyebrow">Динамика</div><h2>Использование тегов</h2><p class="muted">{{ selected_period_label }}</p></div></div>
+<div class="period-buttons" role="group" aria-label="Период статистики">
+    {% for value, label in period_options %}<button class="button button-small button-secondary period-button {{ 'is-active' if selected_period == value else '' }}" type="button" data-period="{{ value }}" aria-pressed="{{ 'true' if selected_period == value else 'false' }}">{{ label }}</button>{% endfor %}
+</div>
+{% if selected_period == 'custom' %}
+<form class="custom-period-form" data-usage-form>
+    <div class="date-range-picker" data-date-range data-from="{{ date_from }}" data-to="{{ date_to }}">
+        <input type="hidden" name="date_from" value="{{ date_from }}">
+        <input type="hidden" name="date_to" value="{{ date_to }}">
+        <button class="button button-secondary date-range-toggle" type="button" data-date-toggle aria-expanded="false">Выбрать даты</button>
+        <div class="date-range-popup" hidden>
+            <div class="date-range-header"><button type="button" data-date-prev aria-label="Предыдущий месяц">‹</button><strong data-date-month></strong><button type="button" data-date-next aria-label="Следующий месяц">›</button></div>
+            <div class="date-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+            <div class="date-grid" data-date-grid></div>
+            <div class="date-range-actions"><button type="button" data-date-clear>Сбросить</button><button type="button" data-date-close>Готово</button></div>
+        </div>
+    </div>
+    <button class="button button-small" type="submit">Показать</button>
+</form>
+{% endif %}
+<p class="form-error" data-usage-error hidden></p>
+<div class="chart-legend">{% for series in chart.series %}<span><i style="--series-color: {{ series.color }}"></i>{{ series.label }}</span>{% endfor %}</div>
+<svg class="line-chart" viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img" aria-label="График использования тегов: {{ selected_period_label }}">
+    {% for offset in [0, 1, 2, 3, 4] %}<line class="chart-grid" x1="{{ chart.padding }}" y1="{{ chart.padding + offset * (chart.height - chart.padding * 2) / 4 }}" x2="{{ chart.width - chart.padding }}" y2="{{ chart.padding + offset * (chart.height - chart.padding * 2) / 4 }}"></line>{% endfor %}
+    {% for series in chart.series %}<polyline fill="none" stroke="{{ series.color }}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="{{ series.points }}"></polyline>{% endfor %}
+    {% for label in chart.labels %}<text x="{{ label.x }}" y="{{ chart.height - 5 }}" text-anchor="middle">{{ label.label }}</text>{% endfor %}
+    <text x="4" y="{{ chart.padding + 4 }}">{{ chart.maximum }}</text><text x="18" y="{{ chart.height - chart.padding }}">0</text>
+</svg>

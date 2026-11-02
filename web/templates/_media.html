@@ -1,8 +1,10 @@
 {% macro media_card(item, admin=false) %}
+{% set caption = item.caption|media_caption %}
+{% set active_tag_ids = selected_tag_ids|default([]) %}
 <article class="media-card {{ 'media-hidden' if not item.is_public else '' }}">
     <div class="media-preview">
         {% if item.media_type == 'photo' %}
-            <img src="/media/files/{{ item.id }}" alt="{{ item.caption or 'Фото по тегу ' + item.tag_name }}" loading="lazy" data-media-open="/media/files/{{ item.id }}" data-media-kind="photo">
+            <img src="/media/files/{{ item.id }}" alt="{{ caption or 'Фото по тегу ' + item.tag_name }}" loading="lazy" data-media-open="/media/files/{{ item.id }}" data-media-kind="photo">
         {% elif item.media_type == 'video' %}
             <video src="/media/files/{{ item.id }}" controls muted playsinline preload="metadata">Ваш браузер не поддерживает видео.</video>
         {% else %}
@@ -17,11 +19,11 @@
     </div>
     <div class="media-body">
         <div class="media-meta">
-            <div class="media-tags">{% for tag_name in item.tag_names.split(', ') %}<span class="tag">#{{ tag_name }}</span>{% endfor %}</div>
+            <div class="media-tags">{% for tag in item.tag_items %}{% if admin %}<span class="tag">{{ tag.name }}</span>{% else %}{% set next_tag_ids = active_tag_ids if tag.id in active_tag_ids else active_tag_ids + [tag.id] %}<a class="tag" href="{{ media_url(tag_ids=next_tag_ids, kind=selected_kinds|default([]), sort=selected_sorts|default(['newest']), date_from=date_from|default(''), date_to=date_to|default('')) }}" title="Добавить «{{ tag.name }}» в фильтр">{{ tag.name }}</a>{% endif %}{% endfor %}</div>
             <span>{{ item.media_type|media_kind }}</span>
         </div>
         <div class="media-author">Автор: {% if item.author_id %}<a href="/users/{{ item.author_id }}">{{ item.author_tag or 'Игрок' }}</a>{% else %}неизвестен{% endif %}</div>
-        {% if item.caption %}<p class="caption">{{ item.caption }}</p>{% endif %}
+        {% if caption %}<p class="caption">{{ caption }}</p>{% endif %}
         <time datetime="{{ item.used_at.isoformat() }}">{{ item.used_at|datetime_ru }}</time>
         {% if admin %}
         <form method="post" action="/admin/media/{{ item.id }}/visibility" class="inline-form">

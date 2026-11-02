@@ -152,8 +152,101 @@ if (usersSearchForm) {
     });
 }
 
-const dateRangePicker = document.querySelector('[data-date-range]');
-if (dateRangePicker) {
+function configureFilterDropdown(dropdown) {
+    const toggle = dropdown.querySelector('[data-filter-toggle]');
+    const popup = dropdown.querySelector('.filter-popup');
+    const inputs = [...dropdown.querySelectorAll('.filter-option input')];
+    const updateToggle = () => {
+        const checked = inputs.filter((input) => input.checked);
+        if (dropdown.matches('[data-tag-filter]')) {
+            toggle.textContent = checked.length
+                ? checked.map((input) => input.nextElementSibling.textContent).join(', ')
+                : 'Все теги';
+            dropdown.classList.toggle('has-value', checked.length > 0);
+        } else {
+            toggle.textContent = checked.length
+                ? checked.map((input) => input.nextElementSibling.textContent).join(', ')
+                : dropdown.dataset.defaultLabel;
+            const defaultValue = dropdown.dataset.defaultValue || '';
+            dropdown.classList.toggle(
+                'has-value', checked.some((input) => input.value !== defaultValue),
+            );
+        }
+    };
+    toggle.addEventListener('click', () => {
+        popup.hidden = !popup.hidden;
+        toggle.setAttribute('aria-expanded', String(!popup.hidden));
+        if (!popup.hidden) {
+            dropdown.querySelector('[data-tag-search]')?.focus();
+        }
+    });
+    dropdown.querySelector('[data-filter-close]').addEventListener('click', () => {
+        popup.hidden = true;
+        toggle.setAttribute('aria-expanded', 'false');
+    });
+    inputs.forEach((input) => input.addEventListener('change', updateToggle));
+    dropdown.querySelector('[data-tags-clear]')?.addEventListener('click', () => {
+        inputs.forEach((input) => { input.checked = false; });
+        updateToggle();
+    });
+    const search = dropdown.querySelector('[data-tag-search]');
+    if (search) {
+        const options = [...dropdown.querySelectorAll('[data-tag-option]')];
+        const empty = dropdown.querySelector('[data-tag-empty]');
+        let searchTimer;
+        let searchController;
+
+        const showOptions = (matchingIds = null, failed = false) => {
+            let visible = 0;
+            options.forEach((option) => {
+                const tagId = option.querySelector('input').value;
+                option.hidden = matchingIds !== null && !matchingIds.has(tagId);
+                if (!option.hidden) {
+                    visible += 1;
+                }
+            });
+            empty.textContent = failed ? 'Не удалось выполнить поиск' : 'Теги не найдены.';
+            empty.hidden = visible > 0;
+        };
+
+        const searchTags = async () => {
+            const query = search.value.trim();
+            if (searchController) {
+                searchController.abort();
+            }
+            if (!query) {
+                showOptions();
+                return;
+            }
+            searchController = new AbortController();
+            try {
+                const response = await fetch(`/tags/search?q=${encodeURIComponent(query)}`, {
+                    signal: searchController.signal,
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const payload = await response.json();
+                showOptions(new Set(payload.tags.map((tag) => String(tag.id))));
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    showOptions(new Set(), true);
+                }
+            }
+        };
+
+        search.addEventListener('input', () => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(searchTags, 200);
+        });
+    }
+    updateToggle();
+}
+
+document.querySelectorAll('[data-filter-dropdown]').forEach(configureFilterDropdown);
+
+function configureDateRangePicker(dateRangePicker) {
     const fromInput = dateRangePicker.querySelector('input[name="date_from"]');
     const toInput = dateRangePicker.querySelector('input[name="date_to"]');
     const toggle = dateRangePicker.querySelector('[data-date-toggle]');
@@ -171,6 +264,7 @@ if (dateRangePicker) {
         toggle.textContent = selectedFrom
             ? `${formatDate(selectedFrom)}${selectedTo ? ` — ${formatDate(selectedTo)}` : ''}`
             : 'Выбрать даты';
+        dateRangePicker.classList.toggle('has-value', Boolean(selectedFrom));
     };
 
     const renderCalendar = () => {
@@ -217,6 +311,7 @@ if (dateRangePicker) {
 
     toggle.addEventListener('click', () => {
         popup.hidden = !popup.hidden;
+        toggle.setAttribute('aria-expanded', String(!popup.hidden));
         renderCalendar();
     });
     popup.addEventListener('click', (event) => event.stopPropagation());
@@ -238,13 +333,96 @@ if (dateRangePicker) {
     });
     dateRangePicker.querySelector('[data-date-close]').addEventListener('click', () => {
         popup.hidden = true;
-    });
-    document.addEventListener('click', (event) => {
-        if (!dateRangePicker.contains(event.target)) {
-            popup.hidden = true;
-        }
+        toggle.setAttribute('aria-expanded', 'false');
     });
     updateToggle();
+}
+
+document.querySelectorAll('[data-date-range]').forEach(configureDateRangePicker);
+
+document.addEventListener('click', (event) => {
+    document.querySelectorAll('[data-date-range], [data-filter-dropdown]').forEach((dropdown) => {
+        if (!dropdown.contains(event.target)) {
+            const popup = dropdown.querySelector('.date-range-popup, .filter-popup');
+            popup.hidden = true;
+            dropdown.querySelector('[data-date-toggle], [data-filter-toggle]')?.setAttribute('aria-expanded', 'false');
+        }
+    });
+});
+
+const tagUsagePanel = document.querySelector('[data-tag-usage-panel]');
+if (tagUsagePanel) {
+    let usageController;
+
+    const showUsageError = (message) => {
+        const error = tagUsagePanel.querySelector('[data-usage-error]');
+        error.textContent = message;
+        error.hidden = !message;
+    };
+
+    const loadTagUsage = async (params) => {
+        if (usageController) {
+            usageController.abort();
+        }
+        const controller = new AbortController();
+        usageController = controller;
+        tagUsagePanel.setAttribute('aria-busy', 'true');
+        showUsageError('');
+        try {
+            const response = await fetch(`/admin/tag-usage/fragment?${params}`, {
+                signal: controller.signal,
+                headers: {'X-Requested-With': 'XMLHttpRequest'},
+                credentials: 'same-origin',
+            });
+            if (!response.ok) {
+                const payload = await response.json();
+                throw new Error(payload.detail || 'Не удалось обновить график');
+            }
+            const payload = await response.json();
+            tagUsagePanel.innerHTML = payload.html;
+            tagUsagePanel.querySelectorAll('[data-date-range]').forEach(configureDateRangePicker);
+            history.replaceState(null, '', `/admin?${params}`);
+            tagUsagePanel.querySelector(`[data-period="${params.get('period')}"]`)?.focus({preventScroll: true});
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                showUsageError(error.message);
+            }
+        } finally {
+            if (usageController === controller) {
+                tagUsagePanel.setAttribute('aria-busy', 'false');
+            }
+        }
+    };
+
+    tagUsagePanel.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-period]');
+        if (!button) {
+            return;
+        }
+        const params = new URLSearchParams({period: button.dataset.period});
+        if (button.dataset.period === 'custom') {
+            const now = new Date();
+            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            params.set('date_from', tagUsagePanel.querySelector('input[name="date_from"]')?.value || today);
+            params.set('date_to', tagUsagePanel.querySelector('input[name="date_to"]')?.value || today);
+        }
+        loadTagUsage(params);
+    });
+
+    tagUsagePanel.addEventListener('submit', (event) => {
+        if (!event.target.matches('[data-usage-form]')) {
+            return;
+        }
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const dateFrom = formData.get('date_from');
+        const dateTo = formData.get('date_to');
+        if (!dateFrom || !dateTo) {
+            showUsageError('Выберите даты начала и окончания периода');
+            return;
+        }
+        loadTagUsage(new URLSearchParams({period: 'custom', date_from: dateFrom, date_to: dateTo}));
+    });
 }
 
 document.querySelectorAll('form[data-confirm]').forEach((form) => {

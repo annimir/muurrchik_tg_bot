@@ -69,6 +69,10 @@ CREATE TABLE IF NOT EXISTS tag (
     last_used_at  TIMESTAMPTZ
 );
 
+CREATE INDEX IF NOT EXISTS tag_active_name_lower_prefix_idx
+    ON tag (lower(name) text_pattern_ops)
+    WHERE status = 'ACTIVE';
+
 CREATE TABLE IF NOT EXISTS tag_alias (
     id     SERIAL PRIMARY KEY,
     tag_id INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE,

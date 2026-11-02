@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, time, timedelta, timezone
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -11,14 +11,15 @@ from web.auth import (
     SESSION_COOKIE, create_admin_session, csrf_protect, read_admin_session,
     require_admin, verify_telegram_login,
 )
-from web.charts import build_daily_bars, build_line_chart
+from web.charts import build_daily_bars, build_line_chart, build_pie_chart
 from web.queries import (
     assign_character, create_character, create_role, delete_character,
     delete_role, get_admin_character, get_admin_overview, get_admin_role,
-    get_daily_analytics, get_recent_audit, get_tag_daily_series,
-    get_tag_popularity_for_day, list_admin_characters, list_admin_media,
-    list_admin_roles, list_admin_users, set_media_visibility, update_character,
-    update_role,
+    get_daily_analytics, get_recent_audit, get_tag_popularity_for_day,
+    get_tag_subscription_popularity, get_tag_usage_bounds, get_tag_usage_series,
+    list_admin_characters,
+    list_admin_media, list_admin_roles, list_admin_users, set_media_visibility,
+    update_character, update_role,
 )
 from web.rendering import templates
 
@@ -63,9 +64,98 @@ async def logout(_=Depends(require_admin), __=Depends(csrf_protect)):
     return response
 
 
+TAG_USAGE_PERIODS = (
+    ('all', 'За весь период'),
+    ('hour', 'За час'),
+    ('day', 'За день'),
+    ('week', 'За неделю'),
+    ('two_weeks', 'За две недели'),
+    ('custom', 'Выбранный период'),
+)
+TAG_USAGE_PERIOD_LABELS = dict(TAG_USAGE_PERIODS)
+
+
+def _resolve_tag_usage_period(period, date_from=None, date_to=None):
+    if period not in TAG_USAGE_PERIOD_LABELS:
+        raise ValueError('Неизвестный период статистики')
+    now = datetime.now(timezone.utc)
+    if period == 'custom':
+        if not date_from or not date_to:
+            raise ValueError('Укажите даты начала и окончания периода')
+        if date_from > date_to:
+            raise ValueError('Дата начала не может быть позже даты окончания')
+        start = datetime.combine(date_from, time.min, tzinfo=timezone.utc)
+        end = datetime.combine(date_to + timedelta(days=1), time.min, tzinfo=timezone.utc)
+    elif period == 'all':
+        first_usage = get_tag_usage_bounds()['first']
+        start = first_usage or now - timedelta(days=14)
+        end = now
+    else:
+        duration = {
+            'hour': timedelta(hours=1),
+            'day': timedelta(days=1),
+            'week': timedelta(days=7),
+            'two_weeks': timedelta(days=14),
+        }[period]
+        start = now - duration
+        end = now
+
+    duration = end - start
+    if period == 'hour':
+        interval, label_format = '5 minutes', '%H:%M'
+    elif duration <= timedelta(days=2):
+        interval, label_format = '1 hour', '%d.%m %H:%M'
+    elif duration <= timedelta(days=60):
+        interval, label_format = '1 day', '%d.%m'
+    else:
+        interval, label_format = '1 month', '%m.%Y'
+    return {'start': start, 'end': end, 'interval': interval, 'label_format': label_format}
+
+
+def _tag_usage_context(period, date_from='', date_to=''):
+    selected_date_from = date.fromisoformat(date_from) if date_from else None
+    selected_date_to = date.fromisoformat(date_to) if date_to else None
+    usage_period = _resolve_tag_usage_period(period, selected_date_from, selected_date_to)
+    usage_rows = get_tag_usage_series(
+        usage_period['start'], usage_period['end'], usage_period['interval'],
+    )
+    return {
+        'chart': build_line_chart(usage_rows, label_format=usage_period['label_format']),
+        'period_options': TAG_USAGE_PERIODS, 'selected_period': period,
+        'selected_period_label': TAG_USAGE_PERIOD_LABELS[period],
+        'date_from': selected_date_from.isoformat() if selected_date_from else '',
+        'date_to': selected_date_to.isoformat() if selected_date_to else '',
+    }
+
+
+@router.get('/tag-usage/fragment', name='admin_tag_usage_fragment')
+async def tag_usage_fragment(
+    period: str = 'two_weeks',
+    date_from: str = '',
+    date_to: str = '',
+    _=Depends(require_admin),
+):
+    try:
+        context = _tag_usage_context(period, date_from, date_to)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {'html': templates.get_template('admin/_tag_usage_chart.html').render(**context)}
+
+
 @router.get('', name='admin_dashboard')
-async def dashboard(request: Request, day: date | None = None, session=Depends(require_admin)):
+async def dashboard(
+    request: Request,
+    day: date | None = None,
+    period: str = 'two_weeks',
+    date_from: str = '',
+    date_to: str = '',
+    session=Depends(require_admin),
+):
     selected_day = day or date.today()
+    try:
+        usage_context = _tag_usage_context(period, date_from, date_to)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     analytics = get_daily_analytics(selected_day)
     return templates.TemplateResponse(
         request=request,
@@ -75,7 +165,8 @@ async def dashboard(request: Request, day: date | None = None, session=Depends(r
             'daily_bars': build_daily_bars(analytics), 'selected_day': selected_day,
             'popular_tags': get_tag_popularity_for_day(selected_day),
             'rare_tags': get_tag_popularity_for_day(selected_day, rare=True),
-            'chart': build_line_chart(get_tag_daily_series()),
+            'subscription_chart': build_pie_chart(get_tag_subscription_popularity()),
+            **usage_context,
             'audit': get_recent_audit(), 'csrf_token': session['csrf'],
             'active_page': 'dashboard',
         },

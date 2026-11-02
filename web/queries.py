@@ -16,22 +16,50 @@ def get_public_stats():
 
 
 def list_active_tags():
-    return db("SELECT id, name FROM tag WHERE status = 'ACTIVE' ORDER BY name").all()
+    return db(
+        '''
+        SELECT id, name FROM tag
+        WHERE status = 'ACTIVE'
+        ORDER BY CASE
+            WHEN name ~ '^[A-Za-z]' THEN 0
+            WHEN name ~ '^[А-Яа-яЁё]' THEN 1
+            ELSE 2
+        END, lower(name)
+        '''
+    ).all()
 
 
-def _media_filter(tag_id=None, kind=None, public_only=True, date_from=None, date_to=None):
+def search_active_tags(prefix):
+    if not prefix:
+        return list_active_tags()
+    escaped_prefix = prefix.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+    return db(
+        '''
+        SELECT id, name FROM tag
+        WHERE status = 'ACTIVE' AND lower(name) LIKE lower(%s) || '%%' ESCAPE '\\'
+        ORDER BY CASE
+            WHEN name ~ '^[A-Za-z]' THEN 0
+            WHEN name ~ '^[А-Яа-яЁё]' THEN 1
+            ELSE 2
+        END, lower(name)
+        ''',
+        (escaped_prefix,),
+    ).all()
+
+
+def _media_filter(tag_ids=None, kinds=None, public_only=True, date_from=None, date_to=None):
     where = ['(tu.media_file_id IS NOT NULL OR tu.media_url IS NOT NULL)']
     params = []
     if public_only:
         where.extend(["tu.is_public = TRUE", "t.status = 'ACTIVE'"])
-    if tag_id:
-        where.append('tu.tag_id = %s')
-        params.append(tag_id)
-    if kind:
-        if kind not in {'photo', 'video', 'video_link'}:
+    if tag_ids:
+        where.append('tu.tag_id = ANY(%s)')
+        params.append(list(tag_ids))
+    if kinds:
+        if any(kind not in {'photo', 'video', 'video_link'} for kind in kinds):
             raise ValueError('Неизвестный тип медиа')
-        where.append('tu.media_type = %s')
-        params.append(kind)
+        where.append('tu.media_type = ANY(%s)')
+        params.append(list(kinds))
     if date_from:
         where.append('tu.used_at >= %s::date')
         params.append(date_from)
@@ -42,27 +70,37 @@ def _media_filter(tag_id=None, kind=None, public_only=True, date_from=None, date
 
 
 def list_media(
-    tag_id=None, kind=None, sort='newest', limit=24, offset=0,
+    tag_ids=None, kinds=None, sort=None, limit=24, offset=0,
     public_only=True, date_from=None, date_to=None,
 ):
-    where, params = _media_filter(tag_id, kind, public_only, date_from, date_to)
-    order_by = {
-        'newest': 'used_at DESC, id DESC',
-        'oldest': 'used_at ASC, id ASC',
-        'tag': 'tag_name ASC, used_at DESC',
-    }.get(sort)
-    if order_by is None:
-        raise ValueError('Неизвестная сортировка')
+    where, params = _media_filter(tag_ids, kinds, public_only, date_from, date_to)
+    sort_keys = [sort] if isinstance(sort, str) else list(sort or ['newest'])
+    if not sort_keys:
+        sort_keys = ['newest']
+    order_parts = []
+    for sort_key in sort_keys:
+        order_by = {
+            'newest': 'used_at DESC, id DESC',
+            'oldest': 'used_at ASC, id ASC',
+            'tag': 'tag_name ASC, used_at DESC',
+        }.get(sort_key)
+        if order_by is None:
+            raise ValueError('Неизвестная сортировка')
+        order_parts.append(order_by)
+    order_by = ', '.join(order_parts)
     tag_visibility = "tu2.is_public = TRUE AND t2.status = 'ACTIVE'" if public_only else 'TRUE'
     query = f'''
         SELECT media.*, u.id AS author_id, u.tag AS author_tag,
             COALESCE((
-                SELECT STRING_AGG(t2.name, ', ' ORDER BY t2.name)
-                FROM tag_usage tu2
-                JOIN tag t2 ON t2.id = tu2.tag_id
-                WHERE COALESCE(tu2.media_file_unique_id, tu2.media_file_id, tu2.media_url, tu2.id::text) = media.media_key
-                    AND {tag_visibility}
-            ), media.tag_name) AS tag_names
+                SELECT json_agg(tag_item ORDER BY tag_item.name)
+                FROM (
+                    SELECT DISTINCT t2.id, t2.name
+                    FROM tag_usage tu2
+                    JOIN tag t2 ON t2.id = tu2.tag_id
+                    WHERE COALESCE(tu2.media_file_unique_id, tu2.media_file_id, tu2.media_url, tu2.id::text) = media.media_key
+                        AND {tag_visibility}
+                ) tag_item
+            ), json_build_array(json_build_object('id', media.tag_id, 'name', media.tag_name))) AS tag_items
         FROM (
             SELECT DISTINCT ON (COALESCE(tu.media_file_unique_id, tu.media_file_id, tu.media_url, tu.id::text))
                 tu.id, tu.media_type, tu.media_file_id, tu.media_file_unique_id, tu.media_url,
@@ -81,8 +119,8 @@ def list_media(
     return db(query, (*params, limit, offset)).all()
 
 
-def count_media(tag_id=None, kind=None, public_only=True, date_from=None, date_to=None):
-    where, params = _media_filter(tag_id, kind, public_only, date_from, date_to)
+def count_media(tag_ids=None, kinds=None, public_only=True, date_from=None, date_to=None):
+    where, params = _media_filter(tag_ids, kinds, public_only, date_from, date_to)
     query = f'''
         SELECT COUNT(*) AS cnt FROM (
             SELECT DISTINCT COALESCE(tu.media_file_unique_id, tu.media_file_id, tu.media_url, tu.id::text)
@@ -154,6 +192,19 @@ def get_public_user(user_id):
         ''',
         (user_id,),
     ).one()
+
+
+def get_public_user_subscriptions(user_id):
+    return db(
+        '''
+        SELECT t.id, t.name
+        FROM subscription s
+        JOIN tag t ON t.id = s.tag_id
+        WHERE s.user_id = %s AND s.active = TRUE
+        ORDER BY t.name
+        ''',
+        (user_id,),
+    ).all()
 
 
 def get_user_avatar_data(user_id):
@@ -476,18 +527,44 @@ def get_tag_popularity_for_day(day, rare=False, limit=10):
     ).all()
 
 
-def get_tag_daily_series(days=14):
+def get_tag_usage_bounds():
+    return db('SELECT MIN(used_at) AS first, MAX(used_at) AS last FROM tag_usage').one()
+
+
+def get_tag_usage_series(start, end, interval):
+    if interval not in {'5 minutes', '1 hour', '1 day', '1 month'}:
+        raise ValueError('Неизвестный интервал группировки')
     return db(
         '''
-        SELECT d.day::date AS day, COUNT(tu.id) AS total,
+        WITH bounds AS (
+            SELECT %s::timestamptz AS start_at, %s::timestamptz AS end_at, %s::interval AS bucket
+        )
+        SELECT d.bucket AS day, COUNT(tu.id) AS total,
             COUNT(tu.id) FILTER (WHERE tu.media_type = 'photo') AS photo,
             COUNT(tu.id) FILTER (WHERE tu.media_type = 'video') AS video,
             COUNT(tu.id) FILTER (WHERE tu.media_type = 'video_link') AS video_link
-        FROM generate_series(CURRENT_DATE - (%s - 1) * INTERVAL '1 day', CURRENT_DATE, INTERVAL '1 day') d(day)
-        LEFT JOIN tag_usage tu ON tu.used_at >= d.day AND tu.used_at < d.day + INTERVAL '1 day'
-        GROUP BY d.day ORDER BY d.day
+        FROM bounds
+        CROSS JOIN LATERAL generate_series(
+            bounds.start_at, GREATEST(bounds.start_at, bounds.end_at - bounds.bucket), bounds.bucket
+        ) d(bucket)
+        LEFT JOIN tag_usage tu ON tu.used_at >= d.bucket AND tu.used_at < d.bucket + bounds.bucket
+            AND tu.used_at >= bounds.start_at AND tu.used_at < bounds.end_at
+        GROUP BY d.bucket ORDER BY d.bucket
         ''',
-        (days,),
+        (start, end, interval),
+    ).all()
+
+
+def get_tag_subscription_popularity():
+    return db(
+        '''
+        SELECT t.id, t.name, COUNT(s.id) AS cnt
+        FROM subscription s
+        JOIN tag t ON t.id = s.tag_id
+        WHERE s.active = TRUE
+        GROUP BY t.id, t.name
+        ORDER BY cnt DESC, t.name
+        '''
     ).all()
 
 

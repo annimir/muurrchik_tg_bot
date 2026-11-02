@@ -2,12 +2,15 @@ from math import ceil
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
+from web.lore import get_lore
 from web.media import get_media_store
 from web.queries import (
     count_characters, count_media, count_users, get_public_character,
     get_public_media, get_public_stats, get_public_user,
-    get_public_user_characters, get_public_user_games, get_user_avatar_data,
-    list_active_tags, list_characters, list_media, list_users, update_user_avatar,
+    get_public_user_characters, get_public_user_games, get_public_user_subscriptions,
+    get_user_avatar_data,
+    list_active_tags, list_characters, list_media, list_users, search_active_tags,
+    update_user_avatar,
 )
 from web.rendering import templates
 
@@ -37,6 +40,18 @@ async def home(request: Request):
     )
 
 
+@router.get('/lore', name='lore')
+async def lore(request: Request, game: str = ''):
+    lore_page = get_lore(game)
+    if lore_page is None:
+        raise HTTPException(status_code=404, detail='Категория лора не найдена')
+    return templates.TemplateResponse(
+        request=request,
+        name='lore.html',
+        context={**lore_page, 'active_page': 'lore'},
+    )
+
+
 def _parse_optional_date(value):
     from datetime import date
 
@@ -46,44 +61,57 @@ def _parse_optional_date(value):
 @router.get('/media', name='media_catalog')
 async def media_catalog(
     request: Request,
-    tag: str = '',
-    kind: str = '',
-    sort: str = 'newest',
+    tag: list[str] = Query(default=[]),
+    kind: list[str] = Query(default=[]),
+    sort: list[str] = Query(default=['newest']),
     date_from: str = '',
     date_to: str = '',
     page: int = Query(1, ge=1),
 ):
     try:
-        selected_tag = int(tag) if tag else None
-        if selected_tag is not None and selected_tag < 1:
+        selected_tag_ids = sorted({int(tag_id) for tag_id in tag if tag_id})
+        if any(tag_id < 1 for tag_id in selected_tag_ids):
             raise ValueError('Некорректный тег')
         selected_date_from = _parse_optional_date(date_from)
         selected_date_to = _parse_optional_date(date_to)
         if selected_date_from and selected_date_to and selected_date_from > selected_date_to:
             raise ValueError('Дата начала не может быть позже даты окончания')
-        selected_kind = kind or None
+        selected_kinds = list(dict.fromkeys(value for value in kind if value))
+        selected_sorts = list(dict.fromkeys(value for value in sort if value)) or ['newest']
         items = list_media(
-            tag_id=selected_tag, kind=selected_kind, sort=sort,
+            tag_ids=selected_tag_ids, kinds=selected_kinds, sort=selected_sorts,
             date_from=selected_date_from, date_to=selected_date_to,
             limit=PAGE_SIZE, offset=(page - 1) * PAGE_SIZE,
         )
         total = count_media(
-            tag_id=selected_tag, kind=selected_kind,
+            tag_ids=selected_tag_ids, kinds=selected_kinds,
             date_from=selected_date_from, date_to=selected_date_to,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    tags = list_active_tags()
+    selected_tag_names = [tag['name'] for tag in tags if tag['id'] in selected_tag_ids]
+    kind_labels = {'photo': 'Фото', 'video': 'Видео', 'video_link': 'Ссылки на видео'}
+    sort_labels = {'newest': 'Сначала новые', 'oldest': 'Сначала старые', 'tag': 'По тегу'}
     return templates.TemplateResponse(
         request=request,
         name='media_list.html',
         context={
-            'items': items, 'tags': list_active_tags(), 'selected_tag': selected_tag,
-            'selected_kind': selected_kind, 'selected_sort': sort,
+            'items': items, 'tags': tags, 'selected_tag_ids': selected_tag_ids,
+            'tag_filter_label': ', '.join(selected_tag_names) or 'Все теги',
+            'kind_filter_label': ', '.join(kind_labels[kind] for kind in selected_kinds) or 'Все материалы',
+            'sort_filter_label': ', '.join(sort_labels[sort] for sort in selected_sorts),
+            'selected_kinds': selected_kinds, 'selected_sorts': selected_sorts,
             'date_from': selected_date_from.isoformat() if selected_date_from else '',
             'date_to': selected_date_to.isoformat() if selected_date_to else '',
             'pagination': _pagination(page, total), 'active_page': 'media',
         },
     )
+
+
+@router.get('/tags/search', name='tags_search')
+async def tags_search(q: str = ''):
+    return {'tags': search_active_tags(q.strip())}
 
 
 USERS_PAGE_SIZE = 12
@@ -137,7 +165,8 @@ async def user_detail(request: Request, user_id: int):
         name='user_detail.html',
         context={
             'user': user, 'games': get_public_user_games(user_id),
-            'characters': get_public_user_characters(user_id), 'active_page': 'users',
+            'characters': get_public_user_characters(user_id),
+            'subscriptions': get_public_user_subscriptions(user_id), 'active_page': 'users',
         },
     )
 
