@@ -172,6 +172,21 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertLess(all_events.text.index('Секретный квест'), all_events.text.index('Чаепитие, предсказанное чатом'))
         self.assertEqual(self.client.get('/lore?game=unknown').status_code, 404)
 
+    def test_chat_insights_page_and_periods(self):
+        all_periods = self.client.get('/insights')
+        year = self.client.get('/insights?period=2025')
+
+        self.assertEqual(all_periods.status_code, 200)
+        self.assertIn('Семантическая карта', all_periods.text)
+        self.assertIn('data-word-cloud', all_periods.text)
+        self.assertIn('data-semantic-map', all_periods.text)
+        self.assertIn('/static/insights.js', all_periods.text)
+        self.assertIn('href="/insights?period=2025"', all_periods.text)
+        self.assertNotIn('result.json', all_periods.text)
+        self.assertEqual(year.status_code, 200)
+        self.assertIn('aria-current="page">2025</a>', year.text)
+        self.assertEqual(self.client.get('/insights?period=unknown').status_code, 404)
+
     def test_user_profile_lists_only_active_subscriptions(self):
         user = queries.ensure_user(100, 'player')
         active_tag = queries.create_tag('active-subscription')

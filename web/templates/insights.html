@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}Семантическая карта чата{% endblock %}
+{% block scripts %}<script src="/static/insights.js" defer></script>{% endblock %}
+{% block content %}
+<section class="page-heading insights-heading">
+    <div class="eyebrow">Смыслы сообщества</div>
+    <h1>Карта наших <em>разговоров</em></h1>
+    <p>Облако самых заметных слов и карта их связей в экспорте «{{ source_name }}». Чем чаще слова встречаются в одном сообщении, тем ближе они на карте.</p>
+</section>
+<nav class="insight-periods" aria-label="Период анализа">
+    <a class="button button-secondary button-small {{ 'is-active' if selected_period == 'all' else '' }}"
+       href="/insights" {% if selected_period == 'all' %}aria-current="page"{% endif %}>За всё время</a>
+    {% for year in years %}
+    <a class="button button-secondary button-small {{ 'is-active' if selected_period == year else '' }}"
+       href="/insights?period={{ year }}" {% if selected_period == year %}aria-current="page"{% endif %}>{{ year }}</a>
+    {% endfor %}
+</nav>
+<section class="stats-grid insight-stats" aria-label="Охват анализа">
+    <div class="stat-card"><strong>{{ insights.messages|number_ru }}</strong><span>текстовых сообщений</span></div>
+    <div class="stat-card"><strong>{{ insights.words|number_ru }}</strong><span>слов в анализе</span></div>
+    <div class="stat-card"><strong>{{ insights.authors|number_ru }}</strong><span>участников</span></div>
+    <div class="stat-card"><strong>{{ years|length }}</strong><span>{{ 'год' if years|length == 1 else 'года в архиве' }}</span></div>
+</section>
+<p class="insight-date-range">Период: {{ insights.date_range }}</p>
+{% if insights.messages %}
+<section class="panel insight-panel">
+    <div class="section-heading">
+        <div><div class="eyebrow">Частотность</div><h2>Облако слов</h2></div>
+        <span class="muted">Размер — число сообщений со словом</span>
+    </div>
+    <div class="insight-visual-scroll" tabindex="0" role="region" aria-label="Облако слов, доступна горизонтальная прокрутка">
+        <svg class="word-cloud" viewBox="0 0 1000 520" role="group" aria-label="Облако частых слов" data-word-cloud>
+            {% for word in insights.cloud %}
+            <g class="cloud-word cloud-tone-{{ word.tone }}" role="button" tabindex="0"
+               aria-label="{{ word.text }}: {{ word.count }} сообщений"
+               data-word="{{ word.text }}" data-count="{{ word.count }}">
+                <text x="{{ word.x }}" y="{{ word.y }}" font-size="{{ word.size }}" text-anchor="middle" dominant-baseline="central">{{ word.text }}</text>
+                <title>{{ word.text }} — {{ word.count|number_ru }} сообщений</title>
+            </g>
+            {% endfor %}
+        </svg>
+    </div>
+</section>
+<section class="panel insight-panel">
+    <div class="section-heading">
+        <div><div class="eyebrow">Совместные упоминания</div><h2>Семантическая карта</h2></div>
+        <span class="muted">Выберите слово, чтобы увидеть связи</span>
+    </div>
+    <div class="insight-map-layout">
+        <div class="insight-visual-scroll" tabindex="0" role="region" aria-label="Семантическая карта, доступна горизонтальная прокрутка">
+            <svg class="semantic-map" viewBox="0 0 1000 620" role="group" aria-label="Граф связей слов" data-semantic-map>
+                <g class="semantic-edges" aria-hidden="true">
+                    {% for edge in insights.map.edges %}
+                    <line x1="{{ insights.map.nodes|selectattr('word', 'equalto', edge.source)|map(attribute='x')|first }}"
+                          y1="{{ insights.map.nodes|selectattr('word', 'equalto', edge.source)|map(attribute='y')|first }}"
+                          x2="{{ insights.map.nodes|selectattr('word', 'equalto', edge.target)|map(attribute='x')|first }}"
+                          y2="{{ insights.map.nodes|selectattr('word', 'equalto', edge.target)|map(attribute='y')|first }}"
+                          data-source="{{ edge.source }}" data-target="{{ edge.target }}"
+                          stroke-width="{{ 0.4 + edge.strength * 3 }}"><title>{{ edge.source }} + {{ edge.target }}: {{ edge.count }}</title></line>
+                    {% endfor %}
+                </g>
+                {% for node in insights.map.nodes %}
+                <g class="semantic-node community-{{ node.community % 8 }}" role="button" tabindex="0"
+                   transform="translate({{ node.x }} {{ node.y }})"
+                   aria-label="{{ node.word }}: {{ node.count }} сообщений"
+                   data-word="{{ node.word }}" data-count="{{ node.count }}"
+                   data-related="{{ node.related|map(attribute='word')|join('|') }}">
+                    <circle r="{{ node.radius }}"></circle>
+                    <text y="{{ -node.radius - 7 }}" font-size="{{ node.font_size }}" text-anchor="middle">{{ node.word }}</text>
+                    <title>{{ node.word }} — {{ node.count|number_ru }} сообщений</title>
+                </g>
+                {% endfor %}
+            </svg>
+        </div>
+        <aside class="word-detail" aria-live="polite" data-word-detail>
+            {% set first = insights.map.nodes[0] if insights.map.nodes else none %}
+            <div class="eyebrow">Выбранное слово</div>
+            <h3 data-detail-title>{{ first.word if first else '' }}</h3>
+            <p class="muted" data-detail-count>{% if first %}Встречается в {{ first.count|number_ru }} сообщениях{% endif %}</p>
+            <h4>Ближайшие связи</h4>
+            <ul data-detail-related>
+                {% if first %}{% for related in first.related %}<li><span>{{ related.word }}</span><small>{{ related.count }}</small></li>{% endfor %}{% endif %}
+            </ul>
+            <button class="button button-quiet button-small" type="button" data-insight-reset>Сбросить выбор</button>
+        </aside>
+    </div>
+    {% if insights.map.communities %}
+    <div class="community-legend" aria-label="Группы связанных слов">
+        {% for community in insights.map.communities %}
+        <span><i class="community-{{ community.id % 8 }}"></i>{{ community.label }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+</section>
+<details class="insight-method">
+    <summary>Как построена карта</summary>
+    <p>Служебные сообщения, ссылки, упоминания и распространённые служебные слова исключены. Размер слова зависит от числа сообщений с ним, линия означает совместное упоминание, а цвет объединяет слова с похожим окружением. Формы одного слова не объединяются; исходные сообщения на страницу не передаются.</p>
+</details>
+{% else %}
+<div class="empty-state"><h3>За этот период нет сообщений</h3><p>Выберите другой год или весь архив.</p></div>
+{% endif %}
+{% endblock %}
