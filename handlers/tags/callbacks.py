@@ -10,11 +10,11 @@ from database.queries import (
     get_tag_by_id, get_tag_by_name, subscribe_tag, get_tag_subscribers,
     create_tag, touch_tag_last_used, get_user_language, find_any_tag_or_alias_owner,
 )
-from handlers.tags.tagging import create_subscribe_markup
+from handlers.tags.tagging import create_subscribe_markup, _log_tag_message_usage
 from message.loader import message
 from message.keys import (
     sub_character_not_found, sub_success, sub_tag_unavailable,
-    tag_created, tag_name_reserved, inline_subscribers_prefix, inline_no_subscribers,
+    tag_created_subscribed, tag_name_reserved, inline_subscribers_prefix, inline_no_subscribers,
 )
 
 logger = logging.getLogger(__name__)
@@ -24,6 +24,12 @@ def _get_tag(identifier: str):
     if identifier.isdigit():
         return get_tag_by_id(int(identifier))
     return get_tag_by_name(identifier)
+
+
+def _log_pending_tag_usage(context, tag_id, user_id):
+    pending_usage = context.user_data.pop('pending_tag_usage', [])
+    for media_update, media_type in pending_usage:
+        _log_tag_message_usage(media_update, tag_id, user_id, media_type)
 
 
 async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -40,6 +46,10 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     parts = call.data.split('/')
     action = parts[0]
+
+    if action == 'cancel':
+        await context.bot.delete_message(chat_id, message_id)
+        return
 
     if action == 'subscribe':
         tag = _get_tag(parts[1])
@@ -89,12 +99,16 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.warning("Пользователь %s попытался использовать чужую кнопку tag", user.id)
             return
 
+        context.user_data.pop('pending_new_tag', None)
         tag = _get_tag(parts[1])
         if tag and tag['status'] == 'ACTIVE':
             touch_tag_last_used(tag['id'])
+            _log_pending_tag_usage(context, tag['id'], user.id)
             subscribers = get_tag_subscribers(tag['id'])
             if subscribers:
                 await mention_users(context, chat_id, subscribers, thread_id)
+        else:
+            context.user_data.pop('pending_tag_usage', None)
         await context.bot.delete_message(chat_id, message_id)
 
     elif action == 'new':
@@ -112,6 +126,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         collision = find_any_tag_or_alias_owner(tag_name)
         if collision:
+            context.user_data.pop('pending_tag_usage', None)
             await context.bot.send_message(
                 chat_id,
                 message(lang, tag_name_reserved, 'tag', tag_name),
@@ -122,11 +137,12 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         tag = create_tag(tag_name, created_by_tg_id=user.id)
         tag_storage.add_to_cache(tag_name)
-        logger.info("Пользователь %s создал тег %s (через кнопку)", user.id, tag_name)
+        subscribe_tag(user.id, tag['id'])
+        _log_pending_tag_usage(context, tag['id'], user.id)
+        logger.info("Пользователь %s создал тег %s и подписался на него", user.id, tag_name)
         await context.bot.send_message(
             chat_id,
-            message(lang, tag_created, 'tag', tag_name),
-            reply_markup=create_subscribe_markup(tag['id']),
+            message(lang, tag_created_subscribed, 'tag', tag_name),
             message_thread_id=thread_id,
         )
         await context.bot.delete_message(chat_id, message_id)

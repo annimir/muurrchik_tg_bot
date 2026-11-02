@@ -21,6 +21,38 @@ class TagStorageTests(unittest.TestCase):
 
         self.assertEqual(storage.find('пЕРСОНАЖ')['tag'], 'Персонаж')
 
+    def test_unrelated_short_name_is_created_without_suggestion(self):
+        storage = TagStorage()
+        storage.load_from(['еимия', 'ЯэМико'])
+
+        self.assertEqual(storage.find('Митя'), {'status': 'created', 'tag': 'Митя'})
+
+    def test_repeated_letters_suggest_existing_tag(self):
+        storage = TagStorage()
+        storage.add_to_cache('Арлекино')
+
+        result = storage.find('Арлекииино')
+
+        self.assertEqual(result['status'], 'suggest')
+        self.assertEqual(result['tag'], 'Арлекино')
+        self.assertGreaterEqual(result['score'], 85)
+
+    def test_repeated_letters_in_short_name_suggest_existing_tag(self):
+        storage = TagStorage()
+        storage.add_to_cache('митя')
+
+        result = storage.find('мииитяя')
+
+        self.assertEqual(result, {'status': 'suggest', 'tag': 'митя', 'score': 100.0})
+
+    def test_repeated_letters_prefer_shortest_canonical_tag(self):
+        storage = TagStorage()
+        storage.load_from(['митя', 'мииитяя'])
+
+        result = storage.find('ммииииттяяя')
+
+        self.assertEqual(result, {'status': 'suggest', 'tag': 'митя', 'score': 100.0})
+
 
 class ValidationTests(unittest.TestCase):
     def test_length_limits(self):

@@ -5,7 +5,7 @@ from rapidfuzz import process, fuzz
 
 class TagStorage:
 
-    def __init__(self, similarity_threshold: int = 60):
+    def __init__(self, similarity_threshold: int = 85):
         self.tags: dict[str, str] = {}
         self.similarity_threshold = similarity_threshold
 
@@ -13,6 +13,14 @@ class TagStorage:
         text = unicodedata.normalize("NFKC", text)
         text = text.casefold()
         return text.strip()
+
+    @staticmethod
+    def _collapse_repeated_letters(text: str) -> str:
+        result = []
+        for char in text:
+            if not result or result[-1] != char:
+                result.append(char)
+        return ''.join(result)
 
     def load_from(self, existing_tags: list[str]):
         for tag in existing_tags:
@@ -46,6 +54,19 @@ class TagStorage:
 
         if not self.tags:
             return {"status": "created", "tag": tag}
+
+        collapsed = self._collapse_repeated_letters(norm)
+        collapsed_matches = {
+            self.normalize(main_name): main_name
+            for key, main_name in self.tags.items()
+            if self._collapse_repeated_letters(key) == collapsed
+        }
+        if collapsed_matches:
+            matched_name = min(
+                collapsed_matches.values(),
+                key=lambda name: (len(self.normalize(name)), self.normalize(name)),
+            )
+            return {"status": "suggest", "tag": matched_name, "score": 100.0}
 
         result = process.extractOne(norm, self.tags.keys(), scorer=fuzz.ratio)
 

@@ -13,7 +13,10 @@ from services.mentions import mention_users
 from services.validation import MAX_NAME_LENGTH, name_is_too_long
 from services.video_links import extract_video_tags, extract_video_url
 from message.loader import message
-from message.keys import tag_suggest, tag_created, tag_no_argument, tag_name_reserved
+from message.keys import (
+    tag_suggest, tag_created, tag_no_argument, tag_name_reserved,
+    tag_use_suggested, tag_create_and_subscribe,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,14 +45,21 @@ def _log_tag_message_usage(update: Update, tag_id: int, user_id: int, media_type
 
 def create_subscribe_markup(tag_id: int):
     return InlineKeyboardMarkup([[
-        InlineKeyboardButton('Подписаться', callback_data=f'subscribe/{tag_id}')
+        InlineKeyboardButton('Подписаться', callback_data=f'subscribe/{tag_id}'),
+        InlineKeyboardButton('Отмена', callback_data='cancel'),
     ]])
 
 
-def create_yes_no_markup(matched_tag_id: int, user_id: int):
+def create_yes_no_markup(matched_tag_id, user_id, lang, matched_name, new_name):
     buttons = [
-        [InlineKeyboardButton('Да', callback_data=f'tag/{matched_tag_id}/{user_id}')],
-        [InlineKeyboardButton('Нет', callback_data=f'new/{user_id}')],
+        [InlineKeyboardButton(
+            message(lang, tag_use_suggested, 'tag', matched_name),
+            callback_data=f'tag/{matched_tag_id}/{user_id}',
+        )],
+        [InlineKeyboardButton(
+            message(lang, tag_create_and_subscribe, 'tag', new_name),
+            callback_data=f'new/{user_id}',
+        )],
     ]
     return InlineKeyboardMarkup(buttons)
 
@@ -98,8 +108,11 @@ async def resolve_tag_subscribers(
             user_id, tag_name, result['tag'], result['score'],
         )
         context.user_data['pending_new_tag'] = tag_name
+        context.user_data['pending_tag_usage'] = [(update, media_type)] if log_usage else []
         matched_tag = get_tag_by_name(result['tag'])
-        markup = create_yes_no_markup(matched_tag['id'], user_id)
+        markup = create_yes_no_markup(
+            matched_tag['id'], user_id, lang, result['tag'], tag_name,
+        )
         await update.effective_message.reply_text(
             message(lang, tag_suggest, 'tag', result['tag'], f'{result["score"]:.0f}'),
             reply_markup=markup,
@@ -172,6 +185,11 @@ async def _process_tagged_media(update, context, updates):
         subscribers = await resolve_tag_subscribers(update, context, tag_name)
         if subscribers:
             all_subscribers.extend(subscribers)
+        if tag_storage.find(tag_name)['status'] == 'suggest':
+            context.user_data['pending_tag_usage'] = [
+                (media_update, _media_type(media_update.effective_message))
+                for media_update in updates
+            ]
         tag_id = _active_tag_id(tag_name)
         if tag_id is not None:
             tag_ids.append(tag_id)

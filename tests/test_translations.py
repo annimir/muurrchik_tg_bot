@@ -59,3 +59,13 @@ class TranslationTests(unittest.TestCase):
         paths = list((ROOT / 'handlers').glob('*.py')) + list((ROOT / 'services').glob('*.py'))
         for path in paths:
             self.assertNotIn("parse_mode='Markdown'", path.read_text(encoding='utf-8'), path)
+
+    def test_percent_similarity_is_literal_in_both_languages(self):
+        from message.keys import tag_suggest
+        from message.loader import message
+
+        for language in ('RU', 'EN'):
+            with self.subTest(language=language):
+                rendered = message(language, tag_suggest, 'tag', 'еимия', '67')
+                self.assertIn('еимия', rendered)
+                self.assertIn('67%', rendered)
