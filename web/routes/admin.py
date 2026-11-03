@@ -1,7 +1,7 @@
 from datetime import date, datetime, time, timedelta, timezone
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
 
 from config.config import config
@@ -24,8 +24,10 @@ from web.queries import (
     list_admin_characters, list_admin_media, list_admin_players, list_admin_roles,
     list_admin_tags, list_admin_users, list_games, remove_admin_character_affiliation,
     set_media_visibility, update_admin_affiliation, update_admin_player,
-    update_admin_tag_status, update_character, update_role,
+    update_admin_tag_status, update_character, update_character_photo,
+    update_role, update_role_photo,
 )
+from web.media import get_media_store
 from web.rendering import templates
 
 router = APIRouter(prefix='/admin')
@@ -654,6 +656,9 @@ async def update_character_action(
     name: str = Form(...),
     birth_date: str = Form(''),
     description: str = Form(''),
+    wiki_url: str = Form(''),
+    photo: UploadFile | None = File(None),
+    remove_photo: bool = Form(False),
     session=Depends(require_admin),
     _=Depends(csrf_protect),
 ):
@@ -662,13 +667,27 @@ async def update_character_action(
         raise HTTPException(status_code=404, detail='Персонаж не найден')
     name = name.strip()
     description = description.strip()
+    wiki_url = wiki_url.strip()
     try:
         if not 1 <= len(name) <= MAX_NAME_LENGTH:
             raise ValueError(f'Имя должно содержать от 1 до {MAX_NAME_LENGTH} символов')
         if len(description) > MAX_TEXT_LENGTH:
             raise ValueError(f'Описание не должно превышать {MAX_TEXT_LENGTH} символов')
+        if wiki_url and (urlparse(wiki_url).scheme not in {'http', 'https'} or len(wiki_url) > 2048):
+            raise ValueError('Укажите корректную ссылку HTTP или HTTPS')
         parsed_birth_date = date.fromisoformat(birth_date) if birth_date else None
-        update_character(session['tg_id'], character_id, name, parsed_birth_date, description or None)
+        update_character(
+            session['tg_id'], character_id, name, parsed_birth_date, description or None,
+            wiki_url or None,
+        )
+        new_photo = character['photo_file_id']
+        if remove_photo:
+            new_photo = None
+        elif photo and photo.filename:
+            new_photo = await get_media_store().save_upload(photo)
+        if new_photo != character['photo_file_id']:
+            update_character_photo(session['tg_id'], character_id, new_photo)
+            get_media_store().delete_local(character['photo_file_id'])
     except ValueError as exc:
         return templates.TemplateResponse(
             request=request, name='admin/character_edit.html',
@@ -760,6 +779,8 @@ async def update_role_action(
     name: str = Form(...),
     description: str = Form(''),
     wiki_url: str = Form(''),
+    photo: UploadFile | None = File(None),
+    remove_photo: bool = Form(False),
     session=Depends(require_admin),
     _=Depends(csrf_protect),
 ):
@@ -777,6 +798,14 @@ async def update_role_action(
         if wiki_url and (urlparse(wiki_url).scheme not in {'http', 'https'} or len(wiki_url) > 2048):
             raise ValueError('Укажите корректную ссылку HTTP или HTTPS')
         update_role(session['tg_id'], role_id, name, description or None, wiki_url or None)
+        new_photo = role['photo_file_id']
+        if remove_photo:
+            new_photo = None
+        elif photo and photo.filename:
+            new_photo = await get_media_store().save_upload(photo)
+        if new_photo != role['photo_file_id']:
+            update_role_photo(session['tg_id'], role_id, new_photo)
+            get_media_store().delete_local(role['photo_file_id'])
     except ValueError as exc:
         return templates.TemplateResponse(
             request=request, name='admin/role_edit.html',

@@ -6,7 +6,7 @@ from web.chat_insights import get_chat_insights
 from web.lore import get_lore
 from web.media import get_media_store
 from web.queries import (
-    count_characters, count_media, count_users, get_public_character,
+    count_characters, count_media, count_users, get_admin_role, get_public_character,
     get_public_media, get_public_stats, get_public_user,
     get_public_user_characters, get_public_user_games, get_public_user_subscriptions,
     get_user_avatar_data,
@@ -222,9 +222,21 @@ async def character_photo(character_id: int):
     character = get_public_character(character_id)
     if not character or not character['photo_file_id']:
         raise HTTPException(status_code=404, detail='Фото не найдено')
+    if character['photo_file_id'].startswith('local:'):
+        return get_media_store().get_local_response(character['photo_file_id'])
     return await get_media_store().get_response(
         character['photo_file_id'], f'character-{character_id}',
     )
+
+
+@router.get('/media/roles/{role_id}', name='role_photo')
+async def role_photo(role_id: int):
+    role = get_admin_role(role_id)
+    if not role or not role['photo_file_id']:
+        raise HTTPException(status_code=404, detail='Фото не найдено')
+    if role['photo_file_id'].startswith('local:'):
+        return get_media_store().get_local_response(role['photo_file_id'])
+    return await get_media_store().get_response(role['photo_file_id'], f'role-{role_id}')
 
 
 @router.get('/media/users/{user_id}/avatar', name='user_avatar')

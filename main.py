@@ -73,7 +73,7 @@ from handlers.characters.admin_primary import (
     WAITING_FORWARD as ADMIN_SETPRIMARY_WAITING_FORWARD, CHOOSING_CHARACTER,
 )
 
-from handlers.cards.view import card_command
+from handlers.cards.view import card_command, show_card_description
 from handlers.cards.requests import (
     start_card_request, receive_bio, cancel_card_request, my_card_requests,
     WAITING_BIO,
@@ -300,6 +300,7 @@ application.add_handler(admin_setprimary_conv)
 
 # ---------- карточка ----------
 application.add_handler(CommandHandler('card', card_command))
+application.add_handler(CallbackQueryHandler(show_card_description, pattern=r'^card(desc|short):'))
 
 card_request_conv = ConversationHandler(
     entry_points=[CommandHandler('editcard', start_card_request)],

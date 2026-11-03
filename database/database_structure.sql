@@ -227,6 +227,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS affiliations_unique_root ON affiliations (name
 CREATE UNIQUE INDEX IF NOT EXISTS affiliations_unique_child ON affiliations (parent_id, name) WHERE parent_id IS NOT NULL;
 
 ALTER TABLE character ADD COLUMN IF NOT EXISTS affiliation_id INTEGER REFERENCES affiliations(id) ON DELETE SET NULL;
+ALTER TABLE character ADD COLUMN IF NOT EXISTS wiki_url TEXT;
 
 CREATE TABLE IF NOT EXISTS character_affiliation (
     character_id   INTEGER NOT NULL REFERENCES character(id) ON DELETE CASCADE,

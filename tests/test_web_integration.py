@@ -388,6 +388,60 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertEqual(queries.get_character_by_id(character['id'])['owner_user_id'], second['id'])
         self.assertEqual(queries.db('SELECT COUNT(*) AS cnt FROM admin_audit_log').one()['cnt'], 3)
 
+    def test_admin_uploads_and_removes_character_and_role_photos(self):
+        import tempfile
+        from web.media import TelegramMediaStore
+
+        csrf = self.admin_session()
+        user = queries.ensure_user(100, 'player')
+        character = queries.create_character_row(user['id'], 'Hero', None, None, 'Description', True)
+        role_id = queries.add_flavor_role('Role')
+        image = b'\x89PNG\r\n\x1a\nimage-content'
+
+        with tempfile.TemporaryDirectory() as cache_dir:
+            store = TelegramMediaStore(cache_dir, 'test-token')
+            with (
+                patch('web.routes.admin.get_media_store', return_value=store),
+                patch('web.routes.public.get_media_store', return_value=store),
+            ):
+                response = self.client.post(f"/admin/characters/{character['id']}/edit", data={
+                    'name': 'Hero', 'birth_date': '', 'description': 'Description',
+                    'wiki_url': 'https://wiki.example/hero', 'csrf_token': csrf,
+                }, files={'photo': ('hero.png', image, 'image/png')}, follow_redirects=False)
+                self.assertEqual(response.status_code, 303)
+                updated = queries.get_character_by_id(character['id'])
+                self.assertTrue(updated['photo_file_id'].startswith('local:'))
+                self.assertEqual(updated['wiki_url'], 'https://wiki.example/hero')
+                photo_response = self.client.get(f"/media/characters/{character['id']}")
+                self.assertEqual(photo_response.status_code, 200)
+                self.assertEqual(photo_response.content, image)
+
+                response = self.client.post(f"/admin/characters/{character['id']}/edit", data={
+                    'name': 'Hero', 'birth_date': '', 'description': 'Description',
+                    'wiki_url': '', 'remove_photo': 'true', 'csrf_token': csrf,
+                }, follow_redirects=False)
+                self.assertEqual(response.status_code, 303)
+                self.assertIsNone(queries.get_character_by_id(character['id'])['photo_file_id'])
+                self.assertEqual(self.client.get(f"/media/characters/{character['id']}").status_code, 404)
+
+                response = self.client.post(f'/admin/roles/{role_id}/edit', data={
+                    'name': 'Role', 'description': 'Role description', 'wiki_url': '',
+                    'csrf_token': csrf,
+                }, files={'photo': ('role.png', image, 'image/png')}, follow_redirects=False)
+                self.assertEqual(response.status_code, 303)
+                self.assertTrue(
+                    queries.get_flavor_role_by_id(role_id)['photo_file_id'].startswith('local:')
+                )
+                self.assertEqual(self.client.get(f'/media/roles/{role_id}').content, image)
+
+                response = self.client.post(f'/admin/roles/{role_id}/edit', data={
+                    'name': 'Role', 'description': 'Role description', 'wiki_url': '',
+                    'remove_photo': 'true', 'csrf_token': csrf,
+                }, follow_redirects=False)
+                self.assertEqual(response.status_code, 303)
+                self.assertIsNone(queries.get_flavor_role_by_id(role_id)['photo_file_id'])
+                self.assertEqual(self.client.get(f'/media/roles/{role_id}').status_code, 404)
+
     def test_admin_edits_and_deletes_characters_and_roles(self):
         csrf = self.admin_session()
         user = queries.ensure_user(100, 'player')
