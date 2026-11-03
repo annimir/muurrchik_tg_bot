@@ -150,24 +150,36 @@ class HandlerIntegrationTests(PostgresTestCase):
         from handlers.cards.view import card_command, show_card_description
 
         user = queries.ensure_user(100, 'player')
-        role_id = queries.add_flavor_role('Гидро Архонт')
-        queries.set_user_flavor_role(user['id'], role_id)
-        queries.db(
-            "UPDATE flavor_roles SET description = 'Role description', wiki_url = 'https://wiki.example/focalors' WHERE id = %s",
-            (role_id,),
-        ).close()
         queries.upsert_user_card_bio(user['id'], 'Player biography')
+        queries.db(
+            "UPDATE users SET chat_position = 'Модератор' WHERE id = %s",
+            (user['id'],),
+        ).close()
+        queries.db(
+            'INSERT INTO user_titles (user_id, name) VALUES (%s, %s)',
+            (user['id'], 'Архивариус'),
+        ).close()
+        queries.set_birthday(100, 'player', 5, 2, 2000)
         queries.db("INSERT INTO games (code, name) VALUES ('genshin', 'Genshin Impact')").close()
         queries.db("INSERT INTO user_games (user_id, game_code) VALUES (%s, 'genshin')", (user['id'],)).close()
         position_id = queries.add_position('Архонт')
         description = f'Начало <b> {"длинное описание " * 500} конец'
         character = queries.create_character_row(user['id'], 'Фокалорс', None, 'photo-id', description, True)
         queries.db(
-            "UPDATE character SET wiki_url = 'https://wiki.example/character' WHERE id = %s",
+            '''
+            UPDATE character SET wiki_url = 'https://wiki.example/character',
+                birth_date = '2001-02-03' WHERE id = %s
+            ''',
             (character['id'],),
         ).close()
         queries.assign_position_to_character(character['id'], position_id)
-        queries.create_character_row(user['id'], 'Керидра', None, None, None, False)
+        secondary = queries.create_character_row(user['id'], 'Керидра', None, None, None, False)
+        queries.create_tag('Фокалорс')
+        furina_tag = queries.create_tag('Фурина')
+        queries.db(
+            "INSERT INTO tag_alias (tag_id, alias) VALUES (%s, 'Фокалорс'), (%s, 'Фурина лучшая')",
+            (furina_tag['id'], furina_tag['id']),
+        ).close()
         fatui_id = queries.add_affiliation('Фатуи')
         harbinger_id = queries.add_affiliation('Предвестник', fatui_id)
         queries.assign_affiliation_to_character(character['id'], fatui_id)
@@ -190,58 +202,115 @@ class HandlerIntegrationTests(PostgresTestCase):
         reply_text.assert_not_awaited()
         caption = reply_photo.await_args.kwargs['caption']
         self.assertLessEqual(len(caption), 1024)
-        self.assertIn('<b>ФОКАЛОРС</b>', caption)
-        self.assertIn('Керидра', caption)
-        self.assertIn('Genshin Impact', caption)
-        self.assertIn('Фатуи', caption)
-        self.assertIn('Предвестник', caption)
+        self.assertIn('<b>ФОКАЛОРС</b> | Модератор\n@player', caption)
+        self.assertNotIn('\n\n@player\n\n', caption)
+        self.assertNotIn('Player\n', caption)
+        self.assertIn('🏅 Титулы: Архивариус', caption)
+        self.assertIn('День рождения: 05.02.2000', caption)
+        self.assertNotIn('День рождения персонажа:', caption)
+        self.assertNotIn('Теги и алиасы:', caption)
+        self.assertIn('Другие персонажи: Керидра', caption)
+        self.assertIn('🎮 Игры: Genshin Impact', caption)
+        self.assertIn('🏛️ Принадлежность: Предвестник, Фатуи', caption)
         self.assertIn('&lt;b&gt;', caption)
         buttons = [
             button
             for row in reply_photo.await_args.kwargs['reply_markup'].inline_keyboard
             for button in row
         ]
-        self.assertEqual(buttons[0].callback_data, f'carddesc:char:{character["id"]}')
-        self.assertEqual(buttons[1].url, 'https://wiki.example/character')
-        self.assertEqual(buttons[2].url, f'http://testserver/users/{user["id"]}')
+        self.assertEqual(buttons[0].url, f'http://testserver/users/{user["id"]}')
+        self.assertEqual(buttons[1].callback_data, f'cardchar:{user["id"]}:{character["id"]}')
+        self.assertEqual(buttons[2].callback_data, f'cardchar:{user["id"]}:{secondary["id"]}')
 
-        edit_caption = AsyncMock()
+        edit_media = AsyncMock()
         edit_text = AsyncMock()
         query = SimpleNamespace(
-            data=f'carddesc:char:{character["id"]}',
+            data=f'cardchar:{user["id"]}:{secondary["id"]}',
             from_user=SimpleNamespace(id=100),
             message=SimpleNamespace(
                 chat=SimpleNamespace(id=200), message_thread_id=None, photo=[object()],
             ),
             answer=AsyncMock(),
-            edit_message_caption=edit_caption,
+            edit_message_media=edit_media,
             edit_message_text=edit_text,
         )
         context = SimpleNamespace()
         await show_card_description(SimpleNamespace(callback_query=query), context)
 
         query.answer.assert_awaited_once()
-        edit_caption.assert_awaited_once()
+        edit_media.assert_awaited_once()
         edit_text.assert_not_awaited()
-        first_page = edit_caption.await_args.kwargs['caption']
-        self.assertIn('Фокалорс', first_page)
+        media = edit_media.await_args.kwargs['media']
+        self.assertTrue(str(media.media).endswith('card-placeholder.png'))
+        self.assertIn('<b>КЕРИДРА</b>', media.caption)
+        back_button = edit_media.await_args.kwargs['reply_markup'].inline_keyboard[1][0]
+        self.assertEqual(back_button.callback_data, f'cardplayer:{user["id"]}')
+
+        query.data = f'cardchar:{user["id"]}:{character["id"]}'
+        await show_card_description(SimpleNamespace(callback_query=query), context)
+        first_page = edit_media.await_args.kwargs['media'].caption
+        self.assertIn('<b>ФОКАЛОРС</b>', first_page)
+        self.assertIn('Архонт', first_page)
+        self.assertIn('День рождения персонажа: 03.02.2001', first_page)
+        self.assertIn('Теги и алиасы: #Фокалорс, #Фурина, #Фурина лучшая', first_page)
         self.assertIn('&lt;b&gt;', first_page)
         self.assertLessEqual(len(first_page), 1024)
-        markup = edit_caption.await_args.kwargs['reply_markup']
+        markup = edit_media.await_args.kwargs['reply_markup']
+        self.assertEqual(markup.inline_keyboard[0][0].url, f'http://testserver/characters/{character["id"]}')
+        self.assertEqual(markup.inline_keyboard[0][1].url, 'https://wiki.example/character')
+        self.assertEqual(markup.inline_keyboard[1][0].callback_data, f'cardplayer:{user["id"]}')
         self.assertEqual(
-            markup.inline_keyboard[0][0].callback_data, f'cardshort:char:{character["id"]}',
+            markup.inline_keyboard[2][0].callback_data,
+            f'cardchar:{user["id"]}:{character["id"]}:1',
         )
 
-        query.data = f'carddesc:char:{character["id"]}:1'
+        query.data = f'cardchar:{user["id"]}:{character["id"]}:1'
         await show_card_description(SimpleNamespace(callback_query=query), context)
-        self.assertEqual(edit_caption.await_count, 2)
-        query.data = f'cardshort:char:{character["id"]}'
+        self.assertEqual(edit_media.await_count, 3)
+        self.assertLessEqual(len(edit_media.await_args.kwargs['media'].caption), 1024)
+        query.data = f'cardplayer:{user["id"]}'
         await show_card_description(SimpleNamespace(callback_query=query), context)
-        self.assertEqual(edit_caption.await_count, 3)
-        short_caption = edit_caption.await_args.kwargs['caption']
-        self.assertIn('Керидра', short_caption)
-        self.assertIn('Genshin Impact', short_caption)
-        self.assertLessEqual(len(short_caption), 1024)
+        player_caption = edit_media.await_args.kwargs['media'].caption
+        self.assertIn('Другие персонажи: Керидра', player_caption)
+        self.assertIn('🎮 Игры: Genshin Impact', player_caption)
+        self.assertLessEqual(len(player_caption), 1024)
+
+    async def test_card_without_characters_shows_player_profile(self):
+        from handlers.cards.view import card_command
+
+        user = queries.ensure_user(100, 'player')
+        queries.db(
+            "UPDATE users SET avatar_file_id = 'avatar-file', chat_position = 'Модератор' WHERE id = %s",
+            (user['id'],),
+        ).close()
+        queries.db(
+            'INSERT INTO user_titles (user_id, name) VALUES (%s, %s)',
+            (user['id'], 'Архивариус'),
+        ).close()
+        queries.upsert_user_card_bio(user['id'], 'Player biography')
+        reply_photo = AsyncMock()
+        update = SimpleNamespace(
+            effective_user=SimpleNamespace(id=999, full_name='Requester'),
+            effective_message=SimpleNamespace(
+                message_thread_id=None, reply_photo=reply_photo, reply_text=AsyncMock(),
+            ),
+        )
+
+        await card_command(update, SimpleNamespace(args=['@player']))
+
+        caption = reply_photo.await_args.kwargs['caption']
+        self.assertEqual(reply_photo.await_args.kwargs['photo'], 'avatar-file')
+        self.assertIn('<b>@player</b>', caption)
+        self.assertIn('🏅 Титулы: Архивариус', caption)
+        self.assertNotIn('Модератор', caption)
+        self.assertIn('Player biography', caption)
+        buttons = [
+            button
+            for row in reply_photo.await_args.kwargs['reply_markup'].inline_keyboard
+            for button in row
+        ]
+        self.assertEqual(len(buttons), 1)
+        self.assertEqual(buttons[0].url, f'http://testserver/users/{user["id"]}')
 
     async def test_retention_marks_warning_only_after_delivery(self):
         from handlers.jobs.retention import send_retention_warnings

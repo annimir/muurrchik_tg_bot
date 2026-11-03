@@ -9,6 +9,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <label>Имя<input name="name" required maxlength="100" value="{{ character.name }}"></label>
         <label>День рождения<input type="date" name="birth_date" value="{{ character.birth_date.isoformat() if character.birth_date else '' }}"></label>
+        <label>Должность<select name="position_id"><option value="">Не назначена</option>{% for position in positions %}<option value="{{ position.id }}" {{ 'selected' if position.id == character.position_id else '' }}>{{ position.name }}</option>{% endfor %}</select></label>
         <label>Ссылка на Wiki<input type="url" name="wiki_url" value="{{ character.wiki_url or '' }}" placeholder="https://..."></label>
         <label class="form-wide">Описание<textarea name="description" rows="6" maxlength="5000">{{ character.description or '' }}</textarea></label>
         {% if character.photo_file_id %}<div class="form-wide"><img class="admin-photo-preview" src="/media/characters/{{ character.id }}" alt="Текущее фото {{ character.name }}"></div>{% endif %}

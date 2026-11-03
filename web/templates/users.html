@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Игроки{% endblock %}
 {% block content %}
-<section class="page-heading"><div class="eyebrow">Жители сообщества</div><h1>Игроки</h1><p>Карточки, роли и основные персонажи участников.</p></section>
+<section class="page-heading"><div class="eyebrow">Жители сообщества</div><h1>Игроки</h1><p>Карточки и основные персонажи участников.</p></section>
 <form class="users-search" method="get" action="/users" data-users-search>
     <label>Поиск по имени<input type="search" name="q" value="{{ search }}" placeholder="Введите @username или часть имени"></label>
     <button class="button" type="submit">Найти</button>

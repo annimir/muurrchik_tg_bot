@@ -3,7 +3,7 @@
 {% block content %}
 {% include 'admin/_nav.html' %}
 <section class="page-heading"><div class="eyebrow">Панель администратора</div><h1>Статистика сообщества</h1></section>
-<section class="stats-grid"><div class="stat-card"><strong>{{ overview.users }}</strong><span>игроков</span></div><div class="stat-card"><strong>{{ overview.characters }}</strong><span>персонажей</span></div><div class="stat-card"><strong>{{ overview.roles }}</strong><span>ролей</span></div><div class="stat-card"><strong>{{ overview.tags }}</strong><span>активных тегов</span></div></section>
+<section class="stats-grid"><div class="stat-card"><strong>{{ overview.users }}</strong><span>игроков</span></div><div class="stat-card"><strong>{{ overview.characters }}</strong><span>персонажей</span></div><div class="stat-card"><strong>{{ overview.tags }}</strong><span>активных тегов</span></div></section>
 <div class="dashboard-grid">
 <section class="panel panel-wide" data-tag-usage-panel>
     {% include 'admin/_tag_usage_chart.html' %}

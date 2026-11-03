@@ -2,22 +2,6 @@
 -- P.A.I.M.O.N. — консолидированная схема БД
 -- =============================================================
 
--- ---------- РОЛИ ----------
-CREATE TABLE IF NOT EXISTS flavor_roles (
-    id   SERIAL PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE
-);
-
-
-INSERT INTO flavor_roles (name) VALUES
-    ('Хиличурл'),
-    ('Застрельщик Фатуи'),
-    ('Стражник Мондштадта'),
-    ('Рыцарь Ордо Фавониус'),
-    ('Искатель сокровищ'),
-    ('Странствующий торговец')
-ON CONFLICT (name) DO NOTHING;
-
 -- ---------- USERS ----------
 CREATE TABLE IF NOT EXISTS users (
     id                   SERIAL PRIMARY KEY,
@@ -25,11 +9,18 @@ CREATE TABLE IF NOT EXISTS users (
     tag                  TEXT,
     language             VARCHAR(2) NOT NULL DEFAULT 'RU',
     left_at              TIMESTAMPTZ,
-    deletion_warned_at   TIMESTAMPTZ,
-    flavor_role_id       INTEGER
-        REFERENCES flavor_roles(id)
-        ON DELETE SET NULL
+    deletion_warned_at   TIMESTAMPTZ
 );
+
+CREATE TABLE IF NOT EXISTS user_titles (
+    id         SERIAL PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name       TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS user_titles_unique_name
+    ON user_titles (user_id, lower(name));
 
 -- ---------- ЧАТЫ, ГДЕ СОСТОИТ БОТ ----------
 CREATE TABLE IF NOT EXISTS chats (
@@ -242,10 +233,6 @@ INSERT INTO character_affiliation (character_id, affiliation_id)
 SELECT id, affiliation_id FROM character WHERE affiliation_id IS NOT NULL
 ON CONFLICT (character_id, affiliation_id) DO NOTHING;
 
-ALTER TABLE flavor_roles ADD COLUMN IF NOT EXISTS photo_file_id TEXT;
-ALTER TABLE flavor_roles ADD COLUMN IF NOT EXISTS description TEXT;
-ALTER TABLE flavor_roles ADD COLUMN IF NOT EXISTS wiki_url TEXT;
-
 CREATE TABLE IF NOT EXISTS youtube_publications (
     id                  SERIAL PRIMARY KEY,
     video_id            TEXT NOT NULL UNIQUE,
@@ -275,6 +262,19 @@ CREATE INDEX IF NOT EXISTS idx_users_tag_trgm ON users USING gin (tag gin_trgm_o
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_file_id TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_updated_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_position TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS titles TEXT;
+
+INSERT INTO user_titles (user_id, name)
+SELECT u.id, trim(title)
+FROM users u
+CROSS JOIN LATERAL regexp_split_to_table(u.titles, E'\\n|,') AS title
+WHERE u.titles IS NOT NULL AND trim(title) <> ''
+ON CONFLICT DO NOTHING;
+
+ALTER TABLE users DROP COLUMN IF EXISTS titles;
+ALTER TABLE users DROP COLUMN IF EXISTS flavor_role_id;
+DROP TABLE IF EXISTS flavor_roles;
 
 ALTER TABLE tag_usage ADD COLUMN IF NOT EXISTS chat_id BIGINT;
 ALTER TABLE tag_usage ADD COLUMN IF NOT EXISTS message_thread_id BIGINT;

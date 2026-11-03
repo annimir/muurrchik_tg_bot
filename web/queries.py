@@ -1,4 +1,4 @@
-from database.queries import db
+from database.queries import db, get_character_tags
 
 
 def get_public_stats():
@@ -165,12 +165,11 @@ def list_users(limit=30, offset=0, search=None):
     where, params = _user_search(search)
     return db(
         f'''
-        SELECT u.id, u.tag, fr.name AS role_name, uc.bio,
+        SELECT u.id, u.tag, u.chat_position, uc.bio,
             c.id AS character_id, c.name AS character_name,
             (SELECT COUNT(*) FROM character WHERE owner_user_id = u.id) AS character_count,
             (SELECT COUNT(*) FROM subscription WHERE user_id = u.id AND active = TRUE) AS subscription_count
         FROM users u
-        LEFT JOIN flavor_roles fr ON fr.id = u.flavor_role_id
         LEFT JOIN user_card uc ON uc.user_id = u.id
         LEFT JOIN character c ON c.owner_user_id = u.id AND c.is_primary = TRUE
         WHERE {where}
@@ -189,13 +188,13 @@ def count_users(search=None):
 def get_public_user(user_id):
     return db(
         '''
-        SELECT u.id, u.tag, fr.name AS role_name, fr.description AS role_description,
-            fr.wiki_url AS role_wiki_url, uc.bio,
+        SELECT u.id, u.tag, u.chat_position, uc.bio,
+            b.day AS birth_day, b.month AS birth_month, b.year AS birth_year,
             (SELECT COUNT(*) FROM character WHERE owner_user_id = u.id) AS character_count,
             (SELECT COUNT(*) FROM subscription WHERE user_id = u.id AND active = TRUE) AS subscription_count
         FROM users u
-        LEFT JOIN flavor_roles fr ON fr.id = u.flavor_role_id
         LEFT JOIN user_card uc ON uc.user_id = u.id
+        LEFT JOIN birthdays b ON b.user_id = u.id
         WHERE u.id = %s AND u.left_at IS NULL
         ''',
         (user_id,),
@@ -291,7 +290,7 @@ def count_characters():
 def get_public_character(character_id):
     return db(
         '''
-        SELECT c.*, u.id AS owner_id, u.tag AS owner_tag, uc.bio AS owner_bio,
+        SELECT c.*, u.id AS owner_id, u.tag AS owner_tag,
             p.name AS position_name, (SELECT STRING_AGG(DISTINCT aff.name, ', ' ORDER BY aff.name)
              FROM affiliations aff
              WHERE aff.id = c.affiliation_id OR EXISTS (
@@ -300,12 +299,15 @@ def get_public_character(character_id):
              )) AS affiliation_name
         FROM character c
         JOIN users u ON u.id = c.owner_user_id AND u.left_at IS NULL
-        LEFT JOIN user_card uc ON uc.user_id = u.id
         LEFT JOIN positions p ON p.id = c.position_id
         WHERE c.id = %s
         ''',
         (character_id,),
     ).one()
+
+
+def get_public_character_tags(character_id):
+    return get_character_tags(character_id)
 
 
 def get_admin_overview():
@@ -314,7 +316,6 @@ def get_admin_overview():
         SELECT
             (SELECT COUNT(*) FROM users WHERE left_at IS NULL) AS users,
             (SELECT COUNT(*) FROM character) AS characters,
-            (SELECT COUNT(*) FROM flavor_roles) AS roles,
             (SELECT COUNT(*) FROM tag WHERE status = 'ACTIVE') AS tags
         '''
     ).one()
@@ -716,7 +717,9 @@ def remove_admin_character_affiliation(admin_tg_id, character_id, affiliation_id
 def list_admin_players():
     return db(
         '''
-        SELECT u.id, u.tag, uc.bio, b.day, b.month, b.year,
+        SELECT u.id, u.tag, u.chat_position, uc.bio, b.day, b.month, b.year,
+            (SELECT STRING_AGG(title.name, ', ' ORDER BY lower(title.name))
+             FROM user_titles title WHERE title.user_id = u.id) AS titles,
             (SELECT STRING_AGG(g.name, ', ' ORDER BY g.name)
              FROM user_games ug JOIN games g ON g.code = ug.game_code
              WHERE ug.user_id = u.id) AS game_names
@@ -732,7 +735,7 @@ def list_admin_players():
 def get_admin_player(user_id):
     return db(
         '''
-        SELECT u.id, u.tag, uc.bio, b.day, b.month, b.year,
+        SELECT u.id, u.tag, u.chat_position, uc.bio, b.day, b.month, b.year,
             COALESCE((SELECT array_agg(ug.game_code ORDER BY ug.game_code)
                       FROM user_games ug WHERE ug.user_id = u.id), ARRAY[]::text[]) AS game_codes
         FROM users u
@@ -748,7 +751,7 @@ def list_games():
     return db('SELECT code, name FROM games ORDER BY name').all()
 
 
-def update_admin_player(admin_tg_id, user_id, bio, birthday, game_codes):
+def update_admin_player(admin_tg_id, user_id, bio, birthday, game_codes, chat_position):
     game_codes = sorted(set(game_codes))
     with db.transaction() as tx:
         if not tx('SELECT id FROM users WHERE id = %s AND left_at IS NULL FOR UPDATE', (user_id,)).one():
@@ -756,6 +759,10 @@ def update_admin_player(admin_tg_id, user_id, bio, birthday, game_codes):
         valid_games = {row['code'] for row in tx('SELECT code FROM games').all()}
         if not set(game_codes) <= valid_games:
             raise ValueError('Выбрана неизвестная игра')
+        tx(
+            'UPDATE users SET chat_position = %s WHERE id = %s',
+            (chat_position or None, user_id),
+        ).close()
         tx(
             '''
             INSERT INTO user_card (user_id, bio) VALUES (%s, %s)
@@ -785,6 +792,39 @@ def update_admin_player(admin_tg_id, user_id, bio, birthday, game_codes):
             ).close()
         _audit(tx, admin_tg_id, 'update', 'user', user_id, {
             'birthday': birthday, 'games': game_codes, 'bio_length': len(bio),
+            'chat_position': chat_position,
+        })
+
+
+def add_admin_user_title(admin_tg_id, user_id, name):
+    with db.transaction() as tx:
+        if not tx('SELECT id FROM users WHERE id = %s AND left_at IS NULL', (user_id,)).one():
+            raise ValueError('Игрок не найден')
+        row = tx(
+            '''
+            INSERT INTO user_titles (user_id, name) VALUES (%s, %s)
+            ON CONFLICT DO NOTHING RETURNING id
+            ''',
+            (user_id, name),
+        ).one()
+        if not row:
+            raise ValueError('У игрока уже есть такой титул')
+        _audit(tx, admin_tg_id, 'create', 'user_title', row['id'], {
+            'user_id': user_id, 'name': name,
+        })
+        return row['id']
+
+
+def delete_admin_user_title(admin_tg_id, user_id, title_id):
+    with db.transaction() as tx:
+        row = tx(
+            'DELETE FROM user_titles WHERE id = %s AND user_id = %s RETURNING name',
+            (title_id, user_id),
+        ).one()
+        if not row:
+            raise ValueError('Титул не найден')
+        _audit(tx, admin_tg_id, 'delete', 'user_title', title_id, {
+            'user_id': user_id, 'name': row['name'],
         })
 
 
@@ -795,16 +835,6 @@ def list_admin_characters():
             u.id AS owner_id, u.tag AS owner_tag
         FROM character c JOIN users u ON u.id = c.owner_user_id
         ORDER BY c.name
-        '''
-    ).all()
-
-
-def list_admin_roles():
-    return db(
-        '''
-        SELECT fr.*, COUNT(u.id) AS user_count
-        FROM flavor_roles fr LEFT JOIN users u ON u.flavor_role_id = fr.id
-        GROUP BY fr.id ORDER BY fr.name
         '''
     ).all()
 
@@ -825,28 +855,68 @@ def _audit(tx, admin_tg_id, action, entity_type, entity_id, details=None):
     ).close()
 
 
-def create_role(admin_tg_id, name, description=None, wiki_url=None):
+def create_admin_position(admin_tg_id, name):
     with db.transaction() as tx:
         row = tx(
-            '''
-            INSERT INTO flavor_roles (name, description, wiki_url)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (name) DO NOTHING RETURNING id
-            ''',
-            (name, description, wiki_url),
+            'INSERT INTO positions (name) VALUES (%s) ON CONFLICT DO NOTHING RETURNING id',
+            (name,),
         ).one()
         if not row:
-            raise ValueError('Роль с таким названием уже существует')
-        _audit(tx, admin_tg_id, 'create', 'flavor_role', row['id'], {'name': name})
+            raise ValueError('Должность с таким названием уже существует')
+        _audit(tx, admin_tg_id, 'create', 'position', row['id'], {'name': name})
         return row['id']
 
 
-def create_character(admin_tg_id, owner_user_id, name, birth_date=None, description=None, is_primary=False):
+def update_admin_position(admin_tg_id, position_id, name):
+    with db.transaction() as tx:
+        current = tx('SELECT id, name FROM positions WHERE id = %s FOR UPDATE', (position_id,)).one()
+        if not current:
+            raise ValueError('Должность не найдена')
+        if tx(
+            'SELECT id FROM positions WHERE lower(name) = lower(%s) AND id <> %s',
+            (name, position_id),
+        ).one():
+            raise ValueError('Должность с таким названием уже существует')
+        tx('UPDATE positions SET name = %s WHERE id = %s', (name, position_id)).close()
+        _audit(tx, admin_tg_id, 'update', 'position', position_id, {
+            'from_name': current['name'], 'to_name': name,
+        })
+
+
+def delete_admin_position(admin_tg_id, position_id):
+    with db.transaction() as tx:
+        row = tx('DELETE FROM positions WHERE id = %s RETURNING name', (position_id,)).one()
+        if not row:
+            raise ValueError('Должность не найдена')
+        _audit(tx, admin_tg_id, 'delete', 'position', position_id, {'name': row['name']})
+
+
+def _validate_character_position(tx, position_id, character_id=None):
+    if position_id is None:
+        return
+    if not tx('SELECT id FROM positions WHERE id = %s', (position_id,)).one():
+        raise ValueError('Выбрана неизвестная должность')
+    holder = tx(
+        '''
+        SELECT name FROM character
+        WHERE position_id = %s AND (%s IS NULL OR id <> %s)
+        ''',
+        (position_id, character_id, character_id),
+    ).one()
+    if holder:
+        raise ValueError(f'Должность уже занята персонажем «{holder["name"]}»')
+
+
+def create_character(
+    admin_tg_id, owner_user_id, name, birth_date=None, description=None, is_primary=False,
+    position_id=None,
+):
     with db.transaction() as tx:
         if not tx('SELECT 1 FROM users WHERE id = %s FOR UPDATE', (owner_user_id,)).one():
             raise ValueError('Игрок не найден')
         if tx('SELECT 1 FROM character WHERE lower(name) = lower(%s)', (name,)).one():
             raise ValueError('Персонаж с таким именем уже существует')
+        _validate_character_position(tx, position_id)
         count = tx(
             'SELECT COUNT(*) AS cnt FROM character WHERE owner_user_id = %s',
             (owner_user_id,),
@@ -858,12 +928,14 @@ def create_character(admin_tg_id, owner_user_id, name, birth_date=None, descript
             tx('UPDATE character SET is_primary = FALSE WHERE owner_user_id = %s', (owner_user_id,)).close()
         row = tx(
             '''
-            INSERT INTO character (owner_user_id, name, birth_date, description, is_primary)
-            VALUES (%s, %s, %s, %s, %s) RETURNING id
+            INSERT INTO character (owner_user_id, name, birth_date, description, is_primary, position_id)
+            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
             ''',
-            (owner_user_id, name, birth_date, description, primary),
+            (owner_user_id, name, birth_date, description, primary, position_id),
         ).one()
-        _audit(tx, admin_tg_id, 'create', 'character', row['id'], {'owner_user_id': owner_user_id, 'name': name})
+        _audit(tx, admin_tg_id, 'create', 'character', row['id'], {
+            'owner_user_id': owner_user_id, 'name': name, 'position_id': position_id,
+        })
         return row['id']
 
 
@@ -896,7 +968,10 @@ def get_admin_character(character_id):
     return db('SELECT * FROM character WHERE id = %s', (character_id,)).one()
 
 
-def update_character(admin_tg_id, character_id, name, birth_date=None, description=None, wiki_url=None):
+def update_character(
+    admin_tg_id, character_id, name, birth_date=None, description=None, wiki_url=None,
+    position_id=None,
+):
     with db.transaction() as tx:
         if not tx('SELECT 1 FROM character WHERE id = %s FOR UPDATE', (character_id,)).one():
             raise ValueError('Персонаж не найден')
@@ -905,11 +980,18 @@ def update_character(admin_tg_id, character_id, name, birth_date=None, descripti
             (name, character_id),
         ).one():
             raise ValueError('Персонаж с таким именем уже существует')
+        _validate_character_position(tx, position_id, character_id)
         tx(
-            'UPDATE character SET name = %s, birth_date = %s, description = %s, wiki_url = %s WHERE id = %s',
-            (name, birth_date, description, wiki_url, character_id),
+            '''
+            UPDATE character
+            SET name = %s, birth_date = %s, description = %s, wiki_url = %s, position_id = %s
+            WHERE id = %s
+            ''',
+            (name, birth_date, description, wiki_url, position_id, character_id),
         ).close()
-        _audit(tx, admin_tg_id, 'update', 'character', character_id, {'name': name})
+        _audit(tx, admin_tg_id, 'update', 'character', character_id, {
+            'name': name, 'position_id': position_id,
+        })
 
 
 def update_character_photo(admin_tg_id, character_id, photo_file_id):
@@ -940,47 +1022,6 @@ def delete_character(admin_tg_id, character_id):
                 (character['owner_user_id'],),
             ).close()
         _audit(tx, admin_tg_id, 'delete', 'character', character_id, {'name': character['name']})
-
-
-def get_admin_role(role_id):
-    return db('SELECT * FROM flavor_roles WHERE id = %s', (role_id,)).one()
-
-
-def update_role(admin_tg_id, role_id, name, description=None, wiki_url=None):
-    with db.transaction() as tx:
-        if not tx('SELECT 1 FROM flavor_roles WHERE id = %s FOR UPDATE', (role_id,)).one():
-            raise ValueError('Роль не найдена')
-        if tx(
-            'SELECT 1 FROM flavor_roles WHERE lower(name) = lower(%s) AND id <> %s',
-            (name, role_id),
-        ).one():
-            raise ValueError('Роль с таким названием уже существует')
-        tx(
-            'UPDATE flavor_roles SET name = %s, description = %s, wiki_url = %s WHERE id = %s',
-            (name, description, wiki_url, role_id),
-        ).close()
-        _audit(tx, admin_tg_id, 'update', 'flavor_role', role_id, {'name': name})
-
-
-def update_role_photo(admin_tg_id, role_id, photo_file_id):
-    with db.transaction() as tx:
-        if not tx('SELECT 1 FROM flavor_roles WHERE id = %s FOR UPDATE', (role_id,)).one():
-            raise ValueError('Роль не найдена')
-        tx(
-            'UPDATE flavor_roles SET photo_file_id = %s WHERE id = %s',
-            (photo_file_id, role_id),
-        ).close()
-        _audit(tx, admin_tg_id, 'update_photo', 'flavor_role', role_id, {
-            'has_photo': photo_file_id is not None,
-        })
-
-
-def delete_role(admin_tg_id, role_id):
-    with db.transaction() as tx:
-        role = tx('DELETE FROM flavor_roles WHERE id = %s RETURNING name', (role_id,)).one()
-        if not role:
-            raise ValueError('Роль не найдена')
-        _audit(tx, admin_tg_id, 'delete', 'flavor_role', role_id, {'name': role['name']})
 
 
 def set_media_visibility(admin_tg_id, usage_id, is_public):
