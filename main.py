@@ -127,6 +127,16 @@ tag_storage.load_from([t['name'] for t in active_tags])
 alias_rows = get_all_tag_aliases()
 tag_storage.load_aliases([(row['alias'], row['name']) for row in alias_rows])
 
+
+async def refresh_tag_storage(_):
+    active_tags = get_active_tags()
+    alias_rows = get_all_tag_aliases()
+    tag_storage.replace(
+        [tag['name'] for tag in active_tags],
+        [(row['alias'], row['name']) for row in alias_rows],
+    )
+
+
 MOSCOW_TZ = ZoneInfo('Europe/Moscow')
 
 # ---------- служебные ----------
@@ -170,6 +180,7 @@ application.job_queue.run_daily(check_birthdays, time=time(hour=9, minute=0, tzi
 application.job_queue.run_daily(check_character_birthdays, time=time(hour=9, minute=15, tzinfo=MOSCOW_TZ))
 application.job_queue.run_daily(send_retention_warnings, time=time(hour=10, minute=0, tzinfo=MOSCOW_TZ))
 application.job_queue.run_daily(run_retention_cleanup, time=time(hour=10, minute=30, tzinfo=MOSCOW_TZ))
+application.job_queue.run_repeating(refresh_tag_storage, interval=60, first=60)
 if config.youtube_enabled:
     application.job_queue.run_repeating(
         check_youtube_channel,
