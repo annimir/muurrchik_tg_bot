@@ -123,6 +123,26 @@ class WebIntegrationTests(PostgresTestCase):
         positions = [response.text.index(f'data-tag-name="{name}"') for name in ('alpha', 'zulu', 'арбуз', 'яблоко')]
         self.assertEqual(positions, sorted(positions))
 
+    def test_used_tags_come_first_in_filter_and_search(self):
+        tags = {}
+        for name in ('alpha', 'apple', 'apricot', 'банан'):
+            tags[name] = queries.create_tag(name)
+        for index, name in enumerate(('apple', 'банан'), start=1):
+            queries.log_tag_usage(
+                tags[name]['id'], index, 100, 'photo', chat_id=200,
+                media_file_id=f'file-{index}', media_file_unique_id=f'unique-{index}',
+            )
+
+        response = self.client.get('/media')
+        search = self.client.get('/tags/search?q=a')
+
+        ordered_names = ('apple', 'банан', 'alpha', 'apricot')
+        positions = [response.text.index(f'data-tag-name="{name}"') for name in ordered_names]
+        self.assertEqual(positions, sorted(positions))
+        self.assertEqual(
+            [tag['name'] for tag in search.json()['tags']], ['apple', 'alpha', 'apricot'],
+        )
+
     def test_tag_search_uses_indexed_case_insensitive_prefix(self):
         for name in ('Алиса', 'Арлекино', 'Алина', 'Борис', 'Мария', 'Самовар', 'alpha', 'ALINA'):
             queries.create_tag(name)
@@ -402,6 +422,178 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertEqual(response.status_code, 303)
         self.assertIsNone(queries.get_flavor_role_by_id(role_id))
         self.assertIsNone(queries.get_user_by_id(user['id'])['flavor_role_id'])
+
+    def test_admin_manages_tag_aliases_and_character_links(self):
+        csrf = self.admin_session()
+        user = queries.ensure_user(100, 'player')
+        character = queries.create_character_row(user['id'], 'Фокалорс', None, None, None, True)
+        tag = queries.create_tag('Фурина')
+
+        listing = self.client.get('/admin/tags')
+        response = self.client.post('/admin/tags/aliases', data={
+            'tag_id': tag['id'], 'alias': 'фока', 'csrf_token': csrf,
+        }, follow_redirects=False)
+
+        self.assertEqual(listing.status_code, 200)
+        self.assertIn('Теги и алиасы', listing.text)
+        self.assertEqual(response.status_code, 303)
+        alias = queries.db("SELECT * FROM tag_alias WHERE alias = 'фока'").one()
+        self.assertEqual(alias['tag_id'], tag['id'])
+
+        duplicate = self.client.post('/admin/tags/aliases', data={
+            'tag_id': tag['id'], 'alias': 'фока', 'csrf_token': csrf,
+        })
+        self.assertEqual(duplicate.status_code, 400)
+        self.assertIn('уже привязан', duplicate.text)
+
+        response = self.client.post('/admin/tags/characters', data={
+            'character_id': character['id'], 'tag_id': tag['id'], 'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(
+            {row['alias'] for row in queries.get_all_tag_aliases()}, {'фока', 'Фокалорс'},
+        )
+        from web.queries import list_admin_character_tag_links
+        links = list_admin_character_tag_links()
+        self.assertEqual(links[0]['tag_names'], 'Фурина')
+        self.assertEqual(queries.get_character_by_id(character['id'])['owner_user_id'], user['id'])
+
+        page = self.client.get('/admin/tags')
+        self.assertIn('фока', page.text)
+        self.assertIn('Фокалорс', page.text)
+        self.assertNotIn('#фока', page.text)
+        self.assertIn('data-local-search', page.text)
+        self.assertIn('data-tag-search', page.text)
+        filtered = self.client.get('/admin/tags?q=фока')
+        self.assertIn('Фурина', filtered.text)
+        self.assertIn('Теги не найдены', self.client.get('/admin/tags?q=ока').text)
+        response = self.client.post(f"/admin/tags/aliases/{alias['id']}/delete", data={
+            'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(
+            {row['alias'] for row in queries.get_all_tag_aliases()}, {'Фокалорс'},
+        )
+
+        queen = queries.create_character_row(user['id'], 'Царица', None, None, None, False)
+        queries.create_tag('Царица')
+        self.assertEqual(len(list_admin_character_tag_links('Фок')), 1)
+        self.assertEqual(list_admin_character_tag_links('ока'), [])
+        self.assertEqual(list_admin_character_tag_links('Цар')[0]['name'], 'Царица')
+        character_page = self.client.get('/admin/tags?character_q=Фок')
+        self.assertIn('id="character-links" open', character_page.text)
+        conflict = self.client.post('/admin/tags/characters', data={
+            'character_id': queen['id'], 'tag_id': tag['id'], 'csrf_token': csrf,
+        })
+        self.assertEqual(conflict.status_code, 400)
+        self.assertIn('основным тегом «Царица»', conflict.text)
+        self.assertIn('у персонажа «Царица»', conflict.text)
+
+        detail = self.client.get(f"/admin/tags/{tag['id']}")
+        self.assertEqual(detail.status_code, 200)
+        self.assertIn('Фокалорс', detail.text)
+        character_alias = queries.db("SELECT * FROM tag_alias WHERE alias = 'Фокалорс'").one()
+        response = self.client.post(
+            f"/admin/tags/{tag['id']}/aliases/{character_alias['id']}/delete",
+            data={'csrf_token': csrf}, follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(queries.get_all_tag_aliases(), [])
+
+        invalid_status = self.client.post(f"/admin/tags/{tag['id']}/status", data={
+            'status': 'UNKNOWN', 'csrf_token': csrf,
+        })
+        self.assertEqual(invalid_status.status_code, 400)
+        response = self.client.post(f"/admin/tags/{tag['id']}/status", data={
+            'status': 'BLOCKED', 'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(queries.get_tag_by_id(tag['id'])['status'], 'BLOCKED')
+        self.assertIn('Фурина', self.client.get('/admin/tags?status=BLOCKED').text)
+        self.assertNotIn('Фурина', self.client.get('/admin/tags?status=ACTIVE').text)
+
+        response = self.client.post(f"/admin/tags/{tag['id']}/delete", data={
+            'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertIsNone(queries.get_tag_by_id(tag['id']))
+        self.assertEqual(self.client.get(f"/admin/tags/{tag['id']}").status_code, 404)
+        self.assertEqual(
+            queries.db("SELECT COUNT(*) AS cnt FROM admin_audit_log WHERE entity_type = 'tag_alias'").one()['cnt'],
+            4,
+        )
+
+    def test_admin_manages_affiliations_and_multiple_character_links(self):
+        csrf = self.admin_session()
+        user = queries.ensure_user(100, 'player')
+        character = queries.create_character_row(user['id'], 'Фокалорс', None, None, None, True)
+
+        root = self.client.post('/admin/affiliations', data={
+            'name': 'Фатуи', 'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(root.status_code, 303)
+        root_row = queries.db("SELECT * FROM affiliations WHERE name = 'Фатуи'").one()
+        child = self.client.post('/admin/affiliations', data={
+            'name': 'Предвестник', 'parent_id': root_row['id'], 'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(child.status_code, 303)
+        child_row = queries.db("SELECT * FROM affiliations WHERE name = 'Предвестник'").one()
+
+        self.assertIn('Фатуи', self.client.get('/admin/affiliations?q=Фа').text)
+        self.assertIn('Принадлежности не найдены', self.client.get('/admin/affiliations?q=ату').text)
+        duplicate = self.client.post('/admin/affiliations', data={
+            'name': 'Фатуи', 'csrf_token': csrf,
+        })
+        self.assertEqual(duplicate.status_code, 400)
+
+        for affiliation_id in (root_row['id'], child_row['id']):
+            response = self.client.post('/admin/affiliations/characters', data={
+                'character_id': character['id'], 'affiliation_id': affiliation_id, 'csrf_token': csrf,
+            }, follow_redirects=False)
+            self.assertEqual(response.status_code, 303)
+        public_character = self.client.get(f"/characters/{character['id']}")
+        self.assertIn('Фатуи', public_character.text)
+        self.assertIn('Предвестник', public_character.text)
+        duplicate_link = self.client.post('/admin/affiliations/characters', data={
+            'character_id': character['id'], 'affiliation_id': root_row['id'], 'csrf_token': csrf,
+        })
+        self.assertEqual(duplicate_link.status_code, 400)
+
+        response = self.client.post(f"/admin/affiliations/{child_row['id']}/edit", data={
+            'name': 'Предвестники', 'parent_id': root_row['id'], 'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        cycle = self.client.post(f"/admin/affiliations/{root_row['id']}/edit", data={
+            'name': 'Фатуи', 'parent_id': child_row['id'], 'csrf_token': csrf,
+        })
+        self.assertEqual(cycle.status_code, 400)
+        self.assertIn('дочернюю', cycle.text)
+
+        self.assertIn('Фокалорс', self.client.get('/admin/affiliations?character_q=Фок').text)
+        self.assertIn('Персонажи не найдены', self.client.get('/admin/affiliations?character_q=ока').text)
+        response = self.client.post(
+            f"/admin/affiliations/characters/{character['id']}/{root_row['id']}/delete",
+            data={'csrf_token': csrf}, follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 303)
+        remaining = queries.db('SELECT * FROM character_affiliation').all()
+        self.assertEqual([row['affiliation_id'] for row in remaining], [child_row['id']])
+
+        response = self.client.post(f"/admin/affiliations/{child_row['id']}/delete", data={
+            'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(queries.db('SELECT COUNT(*) AS cnt FROM character_affiliation').one()['cnt'], 0)
+        response = self.client.post(f"/admin/affiliations/{root_row['id']}/delete", data={
+            'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        from web.queries import get_admin_affiliation
+        self.assertIsNone(get_admin_affiliation(root_row['id']))
+        self.assertGreaterEqual(
+            queries.db("SELECT COUNT(*) AS cnt FROM admin_audit_log WHERE entity_type LIKE '%%affiliation%%'").one()['cnt'],
+            8,
+        )
 
     def test_media_moderation_keeps_analytics(self):
         csrf = self.admin_session()

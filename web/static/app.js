@@ -246,6 +246,23 @@ function configureFilterDropdown(dropdown) {
 
 document.querySelectorAll('[data-filter-dropdown]').forEach(configureFilterDropdown);
 
+document.querySelectorAll('[data-local-search]').forEach((search) => {
+    const dropdown = search.closest('[data-filter-dropdown]');
+    const options = [...dropdown.querySelectorAll('[data-tag-option]')];
+    const empty = dropdown.querySelector('[data-tag-empty]');
+    search.addEventListener('input', () => {
+        const query = search.value.trim().toLowerCase();
+        let visible = 0;
+        options.forEach((option) => {
+            option.hidden = query && !option.textContent.toLowerCase().includes(query);
+            if (!option.hidden) {
+                visible += 1;
+            }
+        });
+        empty.hidden = visible > 0;
+    });
+});
+
 function configureDateRangePicker(dateRangePicker) {
     const fromInput = dateRangePicker.querySelector('input[name="date_from"]');
     const toInput = dateRangePicker.querySelector('input[name="date_to"]');

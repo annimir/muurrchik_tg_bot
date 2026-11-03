@@ -228,6 +228,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS affiliations_unique_child ON affiliations (par
 
 ALTER TABLE character ADD COLUMN IF NOT EXISTS affiliation_id INTEGER REFERENCES affiliations(id) ON DELETE SET NULL;
 
+CREATE TABLE IF NOT EXISTS character_affiliation (
+    character_id   INTEGER NOT NULL REFERENCES character(id) ON DELETE CASCADE,
+    affiliation_id INTEGER NOT NULL REFERENCES affiliations(id) ON DELETE CASCADE,
+    PRIMARY KEY (character_id, affiliation_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_affiliation_affiliation
+    ON character_affiliation (affiliation_id);
+
+INSERT INTO character_affiliation (character_id, affiliation_id)
+SELECT id, affiliation_id FROM character WHERE affiliation_id IS NOT NULL
+ON CONFLICT (character_id, affiliation_id) DO NOTHING;
+
 ALTER TABLE flavor_roles ADD COLUMN IF NOT EXISTS photo_file_id TEXT;
 ALTER TABLE flavor_roles ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE flavor_roles ADD COLUMN IF NOT EXISTS wiki_url TEXT;

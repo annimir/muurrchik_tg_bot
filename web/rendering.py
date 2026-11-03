@@ -46,9 +46,14 @@ def number_ru(value):
     return f'{value:,}'.replace(',', ' ')
 
 
+def status_ru(value):
+    return {'ACTIVE': 'Активен', 'DELETED': 'Удалён', 'BLOCKED': 'Заблокирован'}.get(value, value)
+
+
 templates.env.filters['datetime_ru'] = datetime_ru
 templates.env.filters['date_ru'] = date_ru
 templates.env.filters['media_kind'] = media_kind
 templates.env.filters['media_caption'] = media_caption
 templates.env.filters['number_ru'] = number_ru
+templates.env.filters['status_ru'] = status_ru
 templates.env.globals['media_url'] = media_url

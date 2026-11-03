@@ -1,0 +1,15 @@
+{% macro search_select(name, label, options, placeholder, local=False, selected=None, required=True) %}
+<div class="filter-select">{{ label }}
+    <div class="filter-dropdown" data-filter-dropdown data-choice-filter data-default-label="{{ placeholder }}" data-default-value="">
+        <button class="button button-secondary filter-dropdown-toggle" type="button" data-filter-toggle aria-expanded="false">{{ placeholder }}</button>
+        <div class="filter-popup" hidden>
+            <div class="filter-search-label"><input type="search" placeholder="Начните вводить название" aria-label="Поиск" autocomplete="off" {% if local %}data-local-search{% else %}data-tag-search{% endif %}></div>
+            <div class="filter-options">
+                {% for option in options %}<label class="filter-option" data-tag-option><input type="radio" name="{{ name }}" value="{{ option.id }}" {{ 'checked' if option.id == selected else '' }} {{ 'required' if required else '' }}><span>{{ option.name }}</span></label>{% endfor %}
+            </div>
+            <p class="filter-empty" data-tag-empty hidden>Ничего не найдено.</p>
+            <div class="filter-popup-actions"><button type="button" data-tags-clear>Сбросить</button><button type="button" data-filter-close>Готово</button></div>
+        </div>
+    </div>
+</div>
+{% endmacro %}

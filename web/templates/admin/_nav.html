@@ -1,6 +1,8 @@
 <div class="admin-toolbar">
     <nav class="admin-nav" aria-label="Панель администратора">
         <a class="{{ 'active' if active_page == 'dashboard' else '' }}" href="/admin">Статистика</a>
+        <a class="{{ 'active' if active_page == 'admin_tags' else '' }}" href="/admin/tags">Теги и алиасы</a>
+        <a class="{{ 'active' if active_page == 'admin_affiliations' else '' }}" href="/admin/affiliations">Принадлежности</a>
         <a class="{{ 'active' if active_page == 'admin_characters' else '' }}" href="/admin/characters">Персонажи</a>
         <a class="{{ 'active' if active_page == 'admin_players' else '' }}" href="/admin/players">Игроки</a>
         <a class="{{ 'active' if active_page == 'admin_roles' else '' }}" href="/admin/roles">Роли</a>

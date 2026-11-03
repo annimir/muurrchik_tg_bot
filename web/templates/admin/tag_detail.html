@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}{{ tag.name }} · Управление тегом{% endblock %}
+{% block content %}
+{% include 'admin/_nav.html' %}
+<p><a class="text-link" href="/admin/tags">← Все теги и алиасы</a></p>
+<section class="page-heading">
+    <div class="eyebrow">Основной тег</div>
+    <h1>{{ tag.name }}</h1>
+    <span class="status-badge status-{{ tag.status|lower }}">{{ tag.status|status_ru }}</span>
+</section>
+{% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+<div class="dashboard-grid tag-forms">
+    <section class="panel">
+        <h2>Статус тега</h2>
+        <form class="admin-form" method="post" action="/admin/tags/{{ tag.id }}/status">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <label>Текущий статус<select name="status">{% for value, label in status_options.items() %}<option value="{{ value }}" {{ 'selected' if tag.status == value else '' }}>{{ label }}</option>{% endfor %}</select></label>
+            <button class="button" type="submit">Сохранить</button>
+        </form>
+    </section>
+    <section class="panel">
+        <h2>Статистика</h2>
+        <dl class="details"><dt>Публикации</dt><dd>{{ tag.usages }}</dd><dt>Подписчики</dt><dd>{{ tag.subscriptions }}</dd><dt>Алиасы</dt><dd>{{ tag.aliases|length }}</dd></dl>
+    </section>
+</div>
+<section class="panel">
+    <h2>Алиасы</h2>
+    <div class="badge-list">{% for item in tag.aliases %}<form class="alias-control" method="post" action="/admin/tags/{{ tag.id }}/aliases/{{ item.id }}/delete" data-confirm="Удалить алиас {{ item.alias }}?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <span class="badge">{{ item.alias }}</span><button class="alias-delete" type="submit" aria-label="Удалить алиас {{ item.alias }}">×</button>
+    </form>{% else %}<p class="muted">У этого тега нет алиасов.</p>{% endfor %}</div>
+</section>
+<section class="panel">
+    <h2>Привязки персонажей</h2>
+    <div class="table-wrap"><table>
+        <thead><tr><th>Персонаж</th><th>Игрок</th><th>Тип связи</th><th>Действие</th></tr></thead>
+        <tbody>{% for character in character_links %}<tr>
+            <td>{{ character.name }}</td><td>{{ character.owner_tag or 'Неизвестно' }}</td>
+            <td>{{ 'Одноимённый тег' if character.link_type == 'tag' else 'Алиас' }}</td>
+            <td>{% if character.link_type == 'alias' %}<form method="post" action="/admin/tags/{{ tag.id }}/aliases/{{ character.alias_id }}/delete" data-confirm="Удалить привязку персонажа {{ character.name }}?">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button button-small button-quiet" type="submit">Удалить привязку</button>
+            </form>{% else %}<span class="muted">Через имя тега</span>{% endif %}</td>
+        </tr>{% else %}<tr><td colspan="4" class="muted">Привязанных персонажей нет.</td></tr>{% endfor %}</tbody>
+    </table></div>
+</section>
+<section class="panel danger-zone">
+    <h2>Удаление тега</h2>
+    <p>Тег, все его алиасы, подписки и {{ tag.usages }} записей публикаций будут удалены без возможности восстановления. Для обычного скрытия используйте статус «Удалён».</p>
+    <form method="post" action="/admin/tags/{{ tag.id }}/delete" data-confirm="Безвозвратно удалить тег {{ tag.name }}, его алиасы, подписки и публикации?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button button-danger" type="submit">Удалить тег безвозвратно</button>
+    </form>
+</section>
+{% endblock %}

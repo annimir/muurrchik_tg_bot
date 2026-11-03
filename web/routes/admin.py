@@ -13,13 +13,18 @@ from web.auth import (
 )
 from web.charts import build_daily_bars, build_line_chart, build_pie_chart
 from web.queries import (
-    assign_character, create_character, create_role, delete_character,
-    delete_role, get_admin_character, get_admin_overview, get_admin_player,
-    get_admin_role, get_daily_analytics, get_recent_audit, get_tag_popularity_for_day,
-    get_tag_subscription_popularity, get_tag_usage_bounds, get_tag_usage_series,
+    add_admin_character_affiliation, add_admin_tag_alias, assign_character,
+    create_admin_affiliation, create_character, create_role, delete_admin_affiliation,
+    delete_admin_tag, delete_admin_tag_alias, delete_character, delete_role,
+    get_admin_affiliation, get_admin_character, get_admin_overview, get_admin_player,
+    get_admin_role, get_admin_tag, get_admin_tag_character_links, get_daily_analytics,
+    get_recent_audit, get_tag_popularity_for_day, get_tag_subscription_popularity,
+    get_tag_usage_bounds, get_tag_usage_series, list_admin_affiliations,
+    list_admin_character_affiliations, list_admin_character_tag_links,
     list_admin_characters, list_admin_media, list_admin_players, list_admin_roles,
-    list_admin_users, list_games, set_media_visibility, update_admin_player,
-    update_character, update_role,
+    list_admin_tags, list_admin_users, list_games, remove_admin_character_affiliation,
+    set_media_visibility, update_admin_affiliation, update_admin_player,
+    update_admin_tag_status, update_character, update_role,
 )
 from web.rendering import templates
 
@@ -249,6 +254,314 @@ async def update_player_action(
             status_code=400,
         )
     return RedirectResponse('/admin/players', status_code=303)
+
+
+def _tags_context(session, error=None, q='', status='', character_q=''):
+    return {
+        'tags': list_admin_tags(q, status),
+        'tag_options': list_admin_tags(status='ACTIVE'),
+        'characters': list_admin_character_tag_links(character_q),
+        'search': q.strip(), 'selected_status': status,
+        'character_search': character_q.strip(),
+        'status_options': {'ACTIVE': 'Активен', 'DELETED': 'Удалён', 'BLOCKED': 'Заблокирован'},
+        'csrf_token': session['csrf'], 'active_page': 'admin_tags', 'error': error,
+    }
+
+
+@router.get('/tags', name='admin_tags')
+async def admin_tags(
+    request: Request,
+    q: str = '',
+    status: str = '',
+    character_q: str = '',
+    session=Depends(require_admin),
+):
+    try:
+        context = _tags_context(session, q=q, status=status, character_q=character_q)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return templates.TemplateResponse(
+        request=request, name='admin/tags.html', context=context,
+    )
+
+
+def _tag_detail_context(session, tag, error=None):
+    return {
+        'tag': tag, 'character_links': get_admin_tag_character_links(tag['id']),
+        'status_options': {'ACTIVE': 'Активен', 'DELETED': 'Удалён', 'BLOCKED': 'Заблокирован'},
+        'csrf_token': session['csrf'], 'active_page': 'admin_tags', 'error': error,
+    }
+
+
+@router.get('/tags/{tag_id}', name='admin_tag_detail')
+async def admin_tag_detail(request: Request, tag_id: int, session=Depends(require_admin)):
+    tag = get_admin_tag(tag_id)
+    if not tag:
+        raise HTTPException(status_code=404, detail='Тег не найден')
+    return templates.TemplateResponse(
+        request=request, name='admin/tag_detail.html', context=_tag_detail_context(session, tag),
+    )
+
+
+@router.post('/tags/{tag_id}/status', name='admin_update_tag_status')
+async def update_tag_status_action(
+    request: Request,
+    tag_id: int,
+    status: str = Form(...),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    tag = get_admin_tag(tag_id)
+    if not tag:
+        raise HTTPException(status_code=404, detail='Тег не найден')
+    try:
+        update_admin_tag_status(session['tg_id'], tag_id, status)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/tag_detail.html',
+            context=_tag_detail_context(session, tag, str(exc)), status_code=400,
+        )
+    return RedirectResponse(f'/admin/tags/{tag_id}', status_code=303)
+
+
+@router.post('/tags/{tag_id}/delete', name='admin_delete_tag')
+async def delete_tag_action(
+    request: Request,
+    tag_id: int,
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        delete_admin_tag(session['tg_id'], tag_id)
+    except ValueError as exc:
+        tag = get_admin_tag(tag_id)
+        if not tag:
+            raise HTTPException(status_code=404, detail='Тег не найден') from exc
+        return templates.TemplateResponse(
+            request=request, name='admin/tag_detail.html',
+            context=_tag_detail_context(session, tag, str(exc)), status_code=400,
+        )
+    return RedirectResponse('/admin/tags', status_code=303)
+
+
+@router.post('/tags/{tag_id}/aliases/{alias_id}/delete', name='admin_delete_tag_alias_from_detail')
+async def delete_tag_alias_from_detail_action(
+    request: Request,
+    tag_id: int,
+    alias_id: int,
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    tag = get_admin_tag(tag_id)
+    if not tag:
+        raise HTTPException(status_code=404, detail='Тег не найден')
+    try:
+        delete_admin_tag_alias(session['tg_id'], alias_id)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/tag_detail.html',
+            context=_tag_detail_context(session, tag, str(exc)), status_code=400,
+        )
+    return RedirectResponse(f'/admin/tags/{tag_id}', status_code=303)
+
+
+@router.post('/tags/aliases', name='admin_create_tag_alias')
+async def create_tag_alias_action(
+    request: Request,
+    tag_id: int = Form(...),
+    alias: str = Form(''),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    alias = alias.strip()
+    try:
+        if not 1 <= len(alias) <= MAX_NAME_LENGTH:
+            raise ValueError(f'Алиас должен содержать от 1 до {MAX_NAME_LENGTH} символов')
+        add_admin_tag_alias(session['tg_id'], tag_id, alias)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/tags.html',
+            context=_tags_context(session, str(exc)), status_code=400,
+        )
+    return RedirectResponse('/admin/tags', status_code=303)
+
+
+@router.post('/tags/aliases/{alias_id}/delete', name='admin_delete_tag_alias')
+async def delete_tag_alias_action(
+    request: Request,
+    alias_id: int,
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        delete_admin_tag_alias(session['tg_id'], alias_id)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/tags.html',
+            context=_tags_context(session, str(exc)), status_code=400,
+        )
+    return RedirectResponse('/admin/tags', status_code=303)
+
+
+@router.post('/tags/characters', name='admin_assign_character_tag')
+async def assign_character_tag_action(
+    request: Request,
+    character_id: int = Form(...),
+    tag_id: int = Form(...),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        add_admin_tag_alias(session['tg_id'], tag_id, '', character_id=character_id)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/tags.html',
+            context=_tags_context(session, str(exc)), status_code=400,
+        )
+    return RedirectResponse('/admin/tags', status_code=303)
+
+
+def _affiliations_context(session, error=None, q='', character_q=''):
+    return {
+        'affiliations': list_admin_affiliations(q),
+        'affiliation_options': list_admin_affiliations(),
+        'characters': list_admin_character_affiliations(character_q),
+        'search': q.strip(), 'character_search': character_q.strip(),
+        'csrf_token': session['csrf'], 'active_page': 'admin_affiliations', 'error': error,
+    }
+
+
+@router.get('/affiliations', name='admin_affiliations')
+async def admin_affiliations(
+    request: Request, q: str = '', character_q: str = '', session=Depends(require_admin),
+):
+    return templates.TemplateResponse(
+        request=request, name='admin/affiliations.html',
+        context=_affiliations_context(session, q=q, character_q=character_q),
+    )
+
+
+@router.post('/affiliations', name='admin_create_affiliation')
+async def create_affiliation_action(
+    request: Request,
+    name: str = Form(...),
+    parent_id: int | None = Form(None),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    name = name.strip()
+    try:
+        if not 1 <= len(name) <= MAX_NAME_LENGTH:
+            raise ValueError(f'Название должно содержать от 1 до {MAX_NAME_LENGTH} символов')
+        create_admin_affiliation(session['tg_id'], name, parent_id)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/affiliations.html',
+            context=_affiliations_context(session, str(exc)), status_code=400,
+        )
+    return RedirectResponse('/admin/affiliations', status_code=303)
+
+
+def _affiliation_edit_context(session, affiliation, error=None):
+    return {
+        'affiliation': affiliation, 'affiliation_options': list_admin_affiliations(),
+        'csrf_token': session['csrf'], 'active_page': 'admin_affiliations', 'error': error,
+    }
+
+
+@router.get('/affiliations/{affiliation_id}/edit', name='admin_edit_affiliation')
+async def edit_affiliation(
+    request: Request, affiliation_id: int, session=Depends(require_admin),
+):
+    affiliation = get_admin_affiliation(affiliation_id)
+    if not affiliation:
+        raise HTTPException(status_code=404, detail='Принадлежность не найдена')
+    return templates.TemplateResponse(
+        request=request, name='admin/affiliation_edit.html',
+        context=_affiliation_edit_context(session, affiliation),
+    )
+
+
+@router.post('/affiliations/{affiliation_id}/edit', name='admin_update_affiliation')
+async def update_affiliation_action(
+    request: Request,
+    affiliation_id: int,
+    name: str = Form(...),
+    parent_id: int | None = Form(None),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    affiliation = get_admin_affiliation(affiliation_id)
+    if not affiliation:
+        raise HTTPException(status_code=404, detail='Принадлежность не найдена')
+    name = name.strip()
+    try:
+        if not 1 <= len(name) <= MAX_NAME_LENGTH:
+            raise ValueError(f'Название должно содержать от 1 до {MAX_NAME_LENGTH} символов')
+        update_admin_affiliation(session['tg_id'], affiliation_id, name, parent_id)
+    except ValueError as exc:
+        submitted = {**affiliation, 'name': name, 'parent_id': parent_id}
+        return templates.TemplateResponse(
+            request=request, name='admin/affiliation_edit.html',
+            context=_affiliation_edit_context(session, submitted, str(exc)), status_code=400,
+        )
+    return RedirectResponse('/admin/affiliations', status_code=303)
+
+
+@router.post('/affiliations/{affiliation_id}/delete', name='admin_delete_affiliation')
+async def delete_affiliation_action(
+    request: Request,
+    affiliation_id: int,
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        delete_admin_affiliation(session['tg_id'], affiliation_id)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/affiliations.html',
+            context=_affiliations_context(session, str(exc)), status_code=400,
+        )
+    return RedirectResponse('/admin/affiliations', status_code=303)
+
+
+@router.post('/affiliations/characters', name='admin_assign_character_affiliation')
+async def assign_character_affiliation_action(
+    request: Request,
+    character_id: int = Form(...),
+    affiliation_id: int = Form(...),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        add_admin_character_affiliation(session['tg_id'], character_id, affiliation_id)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/affiliations.html',
+            context=_affiliations_context(session, str(exc)), status_code=400,
+        )
+    return RedirectResponse('/admin/affiliations', status_code=303)
+
+
+@router.post(
+    '/affiliations/characters/{character_id}/{affiliation_id}/delete',
+    name='admin_remove_character_affiliation',
+)
+async def remove_character_affiliation_action(
+    request: Request,
+    character_id: int,
+    affiliation_id: int,
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        remove_admin_character_affiliation(session['tg_id'], character_id, affiliation_id)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/affiliations.html',
+            context=_affiliations_context(session, str(exc)), status_code=400,
+        )
+    return RedirectResponse('/admin/affiliations', status_code=303)
 
 
 def _characters_context(session, error=None):

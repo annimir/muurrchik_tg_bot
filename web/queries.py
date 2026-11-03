@@ -20,7 +20,11 @@ def list_active_tags():
         '''
         SELECT id, name FROM tag
         WHERE status = 'ACTIVE'
-        ORDER BY CASE
+        ORDER BY EXISTS (
+            SELECT 1 FROM tag_usage tu
+            WHERE tu.tag_id = tag.id AND tu.is_public = TRUE
+                AND (tu.media_file_id IS NOT NULL OR tu.media_url IS NOT NULL)
+        ) DESC, CASE
             WHEN name ~ '^[A-Za-z]' THEN 0
             WHEN name ~ '^[А-Яа-яЁё]' THEN 1
             ELSE 2
@@ -37,7 +41,11 @@ def search_active_tags(prefix):
         '''
         SELECT id, name FROM tag
         WHERE status = 'ACTIVE' AND lower(name) LIKE lower(%s) || '%%' ESCAPE '\\'
-        ORDER BY CASE
+        ORDER BY EXISTS (
+            SELECT 1 FROM tag_usage tu
+            WHERE tu.tag_id = tag.id AND tu.is_public = TRUE
+                AND (tu.media_file_id IS NOT NULL OR tu.media_url IS NOT NULL)
+        ) DESC, CASE
             WHEN name ~ '^[A-Za-z]' THEN 0
             WHEN name ~ '^[А-Яа-яЁё]' THEN 1
             ELSE 2
@@ -235,10 +243,14 @@ def get_public_user_characters(user_id):
     return db(
         '''
         SELECT c.id, c.name, c.description, c.photo_file_id, c.is_primary,
-            c.birth_date, p.name AS position_name, a.name AS affiliation_name
+            c.birth_date, p.name AS position_name, (SELECT STRING_AGG(DISTINCT aff.name, ', ' ORDER BY aff.name)
+             FROM affiliations aff
+             WHERE aff.id = c.affiliation_id OR EXISTS (
+                 SELECT 1 FROM character_affiliation ca
+                 WHERE ca.character_id = c.id AND ca.affiliation_id = aff.id
+             )) AS affiliation_name
         FROM character c
         LEFT JOIN positions p ON p.id = c.position_id
-        LEFT JOIN affiliations a ON a.id = c.affiliation_id
         WHERE c.owner_user_id = %s
         ORDER BY c.is_primary DESC, c.name
         ''',
@@ -251,11 +263,15 @@ def list_characters(limit=30, offset=0):
         '''
         SELECT c.id, c.name, c.description, c.photo_file_id, c.is_primary,
             c.birth_date, u.id AS owner_id, u.tag AS owner_tag,
-            p.name AS position_name, a.name AS affiliation_name
+            p.name AS position_name, (SELECT STRING_AGG(DISTINCT aff.name, ', ' ORDER BY aff.name)
+             FROM affiliations aff
+             WHERE aff.id = c.affiliation_id OR EXISTS (
+                 SELECT 1 FROM character_affiliation ca
+                 WHERE ca.character_id = c.id AND ca.affiliation_id = aff.id
+             )) AS affiliation_name
         FROM character c
         JOIN users u ON u.id = c.owner_user_id AND u.left_at IS NULL
         LEFT JOIN positions p ON p.id = c.position_id
-        LEFT JOIN affiliations a ON a.id = c.affiliation_id
         ORDER BY c.is_primary DESC, c.name
         LIMIT %s OFFSET %s
         ''',
@@ -276,12 +292,16 @@ def get_public_character(character_id):
     return db(
         '''
         SELECT c.*, u.id AS owner_id, u.tag AS owner_tag, uc.bio AS owner_bio,
-            p.name AS position_name, a.name AS affiliation_name
+            p.name AS position_name, (SELECT STRING_AGG(DISTINCT aff.name, ', ' ORDER BY aff.name)
+             FROM affiliations aff
+             WHERE aff.id = c.affiliation_id OR EXISTS (
+                 SELECT 1 FROM character_affiliation ca
+                 WHERE ca.character_id = c.id AND ca.affiliation_id = aff.id
+             )) AS affiliation_name
         FROM character c
         JOIN users u ON u.id = c.owner_user_id AND u.left_at IS NULL
         LEFT JOIN user_card uc ON uc.user_id = u.id
         LEFT JOIN positions p ON p.id = c.position_id
-        LEFT JOIN affiliations a ON a.id = c.affiliation_id
         WHERE c.id = %s
         ''',
         (character_id,),
@@ -302,6 +322,395 @@ def get_admin_overview():
 
 def list_admin_users():
     return db('SELECT id, tag FROM users WHERE left_at IS NULL ORDER BY tag NULLS LAST, id').all()
+
+
+def list_admin_tags(search='', status=''):
+    where = ['TRUE']
+    params = []
+    if search.strip():
+        where.append(
+            '''(t.name ILIKE %s OR EXISTS (
+                SELECT 1 FROM tag_alias search_alias
+                WHERE search_alias.tag_id = t.id AND search_alias.alias ILIKE %s
+            ))'''
+        )
+        pattern = f'{search.strip()}%'
+        params.extend((pattern, pattern))
+    if status:
+        if status not in {'ACTIVE', 'DELETED', 'BLOCKED'}:
+            raise ValueError('Неизвестный статус тега')
+        where.append('t.status = %s')
+        params.append(status)
+    return db(
+        f'''
+        SELECT t.id, t.name, t.status,
+            COALESCE(
+                json_agg(json_build_object('id', ta.id, 'alias', ta.alias) ORDER BY ta.alias)
+                    FILTER (WHERE ta.id IS NOT NULL),
+                '[]'
+            ) AS aliases,
+            (SELECT COUNT(*) FROM tag_usage tu WHERE tu.tag_id = t.id) AS usages,
+            (SELECT COUNT(*) FROM subscription s WHERE s.tag_id = t.id AND s.active = TRUE) AS subscriptions
+        FROM tag t
+        LEFT JOIN tag_alias ta ON ta.tag_id = t.id
+        WHERE {' AND '.join(where)}
+        GROUP BY t.id
+        ORDER BY CASE t.status WHEN 'ACTIVE' THEN 0 ELSE 1 END, lower(t.name)
+        ''',
+        tuple(params),
+    ).all()
+
+
+def list_admin_character_tag_links(search=''):
+    rows = db(
+        '''
+        SELECT c.id, c.name, u.tag AS owner_tag,
+            (SELECT STRING_AGG(DISTINCT linked.name, ', ' ORDER BY linked.name)
+             FROM tag linked
+             LEFT JOIN tag_alias ta ON ta.tag_id = linked.id
+             WHERE linked.status = 'ACTIVE'
+                 AND (lower(linked.name) = lower(c.name) OR lower(ta.alias) = lower(c.name))
+            ) AS tag_names
+        FROM character c
+        JOIN users u ON u.id = c.owner_user_id
+        ORDER BY lower(c.name)
+        '''
+    ).all()
+    needle = search.strip().casefold()
+    if not needle:
+        return rows
+    return [
+        row for row in rows
+        if row['name'].casefold().startswith(needle)
+        or (row['owner_tag'] or '').casefold().startswith(needle)
+        or any(
+            tag.strip().casefold().startswith(needle)
+            for tag in (row['tag_names'] or '').split(',') if tag.strip()
+        )
+    ]
+
+
+def get_admin_tag(tag_id):
+    return db(
+        '''
+        SELECT t.id, t.name, t.status,
+            COALESCE(
+                json_agg(json_build_object('id', ta.id, 'alias', ta.alias) ORDER BY ta.alias)
+                    FILTER (WHERE ta.id IS NOT NULL),
+                '[]'
+            ) AS aliases,
+            (SELECT COUNT(*) FROM tag_usage tu WHERE tu.tag_id = t.id) AS usages,
+            (SELECT COUNT(*) FROM subscription s WHERE s.tag_id = t.id AND s.active = TRUE) AS subscriptions
+        FROM tag t
+        LEFT JOIN tag_alias ta ON ta.tag_id = t.id
+        WHERE t.id = %s
+        GROUP BY t.id
+        ''',
+        (tag_id,),
+    ).one()
+
+
+def get_admin_tag_character_links(tag_id):
+    return db(
+        '''
+        SELECT c.id, c.name, u.tag AS owner_tag, ta.id AS alias_id,
+            CASE WHEN lower(t.name) = lower(c.name) THEN 'tag' ELSE 'alias' END AS link_type
+        FROM tag t
+        JOIN character c ON lower(t.name) = lower(c.name) OR EXISTS (
+            SELECT 1 FROM tag_alias linked_alias
+            WHERE linked_alias.tag_id = t.id AND lower(linked_alias.alias) = lower(c.name)
+        )
+        LEFT JOIN tag_alias ta ON ta.tag_id = t.id AND lower(ta.alias) = lower(c.name)
+        JOIN users u ON u.id = c.owner_user_id
+        WHERE t.id = %s
+        ORDER BY lower(c.name)
+        ''',
+        (tag_id,),
+    ).all()
+
+
+def update_admin_tag_status(admin_tg_id, tag_id, status):
+    if status not in {'ACTIVE', 'DELETED', 'BLOCKED'}:
+        raise ValueError('Неизвестный статус тега')
+    with db.transaction() as tx:
+        tag = tx('SELECT id, name, status FROM tag WHERE id = %s FOR UPDATE', (tag_id,)).one()
+        if not tag:
+            raise ValueError('Тег не найден')
+        tx('UPDATE tag SET status = %s WHERE id = %s', (status, tag_id)).close()
+        _audit(tx, admin_tg_id, 'update', 'tag', tag_id, {
+            'name': tag['name'], 'from_status': tag['status'], 'to_status': status,
+        })
+
+
+def delete_admin_tag(admin_tg_id, tag_id):
+    with db.transaction() as tx:
+        tag = tx('SELECT id, name FROM tag WHERE id = %s FOR UPDATE', (tag_id,)).one()
+        if not tag:
+            raise ValueError('Тег не найден')
+        usage_count = tx('SELECT COUNT(*) AS cnt FROM tag_usage WHERE tag_id = %s', (tag_id,)).one()['cnt']
+        tx('DELETE FROM tag WHERE id = %s', (tag_id,)).close()
+        _audit(tx, admin_tg_id, 'delete', 'tag', tag_id, {
+            'name': tag['name'], 'tag_usage_count': usage_count,
+        })
+
+
+def add_admin_tag_alias(admin_tg_id, tag_id, alias, character_id=None):
+    with db.transaction() as tx:
+        tag = tx('SELECT id, name, status FROM tag WHERE id = %s FOR UPDATE', (tag_id,)).one()
+        if not tag or tag['status'] != 'ACTIVE':
+            raise ValueError('Основной тег не найден или неактивен')
+        if character_id is not None:
+            character = tx('SELECT id, name FROM character WHERE id = %s', (character_id,)).one()
+            if not character:
+                raise ValueError('Персонаж не найден')
+            alias = character['name']
+        alias = alias.strip()
+        if not alias:
+            raise ValueError('Введите алиас')
+        collision = tx(
+            '''
+            SELECT 'tag' AS source, id, name, status, name AS matched_name
+            FROM tag WHERE lower(name) = lower(%s)
+            UNION ALL
+            SELECT 'alias' AS source, t.id, t.name, t.status, ta.alias AS matched_name
+            FROM tag_alias ta JOIN tag t ON t.id = ta.tag_id
+            WHERE lower(ta.alias) = lower(%s)
+            LIMIT 1
+            ''',
+            (alias, alias),
+        ).one()
+        if collision:
+            if collision['source'] == 'alias' and collision['id'] == tag_id:
+                raise ValueError(f'Алиас «{alias}» уже привязан к основному тегу «{collision["name"]}»')
+            character = tx('SELECT id, name FROM character WHERE lower(name) = lower(%s)', (alias,)).one()
+            if collision['source'] == 'alias':
+                relation = f'алиасом «{collision["matched_name"]}» основного тега «{collision["name"]}»'
+                if character:
+                    relation += f' (привязка персонажа «{character["name"]}»)'
+            else:
+                relation = f'основным тегом «{collision["name"]}»'
+                if character:
+                    relation += f'; у персонажа «{character["name"]}» уже есть одноимённый тег'
+            raise ValueError(f'Имя «{alias}» уже используется: {relation}')
+        row = tx(
+            'INSERT INTO tag_alias (tag_id, alias) VALUES (%s, %s) RETURNING id',
+            (tag_id, alias),
+        ).one()
+        _audit(tx, admin_tg_id, 'create', 'tag_alias', row['id'], {
+            'tag_id': tag_id, 'alias': alias, 'character_id': character_id,
+        })
+        return row
+
+
+def delete_admin_tag_alias(admin_tg_id, alias_id):
+    with db.transaction() as tx:
+        row = tx(
+            'DELETE FROM tag_alias WHERE id = %s RETURNING id, tag_id, alias',
+            (alias_id,),
+        ).one()
+        if not row:
+            raise ValueError('Алиас не найден')
+        _audit(tx, admin_tg_id, 'delete', 'tag_alias', alias_id, {
+            'tag_id': row['tag_id'], 'alias': row['alias'],
+        })
+
+
+def list_admin_affiliations(search=''):
+    where = 'TRUE'
+    params = ()
+    if search.strip():
+        where = 'a.name ILIKE %s'
+        params = (f'{search.strip()}%',)
+    return db(
+        f'''
+        SELECT a.id, a.name, a.parent_id, parent.name AS parent_name,
+            (SELECT COUNT(*) FROM character_affiliation ca WHERE ca.affiliation_id = a.id)
+            + (SELECT COUNT(*) FROM character c
+               WHERE c.affiliation_id = a.id AND NOT EXISTS (
+                   SELECT 1 FROM character_affiliation ca
+                   WHERE ca.character_id = c.id AND ca.affiliation_id = a.id
+               )) AS character_count
+        FROM affiliations a
+        LEFT JOIN affiliations parent ON parent.id = a.parent_id
+        WHERE {where}
+        ORDER BY parent.name NULLS FIRST, a.name
+        ''',
+        params,
+    ).all()
+
+
+def get_admin_affiliation(affiliation_id):
+    return db(
+        '''
+        SELECT a.id, a.name, a.parent_id, parent.name AS parent_name
+        FROM affiliations a LEFT JOIN affiliations parent ON parent.id = a.parent_id
+        WHERE a.id = %s
+        ''',
+        (affiliation_id,),
+    ).one()
+
+
+def list_admin_character_affiliations(search=''):
+    rows = db(
+        '''
+        SELECT c.id, c.name, u.tag AS owner_tag,
+            (SELECT STRING_AGG(DISTINCT aff.name, ', ' ORDER BY aff.name)
+             FROM affiliations aff
+             WHERE aff.id = c.affiliation_id OR EXISTS (
+                 SELECT 1 FROM character_affiliation ca
+                 WHERE ca.character_id = c.id AND ca.affiliation_id = aff.id
+             )) AS affiliation_names,
+            COALESCE((SELECT json_agg(json_build_object('id', aff.id, 'name', aff.name) ORDER BY aff.name)
+             FROM affiliations aff
+             WHERE EXISTS (
+                 SELECT 1 FROM character_affiliation ca
+                 WHERE ca.character_id = c.id AND ca.affiliation_id = aff.id
+             )), '[]') AS memberships
+        FROM character c JOIN users u ON u.id = c.owner_user_id
+        ORDER BY lower(c.name)
+        '''
+    ).all()
+    needle = search.strip().casefold()
+    if not needle:
+        return rows
+    return [
+        row for row in rows
+        if row['name'].casefold().startswith(needle)
+        or (row['owner_tag'] or '').casefold().startswith(needle)
+        or any(
+            name.strip().casefold().startswith(needle)
+            for name in (row['affiliation_names'] or '').split(',') if name.strip()
+        )
+    ]
+
+
+def get_admin_character_affiliation_ids(character_id):
+    return {
+        row['affiliation_id']
+        for row in db(
+            'SELECT affiliation_id FROM character_affiliation WHERE character_id = %s',
+            (character_id,),
+        ).all()
+    }
+
+
+def _validate_affiliation_parent(tx, parent_id, affiliation_id=None):
+    if parent_id is None:
+        return
+    if not tx('SELECT id FROM affiliations WHERE id = %s', (parent_id,)).one():
+        raise ValueError('Родительская принадлежность не найдена')
+    if affiliation_id is None:
+        return
+    if parent_id == affiliation_id:
+        raise ValueError('Принадлежность не может быть родителем самой себя')
+    descendant = tx(
+        '''
+        WITH RECURSIVE descendants AS (
+            SELECT id FROM affiliations WHERE id = %s
+            UNION ALL
+            SELECT a.id FROM affiliations a
+            JOIN descendants d ON a.parent_id = d.id
+        )
+        SELECT id FROM descendants WHERE id = %s
+        ''',
+        (affiliation_id, parent_id),
+    ).one()
+    if descendant:
+        raise ValueError('Нельзя назначить родителем дочернюю принадлежность')
+
+
+def _check_affiliation_name_free(tx, name, parent_id, exclude_id=None):
+    duplicate = tx(
+        '''
+        SELECT id FROM affiliations
+        WHERE lower(name) = lower(%s)
+            AND ((parent_id IS NULL AND %s IS NULL) OR parent_id = %s)
+            AND (%s IS NULL OR id <> %s)
+        ''',
+        (name, parent_id, parent_id, exclude_id, exclude_id),
+    ).one()
+    if duplicate:
+        raise ValueError('Принадлежность с таким именем уже существует на этом уровне')
+
+
+def create_admin_affiliation(admin_tg_id, name, parent_id=None):
+    with db.transaction() as tx:
+        _validate_affiliation_parent(tx, parent_id)
+        _check_affiliation_name_free(tx, name, parent_id)
+        row = tx(
+            'INSERT INTO affiliations (name, parent_id) VALUES (%s, %s) RETURNING id',
+            (name, parent_id),
+        ).one()
+        _audit(tx, admin_tg_id, 'create', 'affiliation', row['id'], {
+            'name': name, 'parent_id': parent_id,
+        })
+        return row
+
+
+def update_admin_affiliation(admin_tg_id, affiliation_id, name, parent_id=None):
+    with db.transaction() as tx:
+        current = tx('SELECT id, name, parent_id FROM affiliations WHERE id = %s', (affiliation_id,)).one()
+        if not current:
+            raise ValueError('Принадлежность не найдена')
+        _validate_affiliation_parent(tx, parent_id, affiliation_id)
+        _check_affiliation_name_free(tx, name, parent_id, affiliation_id)
+        tx(
+            'UPDATE affiliations SET name = %s, parent_id = %s WHERE id = %s',
+            (name, parent_id, affiliation_id),
+        ).close()
+        _audit(tx, admin_tg_id, 'update', 'affiliation', affiliation_id, {
+            'from': dict(current), 'to': {'name': name, 'parent_id': parent_id},
+        })
+
+
+def delete_admin_affiliation(admin_tg_id, affiliation_id):
+    with db.transaction() as tx:
+        row = tx(
+            'DELETE FROM affiliations WHERE id = %s RETURNING id, name, parent_id',
+            (affiliation_id,),
+        ).one()
+        if not row:
+            raise ValueError('Принадлежность не найдена')
+        _audit(tx, admin_tg_id, 'delete', 'affiliation', affiliation_id, {
+            'name': row['name'], 'parent_id': row['parent_id'],
+        })
+
+
+def add_admin_character_affiliation(admin_tg_id, character_id, affiliation_id):
+    with db.transaction() as tx:
+        if not tx('SELECT id FROM character WHERE id = %s', (character_id,)).one():
+            raise ValueError('Персонаж не найден')
+        if not tx('SELECT id FROM affiliations WHERE id = %s', (affiliation_id,)).one():
+            raise ValueError('Принадлежность не найдена')
+        row = tx(
+            '''
+            INSERT INTO character_affiliation (character_id, affiliation_id)
+            VALUES (%s, %s) ON CONFLICT DO NOTHING RETURNING affiliation_id
+            ''',
+            (character_id, affiliation_id),
+        ).one()
+        if not row:
+            raise ValueError('Эта принадлежность уже назначена персонажу')
+        _audit(tx, admin_tg_id, 'assign', 'character_affiliation', character_id, {
+            'affiliation_id': affiliation_id,
+        })
+
+
+def remove_admin_character_affiliation(admin_tg_id, character_id, affiliation_id):
+    with db.transaction() as tx:
+        row = tx(
+            '''
+            DELETE FROM character_affiliation
+            WHERE character_id = %s AND affiliation_id = %s
+            RETURNING affiliation_id
+            ''',
+            (character_id, affiliation_id),
+        ).one()
+        if not row:
+            raise ValueError('Такой привязки у персонажа нет')
+        _audit(tx, admin_tg_id, 'unassign', 'character_affiliation', character_id, {
+            'affiliation_id': affiliation_id,
+        })
 
 
 def list_admin_players():

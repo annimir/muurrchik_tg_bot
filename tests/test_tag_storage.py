@@ -15,6 +15,17 @@ class TagStorageTests(unittest.TestCase):
         self.assertEqual(storage.find('main'), {'status': 'found', 'tag': 'Renamed'})
         self.assertEqual(storage.find('alias'), {'status': 'found', 'tag': 'Renamed'})
 
+    def test_replace_removes_stale_tags_and_aliases(self):
+        storage = TagStorage()
+        storage.load_from(['Old'])
+        storage.load_aliases([('Alias', 'Old')])
+
+        storage.replace(['New'], [('Other', 'New')])
+
+        self.assertEqual(storage.find('old')['status'], 'created')
+        self.assertEqual(storage.find('alias')['status'], 'created')
+        self.assertEqual(storage.find('other'), {'status': 'found', 'tag': 'New'})
+
     def test_find_is_case_insensitive(self):
         storage = TagStorage()
         storage.add_to_cache('Персонаж')

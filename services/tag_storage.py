@@ -30,6 +30,14 @@ class TagStorage:
         for alias, main_name in alias_pairs:
             self.tags[self.normalize(alias)] = main_name
 
+    def replace(self, existing_tags: list[str], alias_pairs: list[tuple[str, str]]):
+        updated = {}
+        for tag in existing_tags:
+            updated[self.normalize(tag)] = tag
+        for alias, main_name in alias_pairs:
+            updated[self.normalize(alias)] = main_name
+        self.tags = updated
+
     def add_to_cache(self, tag: str):
         self.tags[self.normalize(tag)] = tag
 
