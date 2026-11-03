@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 from database.queries import get_user_titles
 from web.chat_insights import get_chat_insights
+from web.commands import get_paimon_command_count, get_paimon_command_groups
 from web.lore import get_lore
 from web.media import get_media_store
 from web.queries import (
@@ -51,6 +52,19 @@ async def lore(request: Request, game: str = ''):
         request=request,
         name='lore.html',
         context={**lore_page, 'active_page': 'lore'},
+    )
+
+
+@router.get('/commands', name='paimon_commands')
+async def paimon_commands(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name='commands.html',
+        context={
+            'groups': get_paimon_command_groups(),
+            'command_count': get_paimon_command_count(),
+            'active_page': 'commands',
+        },
     )
 
 

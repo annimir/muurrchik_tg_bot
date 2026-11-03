@@ -192,6 +192,25 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertLess(all_events.text.index('Секретный квест'), all_events.text.index('Чаепитие, предсказанное чатом'))
         self.assertEqual(self.client.get('/lore?game=unknown').status_code, 404)
 
+    def test_paimon_commands_page_lists_groups_and_search(self):
+        from web.commands import get_paimon_command_count
+
+        response = self.client.get('/commands')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Команды Паймон', response.text)
+        self.assertIn('href="/commands"', response.text)
+        self.assertIn('class="active" href="/commands"', response.text)
+        self.assertIn('/card [@username]', response.text)
+        self.assertIn('/sub &lt;тег&gt;', response.text)
+        self.assertIn('/newcharacter', response.text)
+        self.assertIn('/assign_position', response.text)
+        self.assertIn('Только для администраторов', response.text)
+        self.assertIn('data-command-search', response.text)
+        self.assertIn('data-commands-empty', response.text)
+        self.assertEqual(response.text.count('data-command-card'), get_paimon_command_count())
+        self.assertNotIn('/add_role', response.text)
+
     def test_chat_insights_page_and_periods(self):
         all_periods = self.client.get('/insights')
         year = self.client.get('/insights?period=2025')
