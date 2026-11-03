@@ -218,52 +218,6 @@ def delete_user_completely(user_id):
     db('DELETE FROM users WHERE id = %s', (user_id,)).close()
 
 
-# ==================== FLAVOR ROLES ====================
-
-def get_all_flavor_roles():
-    return db('SELECT id, name FROM flavor_roles').all()
-
-
-def add_flavor_role(name):
-    query = '''
-        INSERT INTO flavor_roles (name) VALUES (%s)
-        ON CONFLICT (name) DO NOTHING
-        RETURNING id
-    '''
-    row = db(query, (name,)).one()
-    return row['id'] if row else None
-
-
-def get_flavor_role_by_name(name):
-    return db('SELECT id, name FROM flavor_roles WHERE lower(name) = lower(%s)', (name,)).one()
-
-
-def get_users_with_role(role_id):
-    return db('SELECT id, tg_id FROM users WHERE flavor_role_id = %s', (role_id,)).all()
-
-
-def delete_flavor_role(role_id):
-    db('DELETE FROM flavor_roles WHERE id = %s', (role_id,)).close()
-
-
-def set_user_flavor_role(user_id, role_id):
-    db('UPDATE users SET flavor_role_id = %s WHERE id = %s', (role_id, user_id)).close()
-
-
-def get_user_flavor_role(user_id):
-    query = '''
-        SELECT fr.id, fr.name
-        FROM users u
-        JOIN flavor_roles fr ON fr.id = u.flavor_role_id
-        WHERE u.id = %s
-    '''
-    return db(query, (user_id,)).one()
-
-
-def get_users_without_role():
-    return db('SELECT id, tg_id FROM users WHERE flavor_role_id IS NULL').all()
-
-
 # ==================== GAMES ====================
 
 def get_user_games(user_id) -> set[str]:
@@ -515,6 +469,26 @@ def get_character_by_id(character_id):
     return db('SELECT * FROM character WHERE id = %s', (character_id,)).one()
 
 
+def get_character_tags(character_id):
+    return db(
+        '''
+        SELECT t.id, t.name,
+            COALESCE(array_agg(ta.alias ORDER BY lower(ta.alias))
+                FILTER (WHERE ta.id IS NOT NULL), ARRAY[]::text[]) AS aliases
+        FROM character c
+        JOIN tag t ON lower(t.name) = lower(c.name) OR EXISTS (
+            SELECT 1 FROM tag_alias linked_alias
+            WHERE linked_alias.tag_id = t.id AND lower(linked_alias.alias) = lower(c.name)
+        )
+        LEFT JOIN tag_alias ta ON ta.tag_id = t.id
+        WHERE c.id = %s AND t.status = 'ACTIVE'
+        GROUP BY t.id
+        ORDER BY lower(t.name), t.id
+        ''',
+        (character_id,),
+    ).all()
+
+
 def create_character_row(owner_user_id, name, birth_date, photo_file_id, description, is_primary):
     query = '''
         INSERT INTO character (owner_user_id, name, birth_date, photo_file_id, description, is_primary)
@@ -690,7 +664,14 @@ def get_user_character_requests(user_id):
     return db(query, (user_id,)).all()
 
 
-# ==================== USER_CARD ====================
+# ==================== USER TITLES / CARD ====================
+
+def get_user_titles(user_id):
+    return db(
+        'SELECT id, name FROM user_titles WHERE user_id = %s ORDER BY lower(name), id',
+        (user_id,),
+    ).all()
+
 
 def get_user_card(user_id):
     return db('SELECT * FROM user_card WHERE user_id = %s', (user_id,)).one()
@@ -970,33 +951,6 @@ def get_character_affiliation_names(character_id):
         ''',
         (character_id,),
     ).one()['names']
-
-
-def get_flavor_role_by_id(role_id):
-    return db('SELECT * FROM flavor_roles WHERE id = %s', (role_id,)).one()
-
-
-def update_flavor_role_photo(role_id, photo_file_id):
-    db('UPDATE flavor_roles SET photo_file_id = %s WHERE id = %s', (photo_file_id, role_id)).close()
-
-
-def update_flavor_role_description(role_id, description):
-    db('UPDATE flavor_roles SET description = %s WHERE id = %s', (description, role_id)).close()
-
-
-def update_flavor_role_wiki_url(role_id, wiki_url):
-    db('UPDATE flavor_roles SET wiki_url = %s WHERE id = %s', (wiki_url, role_id)).close()
-
-
-def get_user_flavor_role_full(user_id):
-    """Полная строка роли (с фото/описанием/вики) — понадобится в G4 для карточки."""
-    query = '''
-        SELECT fr.*
-        FROM users u
-        JOIN flavor_roles fr ON fr.id = u.flavor_role_id
-        WHERE u.id = %s
-    '''
-    return db(query, (user_id,)).one()
 
 
 # ==================== YOUTUBE ====================

@@ -3,7 +3,6 @@
     <span class="profile-initial">{{ (user.tag or '?')[0]|upper }}<img src="/media/users/{{ user.id }}/avatar" alt="" loading="lazy" data-avatar-image></span>
     <span class="profile-content"><strong>{{ user.tag or 'Путешественник' }}</strong></span>
     <span class="profile-facts">
-        <span>Роль: {{ user.role_name or 'не назначена' }}</span>
         <span>Персонажи: {% if user.character_name %}{{ user.character_name }}{% else %}{{ user.character_count }}{% endif %}</span>
         <span>Подписки: {{ user.subscription_count }}</span>
     </span>

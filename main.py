@@ -45,12 +45,6 @@ from handlers.tags.tagging import media_tag_handler, link_tag_handler, tag_comma
 from handlers.tags.inline_search import inline_search
 from handlers.tags.callbacks import callback_router
 
-from handlers.admin.roles import (
-    add_role_command, remove_role_command, list_roles_command,
-    start_reroll_role, receive_reroll_forward, WAITING_REROLL_FORWARD,
-    backfill_cards_command, start_set_role, receive_set_role_forward, choose_specific_role,
-    WAITING_SETROLE_FORWARD, CHOOSING_SPECIFIC_ROLE,
-)
 from handlers.games.commands import mygames_command, toggle_game_callback, games_done_callback
 from handlers.games.admin import add_game_command, remove_game_command, list_games_command
 
@@ -91,10 +85,6 @@ from handlers.admin.affiliations import (
     choose_character_for_affiliation,
     CHOOSING_TYPE, CHOOSING_PARENT, WAITING_NAME, CHOOSING_REMOVE,
     CHOOSING_AFF_FOR_ASSIGN, WAITING_AFF_ASSIGN_FORWARD, CHOOSING_CHARACTER_FOR_AFF,
-)
-from handlers.admin.role_edit import (
-    start_edit_role, choose_role_to_edit, choose_role_field, receive_role_field_value,
-    CHOOSING_ROLE, CHOOSING_FIELD, WAITING_VALUE as ADMIN_ROLE_WAITING_VALUE,
 )
 from handlers.cards.admin_requests import (
     card_request_action_callback, receive_card_edit_bio, EDITING_BIO,
@@ -222,29 +212,6 @@ application.add_handler(InlineQueryHandler(inline_search))
 # ---------- callback-и тегов ----------
 application.add_handler(CallbackQueryHandler(callback_router, pattern=r'^(subscribe|tag|new)/|^cancel$'))
 
-# ---------- роли ----------
-application.add_handler(CommandHandler('add_role', add_role_command, filters=filters.ChatType.PRIVATE))
-application.add_handler(CommandHandler('remove_role', remove_role_command, filters=filters.ChatType.PRIVATE))
-application.add_handler(CommandHandler('list_roles', list_roles_command, filters=filters.ChatType.PRIVATE))
-application.add_handler(CommandHandler('backfill_cards', backfill_cards_command, filters=filters.ChatType.PRIVATE))
-
-reroll_conv = ConversationHandler(
-    entry_points=[CommandHandler('reroll_role', start_reroll_role, filters=filters.ChatType.PRIVATE)],
-    states={WAITING_REROLL_FORWARD: [MessageHandler(filters.FORWARDED & ~filters.COMMAND, receive_reroll_forward)]},
-    fallbacks=[],
-)
-application.add_handler(reroll_conv)
-
-setrole_conv = ConversationHandler(
-    entry_points=[CommandHandler('set_role', start_set_role, filters=filters.ChatType.PRIVATE)],
-    states={
-        WAITING_SETROLE_FORWARD: [MessageHandler(filters.FORWARDED & ~filters.COMMAND, receive_set_role_forward)],
-        CHOOSING_SPECIFIC_ROLE: [CallbackQueryHandler(choose_specific_role, pattern=r'^setrole:')],
-    },
-    fallbacks=[],
-)
-application.add_handler(setrole_conv)
-
 # ---------- игры ----------
 application.add_handler(CommandHandler('mygames', mygames_command))
 application.add_handler(CallbackQueryHandler(toggle_game_callback, pattern=r'^gametoggle:'))
@@ -300,7 +267,7 @@ application.add_handler(admin_setprimary_conv)
 
 # ---------- карточка ----------
 application.add_handler(CommandHandler('card', card_command))
-application.add_handler(CallbackQueryHandler(show_card_description, pattern=r'^card(desc|short):'))
+application.add_handler(CallbackQueryHandler(show_card_description, pattern=r'^card(desc|short|char|player):'))
 
 card_request_conv = ConversationHandler(
     entry_points=[CommandHandler('editcard', start_card_request)],
@@ -393,17 +360,6 @@ assign_affiliation_conv = ConversationHandler(
     fallbacks=[],
 )
 application.add_handler(assign_affiliation_conv)
-
-edit_role_conv = ConversationHandler(
-    entry_points=[CommandHandler('edit_role', start_edit_role, filters=filters.ChatType.PRIVATE)],
-    states={
-        CHOOSING_ROLE: [CallbackQueryHandler(choose_role_to_edit, pattern=r'^roleeditpick:')],
-        CHOOSING_FIELD: [CallbackQueryHandler(choose_role_field, pattern=r'^roleeditfield:')],
-        ADMIN_ROLE_WAITING_VALUE: [MessageHandler((filters.TEXT | filters.PHOTO) & ~filters.COMMAND, receive_role_field_value)],
-    },
-    fallbacks=[],
-)
-application.add_handler(edit_role_conv)
 
 logger.info("Бот запущен")
 application.run_polling()

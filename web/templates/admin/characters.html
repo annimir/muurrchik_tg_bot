@@ -5,12 +5,18 @@
 <section class="page-heading"><div class="eyebrow">Редактор архива</div><h1>Персонажи</h1></section>
 {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
 <section class="panel">
+    <h2>Должности персонажей</h2>
+    <form class="admin-form tag-forms" method="post" action="/admin/positions"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>Новая должность<input name="name" required maxlength="100"></label><button class="button" type="submit">Добавить должность</button></form>
+    {% if positions %}<div class="table-wrap"><table><thead><tr><th>Название</th><th>Действия</th></tr></thead><tbody>{% for position in positions %}<tr><td><form class="assign-form" id="position-{{ position.id }}" method="post" action="/admin/positions/{{ position.id }}/edit"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input name="name" required maxlength="100" value="{{ position.name }}"></form></td><td><div class="assign-form"><button class="button button-small" form="position-{{ position.id }}" type="submit">Сохранить</button><form method="post" action="/admin/positions/{{ position.id }}/delete" data-confirm="Удалить должность {{ position.name }}? Она будет снята с персонажа."><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button button-small button-danger" type="submit">Удалить</button></form></div></td></tr>{% endfor %}</tbody></table></div>{% else %}<p>Должностей пока нет.</p>{% endif %}
+</section>
+<section class="panel">
     <h2>Добавить персонажа</h2>
     <form class="admin-form" method="post" action="/admin/characters">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <label>Игрок<select name="owner_user_id" required>{% for user in users %}<option value="{{ user.id }}">{{ user.tag or 'Игрок #' + user.id|string }}</option>{% endfor %}</select></label>
         <label>Имя<input name="name" required maxlength="100"></label>
         <label>День рождения<input type="date" name="birth_date"></label>
+        <label>Должность<select name="position_id"><option value="">Не назначена</option>{% for position in positions %}<option value="{{ position.id }}">{{ position.name }}</option>{% endfor %}</select></label>
         <label class="form-wide">Описание<textarea name="description" rows="4" maxlength="5000"></textarea></label>
         <label class="checkbox"><input type="checkbox" name="is_primary" value="true"> Основной персонаж</label>
         <button class="button" type="submit">Добавить</button>

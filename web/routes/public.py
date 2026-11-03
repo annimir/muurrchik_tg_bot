@@ -2,12 +2,13 @@ from math import ceil
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
+from database.queries import get_user_titles
 from web.chat_insights import get_chat_insights
 from web.lore import get_lore
 from web.media import get_media_store
 from web.queries import (
-    count_characters, count_media, count_users, get_admin_role, get_public_character,
-    get_public_media, get_public_stats, get_public_user,
+    count_characters, count_media, count_users, get_public_character,
+    get_public_character_tags, get_public_media, get_public_stats, get_public_user,
     get_public_user_characters, get_public_user_games, get_public_user_subscriptions,
     get_user_avatar_data,
     list_active_tags, list_characters, list_media, list_users, search_active_tags,
@@ -178,6 +179,7 @@ async def user_detail(request: Request, user_id: int):
         name='user_detail.html',
         context={
             'user': user, 'games': get_public_user_games(user_id),
+            'titles': get_user_titles(user_id),
             'characters': get_public_user_characters(user_id),
             'subscriptions': get_public_user_subscriptions(user_id), 'active_page': 'users',
         },
@@ -205,7 +207,10 @@ async def character_detail(request: Request, character_id: int):
     return templates.TemplateResponse(
         request=request,
         name='character_detail.html',
-        context={'character': character, 'active_page': 'characters'},
+        context={
+            'character': character, 'tags': get_public_character_tags(character_id),
+            'active_page': 'characters',
+        },
     )
 
 
@@ -227,16 +232,6 @@ async def character_photo(character_id: int):
     return await get_media_store().get_response(
         character['photo_file_id'], f'character-{character_id}',
     )
-
-
-@router.get('/media/roles/{role_id}', name='role_photo')
-async def role_photo(role_id: int):
-    role = get_admin_role(role_id)
-    if not role or not role['photo_file_id']:
-        raise HTTPException(status_code=404, detail='Фото не найдено')
-    if role['photo_file_id'].startswith('local:'):
-        return get_media_store().get_local_response(role['photo_file_id'])
-    return await get_media_store().get_response(role['photo_file_id'], f'role-{role_id}')
 
 
 @router.get('/media/users/{user_id}/avatar', name='user_avatar')

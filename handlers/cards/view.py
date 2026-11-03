@@ -1,26 +1,29 @@
 import html
 import logging
+from pathlib import Path
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, Update
 from telegram.ext import ContextTypes
 
 from config.config import config
 from database.queries import (
     get_user_by_tg_id, create_user, get_user_by_username, get_user_card,
-    get_user_flavor_role_full, get_user_games, get_user_characters, get_games_dict,
-    get_character_position, get_character_affiliation_names, get_user_language,
-    get_character_by_id, get_user_by_id,
+    get_user_games, get_user_characters, get_games_dict, get_character_position,
+    get_character_affiliation_names, get_user_language, get_character_by_id,
+    get_user_by_id, get_birthday, get_character_tags, get_user_titles,
 )
 from services.photo import photo_input
 from message.loader import message
 from message.keys import (
-    card_role_none, card_char_desc_none, card_bio_none, card_role_desc_none,
-    card_secondary_label, card_wiki_link_label, card_full_description,
-    card_short_description, card_next_page, card_previous_page,
-    card_profile_link_label, card_user_not_found, card_usage,
+    card_char_desc_none, card_bio_none, card_secondary_label, card_wiki_link_label,
+    card_next_page, card_previous_page, card_profile_link_label, card_user_not_found,
+    card_usage, card_titles_label, card_birthday_label,
+    card_character_birthday_label, card_tags_label, card_games_label,
+    card_affiliations_label, card_character_profile_link_label, card_back_to_player,
 )
 
 logger = logging.getLogger(__name__)
+CARD_PLACEHOLDER = Path(__file__).resolve().parents[2] / 'web' / 'static' / 'card-placeholder.png'
 
 
 def _esc(text: str) -> str:
@@ -37,119 +40,182 @@ def _excerpt(text, limit):
     return f'{shortened}…'
 
 
-def _card_markup(db_user, role, description_target, lang, wiki_url=None):
-    rows = []
-    if description_target:
-        rows.append([InlineKeyboardButton(
-            message(lang, card_full_description, 'card'),
-            callback_data=f'carddesc:{description_target}',
-        )])
-    wiki_url = wiki_url or (role['wiki_url'] if role else None)
-    if wiki_url:
-        rows.append([InlineKeyboardButton(
-            message(lang, card_wiki_link_label, 'card'), url=wiki_url,
-        )])
+def _birthday_text(birthday):
+    if not birthday:
+        return None
+    text = f'{birthday["day"]:02}.{birthday["month"]:02}'
+    if birthday['year']:
+        text += f'.{birthday["year"]:04}'
+    return text
+
+
+def _player_markup(db_user, characters, lang):
     profile_url = f'{config.web_public_base_url}/users/{db_user["id"]}'
-    rows.append([InlineKeyboardButton(
+    rows = [[InlineKeyboardButton(
         message(lang, card_profile_link_label, 'card'), url=profile_url,
-    )])
+    )]]
+    for character in characters:
+        rows.append([InlineKeyboardButton(
+            _excerpt(character['name'], 60),
+            callback_data=f'cardchar:{db_user["id"]}:{character["id"]}',
+        )])
     return InlineKeyboardMarkup(rows)
 
 
-def _description_markup(db_user, role, target, page, page_count, lang, wiki_url=None):
-    rows = [[InlineKeyboardButton(
-        message(lang, card_short_description, 'card'),
-        callback_data=f'cardshort:{target}',
+def _character_markup(db_user, character, page, page_count, lang):
+    profile_url = f'{config.web_public_base_url}/characters/{character["id"]}'
+    actions = [InlineKeyboardButton(
+        message(lang, card_character_profile_link_label, 'card'), url=profile_url,
+    )]
+    if character['wiki_url']:
+        actions.append(InlineKeyboardButton(
+            message(lang, card_wiki_link_label, 'card'), url=character['wiki_url'],
+        ))
+    rows = [actions, [InlineKeyboardButton(
+        message(lang, card_back_to_player, 'card'),
+        callback_data=f'cardplayer:{db_user["id"]}',
     )]]
     if page_count > 1:
         pagination = []
         if page > 0:
             pagination.append(InlineKeyboardButton(
                 message(lang, card_previous_page, 'card'),
-                callback_data=f'carddesc:{target}:{page - 1}',
+                callback_data=f'cardchar:{db_user["id"]}:{character["id"]}:{page - 1}',
             ))
         if page + 1 < page_count:
             pagination.append(InlineKeyboardButton(
                 message(lang, card_next_page, 'card'),
-                callback_data=f'carddesc:{target}:{page + 1}',
+                callback_data=f'cardchar:{db_user["id"]}:{character["id"]}:{page + 1}',
             ))
         rows.append(pagination)
-    wiki_url = wiki_url or (role['wiki_url'] if role else None)
-    if wiki_url:
-        rows.append([InlineKeyboardButton(
-            message(lang, card_wiki_link_label, 'card'), url=wiki_url,
-        )])
-    profile_url = f'{config.web_public_base_url}/users/{db_user["id"]}'
-    rows.append([InlineKeyboardButton(
-        message(lang, card_profile_link_label, 'card'), url=profile_url,
-    )])
     return InlineKeyboardMarkup(rows)
 
 
-def _build_card(db_user: dict, display_name: str, lang: str):
+def _build_player_card(db_user: dict, display_name: str, lang: str):
     characters = get_user_characters(db_user['id'])
     primary = next((character for character in characters if character['is_primary']), None)
     secondary = [character for character in characters if not character['is_primary']]
-    role = get_user_flavor_role_full(db_user['id'])
+    player_line = display_name
 
     if primary:
-        title = primary['name'].upper()
-        photo = primary['photo_file_id']
+        photo = primary['photo_file_id'] or CARD_PLACEHOLDER
+        heading = f'<b>{_esc(_excerpt(primary["name"].upper(), 100))}</b>'
+        if db_user['chat_position']:
+            heading += ' | ' + _esc(_excerpt(db_user['chat_position'], 100))
+        blocks = [f'{heading}\n{_esc(player_line)}']
+        if secondary:
+            names = ', '.join(character['name'] for character in secondary)
+            secondary_label = message(lang, card_secondary_label, 'card')
+            blocks.append(f'{_esc(secondary_label)} {_esc(_excerpt(names, 160))}')
     else:
-        title = role['name'] if role else message(lang, card_role_none, 'card')
-        photo = role['photo_file_id'] if role else None
+        photo = db_user['avatar_file_id']
+        blocks = [f'<b>{_esc(player_line)}</b>']
 
-    lines = [f'<b>{_esc(_excerpt(title, 100))}</b>\n{_esc(display_name)}']
-    if secondary:
-        names = ', '.join(character['name'] for character in secondary)
-        secondary_label = message(lang, card_secondary_label, 'card')
-        lines.append(f'{_esc(secondary_label)} {_esc(_excerpt(names, 160))}')
-
+    meta = []
     game_codes = get_user_games(db_user['id'])
     if game_codes:
         games_dict = get_games_dict()
         games_line = ', '.join(games_dict[code] for code in game_codes if code in games_dict)
         if games_line:
-            lines.append(_esc(_excerpt(games_line, 160)))
-
+            meta.append(_esc(message(
+                lang, card_games_label, 'card', _excerpt(games_line, 160),
+            )))
+    titles = get_user_titles(db_user['id'])
+    if titles:
+        title_names = ', '.join(title['name'] for title in titles)
+        meta.append(_esc(message(
+            lang, card_titles_label, 'card', _excerpt(title_names, 160),
+        )))
     if primary:
-        position = get_character_position(primary['id'])
-        if position:
-            lines.append(_esc(_excerpt(position['name'], 100)))
         affiliation_names = get_character_affiliation_names(primary['id'])
         if affiliation_names:
-            lines.append(_esc(_excerpt(affiliation_names, 160)))
+            meta.append(_esc(message(
+                lang, card_affiliations_label, 'card', _excerpt(affiliation_names, 160),
+            )))
+    if meta:
+        blocks.append('\n'.join(meta))
 
     card = get_user_card(db_user['id'])
     bio_text = card['bio'] if card and card['bio'] else message(lang, card_bio_none, 'card')
-    lines.append(_esc(_excerpt(bio_text, 240)))
+    blocks.append(_esc(_excerpt(bio_text, 240)))
 
-    description_target = None
-    if primary and primary['description']:
-        description = primary['description']
-        description_target = f'char:{primary["id"]}'
-    elif role and role['description']:
-        description = role['description']
-        description_target = f'role:{db_user["id"]}'
-    elif primary:
-        description = message(lang, card_char_desc_none, 'card')
-    else:
-        description = message(lang, card_role_desc_none, 'card')
+    birthday = _birthday_text(get_birthday(db_user['tg_id']))
+    if birthday:
+        blocks.append(_esc(message(lang, card_birthday_label, 'card', birthday)))
 
-    base_text = '\n\n'.join(lines)
-    remaining = 1024 - len(base_text) - len('<blockquote></blockquote>') - 2
-    if remaining >= 32:
-        lines.append(f'<blockquote>{_esc(_excerpt(description, min(240, remaining)))}</blockquote>')
+    if primary:
+        description = primary['description'] or message(lang, card_char_desc_none, 'card')
+        blocks.append(f'<blockquote>{_esc(_excerpt(description, 240))}</blockquote>')
 
-    text = '\n\n'.join(lines)
-    wiki_url = primary['wiki_url'] if primary and primary['wiki_url'] else None
-    markup = _card_markup(db_user, role, description_target, lang, wiki_url)
-    return text, photo, markup
+    return '\n\n'.join(blocks), photo, _player_markup(db_user, characters, lang)
+
+
+def _description_chunks(text, limit):
+    remaining = text.strip()
+    while remaining:
+        if len(_esc(remaining)) <= limit:
+            yield remaining
+            return
+        split_at = min(len(remaining), limit)
+        while split_at > 1 and len(_esc(remaining[:split_at])) > limit:
+            split_at -= 1
+        word_split = remaining.rfind(' ', 0, split_at)
+        if word_split >= split_at // 2:
+            split_at = word_split
+        yield remaining[:split_at]
+        remaining = remaining[split_at:].lstrip()
+
+
+def _character_tag_text(character_id):
+    parts = []
+    seen = set()
+    for tag in get_character_tags(character_id):
+        for name in (tag['name'], *tag['aliases']):
+            normalized = name.casefold()
+            if normalized not in seen:
+                seen.add(normalized)
+                parts.append(f'#{name}')
+    return ', '.join(parts)
+
+
+def _build_character_card(db_user, character, lang, page=0):
+    heading = f'<b>{_esc(_excerpt(character["name"].upper(), 80))}</b>'
+    position = get_character_position(character['id'])
+    if position:
+        heading += '\n' + _esc(_excerpt(position['name'], 80))
+    birthday_block = None
+    if character['birth_date']:
+        birthday_block = _esc(message(
+            lang, card_character_birthday_label, 'card',
+            character['birth_date'].strftime('%d.%m.%Y'),
+        ))
+    tag_block = None
+    tag_text = _character_tag_text(character['id'])
+    if tag_text:
+        tag_block = _esc(message(
+            lang, card_tags_label, 'card', _excerpt(tag_text, 120),
+        ))
+
+    fixed_blocks = [block for block in (heading, birthday_block, tag_block) if block]
+    description = character['description'] or message(lang, card_char_desc_none, 'card')
+    fixed_length = len('\n\n'.join(fixed_blocks))
+    chunks = list(_description_chunks(description, max(80, 960 - fixed_length)))
+    page = max(0, min(page, len(chunks) - 1))
+    blocks = [heading]
+    if birthday_block:
+        blocks.append(birthday_block)
+    blocks.append(_esc(chunks[page]))
+    if tag_block:
+        blocks.append(tag_block)
+
+    photo = character['photo_file_id'] or CARD_PLACEHOLDER
+    markup = _character_markup(db_user, character, page, len(chunks), lang)
+    return '\n\n'.join(blocks), photo, markup
 
 
 async def _send_card(update: Update, db_user: dict, display_name: str, lang: str):
     thread_id = update.effective_message.message_thread_id
-    text, photo, markup = _build_card(db_user, display_name, lang)
+    text, photo, markup = _build_player_card(db_user, display_name, lang)
 
     if photo and len(text) <= 1024:
         await update.effective_message.reply_photo(
@@ -166,68 +232,64 @@ async def _send_card(update: Update, db_user: dict, display_name: str, lang: str
     )
 
 
-def _description_chunks(text, limit=700):
-    remaining = text.strip()
-    while remaining:
-        if len(remaining) <= limit:
-            yield remaining
-            return
-        split_at = remaining.rfind(' ', 0, limit)
-        if split_at < limit // 2:
-            split_at = limit
-        yield remaining[:split_at]
-        remaining = remaining[split_at:].lstrip()
-
-
-async def _edit_card_message(query, text, markup):
+async def _edit_card_message(query, text, photo, markup):
     if query.message.photo:
-        await query.edit_message_caption(
-            caption=text, parse_mode='HTML', reply_markup=markup,
+        media = InputMediaPhoto(
+            media=photo_input(photo), caption=text, parse_mode='HTML',
         )
+        await query.edit_message_media(media=media, reply_markup=markup)
     else:
         await query.edit_message_text(
             text=text, parse_mode='HTML', reply_markup=markup,
         )
 
 
+def _display_name(db_user):
+    return f'@{db_user["tag"]}' if db_user['tag'] else str(db_user['tg_id'])
+
+
 async def show_card_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     parts = query.data.split(':')
-    action, target, identifier = parts[0], parts[1], int(parts[2])
-    page = int(parts[3]) if len(parts) > 3 else 0
-
-    if target == 'char':
-        character = get_character_by_id(identifier)
-        if not character:
-            return
-        db_user = get_user_by_id(character['owner_user_id'])
-        role = get_user_flavor_role_full(db_user['id'])
-        title = character['name']
-        description = character['description']
-        wiki_url = character['wiki_url']
-    else:
-        db_user = get_user_by_id(identifier)
-        role = get_user_flavor_role_full(identifier)
-        title = role['name'] if role else ''
-        description = role['description'] if role else None
-        wiki_url = None
-
+    action = parts[0]
     lang = get_user_language(query.from_user.id)
-    if action == 'cardshort':
-        text, _, markup = _build_card(db_user, db_user['tag'] or title, lang)
-        await _edit_card_message(query, text, markup)
-        return
-    if not description:
+
+    if action in {'cardplayer', 'cardshort'}:
+        if action == 'cardplayer':
+            db_user = get_user_by_id(int(parts[1]))
+        else:
+            if len(parts) < 3 or parts[1] != 'char':
+                return
+            character = get_character_by_id(int(parts[2]))
+            if not character:
+                return
+            db_user = get_user_by_id(character['owner_user_id'])
+        if not db_user:
+            return
+        text, photo, markup = _build_player_card(db_user, _display_name(db_user), lang)
+    elif action in {'cardchar', 'carddesc'}:
+        if action == 'cardchar':
+            db_user = get_user_by_id(int(parts[1]))
+            character_id = int(parts[2])
+            page = int(parts[3]) if len(parts) > 3 else 0
+        else:
+            if len(parts) < 3 or parts[1] != 'char':
+                return
+            character_id = int(parts[2])
+            character = get_character_by_id(character_id)
+            if not character:
+                return
+            db_user = get_user_by_id(character['owner_user_id'])
+            page = int(parts[3]) if len(parts) > 3 else 0
+        character = get_character_by_id(character_id)
+        if not db_user or not character or character['owner_user_id'] != db_user['id']:
+            return
+        text, photo, markup = _build_character_card(db_user, character, lang, page)
+    else:
         return
 
-    chunks = list(_description_chunks(description))
-    page = max(0, min(page, len(chunks) - 1))
-    text = f'<b>{_esc(title)}</b>\n\n<blockquote>{_esc(chunks[page])}</blockquote>'
-    markup = _description_markup(
-        db_user, role, f'{target}:{identifier}', page, len(chunks), lang, wiki_url,
-    )
-    await _edit_card_message(query, text, markup)
+    await _edit_card_message(query, text, photo, markup)
 
 
 async def card_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -241,7 +303,7 @@ async def card_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             create_user(requester.id, requester.username or requester.full_name)
             db_user = get_user_by_tg_id(requester.id)
 
-        await _send_card(update, db_user, requester.full_name, lang)
+        await _send_card(update, db_user, _display_name(db_user), lang)
         return
 
     if not context.args[0].startswith('@'):
@@ -256,4 +318,4 @@ async def card_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.effective_message.reply_text(message(lang, card_user_not_found, 'card'), message_thread_id=thread_id)
         return
 
-    await _send_card(update, target_user, f'@{username}', lang)
+    await _send_card(update, get_user_by_id(target_user['id']), f'@{username}', lang)
