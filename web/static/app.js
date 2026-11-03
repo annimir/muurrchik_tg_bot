@@ -442,6 +442,30 @@ if (tagUsagePanel) {
     });
 }
 
+const commandSearch = document.querySelector('[data-command-search]');
+if (commandSearch) {
+    const cards = [...document.querySelectorAll('[data-command-card]')];
+    const groups = [...document.querySelectorAll('[data-command-group]')];
+    const resultCount = document.querySelector('[data-command-count]');
+    const emptyState = document.querySelector('[data-commands-empty]');
+
+    commandSearch.addEventListener('input', () => {
+        const query = commandSearch.value.trim().toLocaleLowerCase('ru');
+        let visible = 0;
+        cards.forEach((card) => {
+            card.hidden = Boolean(query) && !card.dataset.commandSearchText.includes(query);
+            if (!card.hidden) {
+                visible += 1;
+            }
+        });
+        groups.forEach((group) => {
+            group.hidden = !group.querySelector('[data-command-card]:not([hidden])');
+        });
+        resultCount.textContent = query ? `Найдено: ${visible}` : `Команд: ${visible}`;
+        emptyState.hidden = visible > 0;
+    });
+}
+
 document.querySelectorAll('form[data-confirm]').forEach((form) => {
     form.addEventListener('submit', (event) => {
         if (!window.confirm(form.dataset.confirm)) {

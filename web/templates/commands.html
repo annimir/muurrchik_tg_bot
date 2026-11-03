@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Команды Паймон{% endblock %}
+{% block content %}
+<section class="page-heading">
+    <div class="eyebrow">Справочник сообщества</div>
+    <h1>Команды Паймон</h1>
+    <p>Все основные команды Telegram-бота: подписки, карточки, персонажи и управление сообществом. Параметры в угловых скобках нужно заменить своими значениями, квадратные скобки обозначают необязательный параметр.</p>
+</section>
+<section class="panel commands-search-panel">
+    <label class="commands-search-label">Найти команду<input type="search" placeholder="Например: /card или подписки" autocomplete="off" data-command-search></label>
+    <p class="results-count" data-command-count aria-live="polite">Команд: {{ command_count }}</p>
+</section>
+<div data-commands-list>
+{% for group in groups %}<section class="command-group" data-command-group>
+    <div class="section-heading"><div><div class="eyebrow">{{ 'Только для администраторов' if group.admin else 'Команды участников' }}</div><h2>{{ group.name }}</h2></div><span class="muted">{{ group.commands|length }}</span></div>
+    <p class="command-group-description">{{ group.description }}</p>
+    <div class="command-grid">
+    {% for command in group.commands %}<article class="command-card" data-command-card data-command-search-text="{{ (command.usage + ' ' + command.description + ' ' + group.name)|lower }}">
+        <code>{{ command.usage }}</code>
+        <p>{{ command.description }}</p>
+    </article>{% endfor %}
+    </div>
+</section>{% endfor %}
+</div>
+<div class="empty-state" data-commands-empty hidden><h3>Команды не найдены</h3><p>Попробуйте изменить запрос или ввести часть названия.</p></div>
+{% endblock %}
