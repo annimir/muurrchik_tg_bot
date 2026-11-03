@@ -4,6 +4,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from database.queries import get_user_characters, get_user_by_username, get_user_language
+from services.photo import photo_input
 from message.loader import message
 from message.keys import char_no_characters, char_choose_which, char_user_not_found
 
@@ -29,7 +30,7 @@ async def _send_character_card(update: Update, context: ContextTypes.DEFAULT_TYP
 
     if photo:
         await context.bot.send_photo(
-            update.effective_chat.id, photo=photo, caption=caption,
+            update.effective_chat.id, photo=photo_input(photo), caption=caption,
             parse_mode=None, message_thread_id=thread_id,
         )
     else:
@@ -117,6 +118,6 @@ async def show_character_callback(update: Update, context: ContextTypes.DEFAULT_
     thread_id = query.message.message_thread_id
 
     if photo:
-        await context.bot.send_photo(chat_id, photo=photo, caption=caption, parse_mode=None, message_thread_id=thread_id)
+        await context.bot.send_photo(chat_id, photo=photo_input(photo), caption=caption, parse_mode=None, message_thread_id=thread_id)
     else:
         await context.bot.send_message(chat_id, caption, parse_mode=None, message_thread_id=thread_id)

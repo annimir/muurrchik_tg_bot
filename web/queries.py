@@ -896,7 +896,7 @@ def get_admin_character(character_id):
     return db('SELECT * FROM character WHERE id = %s', (character_id,)).one()
 
 
-def update_character(admin_tg_id, character_id, name, birth_date=None, description=None):
+def update_character(admin_tg_id, character_id, name, birth_date=None, description=None, wiki_url=None):
     with db.transaction() as tx:
         if not tx('SELECT 1 FROM character WHERE id = %s FOR UPDATE', (character_id,)).one():
             raise ValueError('Персонаж не найден')
@@ -906,10 +906,23 @@ def update_character(admin_tg_id, character_id, name, birth_date=None, descripti
         ).one():
             raise ValueError('Персонаж с таким именем уже существует')
         tx(
-            'UPDATE character SET name = %s, birth_date = %s, description = %s WHERE id = %s',
-            (name, birth_date, description, character_id),
+            'UPDATE character SET name = %s, birth_date = %s, description = %s, wiki_url = %s WHERE id = %s',
+            (name, birth_date, description, wiki_url, character_id),
         ).close()
         _audit(tx, admin_tg_id, 'update', 'character', character_id, {'name': name})
+
+
+def update_character_photo(admin_tg_id, character_id, photo_file_id):
+    with db.transaction() as tx:
+        if not tx('SELECT 1 FROM character WHERE id = %s FOR UPDATE', (character_id,)).one():
+            raise ValueError('Персонаж не найден')
+        tx(
+            'UPDATE character SET photo_file_id = %s WHERE id = %s',
+            (photo_file_id, character_id),
+        ).close()
+        _audit(tx, admin_tg_id, 'update_photo', 'character', character_id, {
+            'has_photo': photo_file_id is not None,
+        })
 
 
 def delete_character(admin_tg_id, character_id):
@@ -947,6 +960,19 @@ def update_role(admin_tg_id, role_id, name, description=None, wiki_url=None):
             (name, description, wiki_url, role_id),
         ).close()
         _audit(tx, admin_tg_id, 'update', 'flavor_role', role_id, {'name': name})
+
+
+def update_role_photo(admin_tg_id, role_id, photo_file_id):
+    with db.transaction() as tx:
+        if not tx('SELECT 1 FROM flavor_roles WHERE id = %s FOR UPDATE', (role_id,)).one():
+            raise ValueError('Роль не найдена')
+        tx(
+            'UPDATE flavor_roles SET photo_file_id = %s WHERE id = %s',
+            (photo_file_id, role_id),
+        ).close()
+        _audit(tx, admin_tg_id, 'update_photo', 'flavor_role', role_id, {
+            'has_photo': photo_file_id is not None,
+        })
 
 
 def delete_role(admin_tg_id, role_id):

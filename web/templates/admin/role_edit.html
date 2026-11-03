@@ -5,11 +5,14 @@
 <section class="page-heading"><div class="eyebrow">Редактор архива</div><h1>{{ role.name }}</h1></section>
 {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
 <section class="panel">
-    <form class="admin-form" method="post" action="/admin/roles/{{ role.id }}/edit">
+    <form class="admin-form" method="post" action="/admin/roles/{{ role.id }}/edit" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <label>Название<input name="name" required maxlength="100" value="{{ role.name }}"></label>
         <label>Ссылка на описание<input type="url" name="wiki_url" value="{{ role.wiki_url or '' }}" placeholder="https://..."></label>
         <label class="form-wide">Описание<textarea name="description" rows="6" maxlength="5000">{{ role.description or '' }}</textarea></label>
+        {% if role.photo_file_id %}<div class="form-wide"><img class="admin-photo-preview" src="/media/roles/{{ role.id }}" alt="Текущее фото {{ role.name }}"></div>{% endif %}
+        <label>Загрузить новое фото<input type="file" name="photo" accept="image/png,image/jpeg,image/webp"></label>
+        {% if role.photo_file_id %}<label class="checkbox"><input type="checkbox" name="remove_photo" value="true"> Удалить текущее фото</label>{% endif %}
         <button class="button" type="submit">Сохранить</button>
         <a class="button button-quiet" href="/admin/roles">Отмена</a>
     </form>

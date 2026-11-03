@@ -251,6 +251,11 @@ charreq_summary_label = 'charreq.summaryLabel'
 cardreq_summary_label = 'cardreq.summaryLabel'
 
 card_bio_none = 'card.bioNone'
+card_full_description = 'card.fullDescription'
+card_short_description = 'card.shortDescription'
+card_next_page = 'card.nextPage'
+card_previous_page = 'card.previousPage'
+card_profile_link_label = 'card.profileLinkLabel'
 
 adminmgmt_add_forward_prompt = 'adminmgmt.addForwardPrompt'
 adminmgmt_add_forward_invalid = 'adminmgmt.addForwardInvalid'

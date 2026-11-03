@@ -34,6 +34,7 @@ services:
     volumes:
       - ./config/config.dev.yml:/app/config.dev.yml
       - ./logs:/app/logs
+      - media_data:/app/data/media
 
   web:
     build: .

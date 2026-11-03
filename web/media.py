@@ -3,6 +3,8 @@ import hashlib
 import json
 import mimetypes
 import os
+import re
+import uuid
 from pathlib import Path
 
 import httpx
@@ -38,6 +40,38 @@ class TelegramMediaStore:
                 return self._file_response(existing)
             path = await self._download(file_id, digest, cache_key)
         return self._file_response(path)
+
+    async def save_upload(self, upload):
+        data = await upload.read(10 * 1024 * 1024 + 1)
+        if len(data) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail='Фото не должно превышать 10 МБ')
+        if data.startswith(b'\xff\xd8\xff'):
+            suffix = '.jpg'
+        elif data.startswith(b'\x89PNG\r\n\x1a\n'):
+            suffix = '.png'
+        elif data.startswith(b'RIFF') and data[8:12] == b'WEBP':
+            suffix = '.webp'
+        else:
+            raise HTTPException(status_code=400, detail='Поддерживаются только PNG, JPEG и WEBP')
+        uploads_dir = self.cache_dir / 'uploads'
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+        filename = f'{uuid.uuid4().hex}{suffix}'
+        (uploads_dir / filename).write_bytes(data)
+        return f'local:{filename}'
+
+    def get_local_response(self, file_id):
+        filename = file_id.removeprefix('local:')
+        if not re.fullmatch(r'[a-f0-9]{32}\.(jpg|png|webp)', filename):
+            raise HTTPException(status_code=404, detail='Фото не найдено')
+        path = self.cache_dir / 'uploads' / filename
+        if not path.is_file():
+            raise HTTPException(status_code=404, detail='Фото не найдено')
+        return self._file_response(path)
+
+    def delete_local(self, file_id):
+        if file_id and file_id.startswith('local:'):
+            filename = Path(file_id).name
+            (self.cache_dir / 'uploads' / filename).unlink(missing_ok=True)
 
     async def get_profile_photo_file_id(self, tg_id):
         async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:

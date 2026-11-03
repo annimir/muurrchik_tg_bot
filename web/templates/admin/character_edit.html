@@ -5,11 +5,15 @@
 <section class="page-heading"><div class="eyebrow">Редактор архива</div><h1>{{ character.name }}</h1></section>
 {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
 <section class="panel">
-    <form class="admin-form" method="post" action="/admin/characters/{{ character.id }}/edit">
+    <form class="admin-form" method="post" action="/admin/characters/{{ character.id }}/edit" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <label>Имя<input name="name" required maxlength="100" value="{{ character.name }}"></label>
         <label>День рождения<input type="date" name="birth_date" value="{{ character.birth_date.isoformat() if character.birth_date else '' }}"></label>
+        <label>Ссылка на Wiki<input type="url" name="wiki_url" value="{{ character.wiki_url or '' }}" placeholder="https://..."></label>
         <label class="form-wide">Описание<textarea name="description" rows="6" maxlength="5000">{{ character.description or '' }}</textarea></label>
+        {% if character.photo_file_id %}<div class="form-wide"><img class="admin-photo-preview" src="/media/characters/{{ character.id }}" alt="Текущее фото {{ character.name }}"></div>{% endif %}
+        <label>Загрузить новое фото<input type="file" name="photo" accept="image/png,image/jpeg,image/webp"></label>
+        {% if character.photo_file_id %}<label class="checkbox"><input type="checkbox" name="remove_photo" value="true"> Удалить текущее фото</label>{% endif %}
         <button class="button" type="submit">Сохранить</button>
         <a class="button button-quiet" href="/admin/characters">Отмена</a>
     </form>

@@ -956,6 +956,22 @@ def get_character_affiliation_path(character_id):
 
     return ' / '.join(reversed(path))
 
+
+def get_character_affiliation_names(character_id):
+    return db(
+        '''
+        SELECT STRING_AGG(DISTINCT aff.name, ', ' ORDER BY aff.name) AS names
+        FROM affiliations aff
+        JOIN character c ON c.id = %s
+        WHERE aff.id = c.affiliation_id OR EXISTS (
+            SELECT 1 FROM character_affiliation ca
+            WHERE ca.character_id = c.id AND ca.affiliation_id = aff.id
+        )
+        ''',
+        (character_id,),
+    ).one()['names']
+
+
 def get_flavor_role_by_id(role_id):
     return db('SELECT * FROM flavor_roles WHERE id = %s', (role_id,)).one()
 
