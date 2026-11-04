@@ -166,7 +166,7 @@ admin_birthday_conv = ConversationHandler(
 )
 application.add_handler(admin_birthday_conv)
 
-application.job_queue.run_daily(check_birthdays, time=time(hour=9, minute=0, tzinfo=MOSCOW_TZ))
+application.job_queue.run_daily(check_birthdays, time=time(hour=0, minute=0, tzinfo=MOSCOW_TZ))
 application.job_queue.run_daily(check_character_birthdays, time=time(hour=9, minute=15, tzinfo=MOSCOW_TZ))
 application.job_queue.run_daily(send_retention_warnings, time=time(hour=10, minute=0, tzinfo=MOSCOW_TZ))
 application.job_queue.run_daily(run_retention_cleanup, time=time(hour=10, minute=30, tzinfo=MOSCOW_TZ))
