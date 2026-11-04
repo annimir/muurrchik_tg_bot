@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  bot:
+    image: ${IMAGE_REFERENCE:-ghcr.io/annimir/muurrchik_tg_bot:latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: prod
+      TZ: Europe/Moscow
+    volumes:
+      - ./config.prod.yml:/app/config.prod.yml:ro
+      - ./logs:/app/logs
+      - media_data:/app/data/media
+    healthcheck:
+      test: ["CMD", "python", "-c", "import psycopg2; from config.config import config; connection = psycopg2.connect(config.pg_dsn, connect_timeout=5); connection.cursor().execute('SELECT 1'); connection.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  web:
+    image: ${IMAGE_REFERENCE:-ghcr.io/annimir/muurrchik_tg_bot:latest}
+    command: ["uvicorn", "web.app:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: prod
+      TZ: Europe/Moscow
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./config.prod.yml:/app/config.prod.yml:ro
+      - media_data:/app/data/media
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+volumes:
+  pgdata:
+  media_data:
+    external: true
+    name: paimon_media_data
