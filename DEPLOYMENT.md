@@ -202,80 +202,21 @@ sudo chmod 600 /opt/paimon/.env /opt/paimon/config.prod.yml
 
 ## 7. Production Compose
 
-На сервере не должно быть `build: .`: используется готовый образ из GHCR.
-
-Пример `compose.prod.yml` без реальных секретов:
-
-```yaml
-services:
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    env_file: .env
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    logging:
-      options:
-        max-size: "20m"
-        max-file: "5"
-
-  bot:
-    image: ${IMAGE}:${IMAGE_TAG}
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      APP_ENV: prod
-      TZ: Europe/Moscow
-    volumes:
-      - ./config.prod.yml:/app/config.prod.yml:ro
-      - ./logs:/app/logs
-    logging:
-      options:
-        max-size: "20m"
-        max-file: "5"
-
-  web:
-    image: ${IMAGE}:${IMAGE_TAG}
-    command: ["uvicorn", "web.app:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      APP_ENV: prod
-      TZ: Europe/Moscow
-    ports:
-      - "127.0.0.1:8000:8000"
-    volumes:
-      - ./config.prod.yml:/app/config.prod.yml:ro
-      - media_data:/app/data/media
-    logging:
-      options:
-        max-size: "20m"
-        max-file: "5"
-
-volumes:
-  pgdata:
-  media_data:
-```
+Актуальный файл находится в `deploy/compose.prod.yml` и устанавливается на сервер
+как `/opt/paimon/compose.prod.yml`. На сервере нет `build: .`: используется готовый
+образ из GHCR. `IMAGE_REFERENCE` позволяет deployment-скрипту выбрать image с тегом
+коммита или сохранённый image для отката.
 
 Важно:
 
 - у PostgreSQL полностью отсутствует секция `ports`;
 - volume `pgdata` нельзя удалять;
 - `down -v` в production запрещён;
+- web опубликован только на `127.0.0.1:8000`;
+- bot и web используют общий внешний volume `paimon_media_data`;
+- healthcheck web выполняет HTTP-запрос, healthcheck bot проверяет PostgreSQL;
 - контейнеры автоматически поднимаются после перезагрузки через
   `restart: unless-stopped` и автозапуск Docker.
-
-Дополнительно добавить healthcheck для bot-контейнера: проверку соединения с
-PostgreSQL и работоспособности процесса.
 
 ### 7.1. HTTPS и Telegram Login
 
@@ -371,44 +312,45 @@ docker pull ghcr.io/annimir/muurrchik_tg_bot:latest
 
 ## 11. Авторелизы
 
-Текущий процесс:
+Процесс описан в `.github/workflows/cd.yml`:
 
-1. Pull request запускает CI.
-2. Выполняются тесты на PostgreSQL.
-3. Проверяется Docker-сборка.
-4. После успешного CI в `master` CD публикует образ в GHCR.
+1. Pull request и push в `master` запускают CI.
+2. После успешного CI в `master` публикуется образ с тегами `latest` и
+   `sha-<полный коммит>`.
+3. Job `deploy` подключается к серверу как `deploy` и вызывает
+   `/opt/paimon/deploy.sh sha-<коммит>`.
+4. `concurrency: paimon-production` не допускает параллельных публикаций и
+   развёртываний.
 
-Следующий шаг — добавить deployment-job после публикации.
+Скрипт `deploy/deploy.sh` устанавливается на сервер как `/opt/paimon/deploy.sh`:
 
-Рекомендуемая последовательность:
+1. Сохраняет текущий image под локальным тегом `rollback`.
+2. Создаёт backup через `/opt/paimon/backup.sh`.
+3. Загружает image с полным тегом коммита и пересоздаёт только `bot` и `web`.
+4. Ждёт healthy-статуса обоих контейнеров и строки успешного запуска бота.
+5. При ошибке возвращает локальный предыдущий image и повторяет проверки.
 
-1. CI успешно завершён.
-2. Образ опубликован.
-3. Deployment-job получает точный digest образа.
-4. По SSH подключается как `deploy`.
-5. Сохраняет предыдущий digest для отката.
-6. Выполняет `docker compose pull`.
-7. Запускает `docker compose up -d --remove-orphans`.
-8. Проверяет healthcheck и логи.
-9. При ошибке возвращает предыдущий образ.
+Healthcheck web выполняет HTTP-запрос, healthcheck bot проверяет соединение с
+PostgreSQL. Откат приложения не отменяет миграции БД; восстановление БД остаётся
+отдельной контролируемой операцией.
 
-Для production использовать digest `@sha256:...`, а не только `latest`. Это
-гарантирует, что на сервер попадёт именно протестированная версия.
-
-В GitHub Secrets добавить:
+В GitHub Secrets должны быть:
 
 - `DEPLOY_HOST`;
-- `DEPLOY_USER`;
-- `DEPLOY_SSH_KEY`;
-- `DEPLOY_PORT`;
-- `DEPLOY_KNOWN_HOSTS`.
+- `DEPLOY_USER=deploy`;
+- `DEPLOY_SSH_KEY` — отдельный ключ только для deployment-пользователя;
+- `DEPLOY_PORT=22`;
+- `DEPLOY_KNOWN_HOSTS` — публичный SSH host key сервера.
 
-Добавить `concurrency` для production, чтобы два merge не разворачивались
-одновременно.
+Ручной запуск того же процесса:
 
-Пока защита `master` недоступна из-за тарифа, рекомендуется ручное подтверждение
-production deployment. После перехода на GitHub Pro включить обязательные PR,
-review и status checks.
+```bash
+/opt/paimon/deploy.sh sha-<полный коммит>
+```
+
+После перехода на GitHub Pro включить обязательные PR, review и status checks.
+Для ручного подтверждения релизов можно включить required reviewers в environment
+`production`.
 
 ## 12. Миграции и откат
 
