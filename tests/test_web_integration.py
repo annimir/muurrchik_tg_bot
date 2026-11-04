@@ -85,6 +85,8 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertIn('data-tag-search', catalog.text)
         self.assertIn('data-tag-name="adventure"', catalog.text)
         self.assertIn('data-filter-dropdown', catalog.text)
+        self.assertIn('data-mobile-filters', catalog.text)
+        self.assertIn('class="filter-actions"', catalog.text)
         self.assertIn('Автор:', catalog.text)
         self.assertIn('player', catalog.text)
         self.assertNotIn('Video link', catalog.text)
@@ -208,6 +210,7 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertIn('Только для администраторов', response.text)
         self.assertIn('data-command-search', response.text)
         self.assertIn('data-commands-empty', response.text)
+        self.assertIn('<details class="command-group collapsible-panel" data-command-group>', response.text)
         self.assertEqual(response.text.count('data-command-card'), get_paimon_command_count())
         self.assertNotIn('/add_role', response.text)
 

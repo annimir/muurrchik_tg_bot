@@ -442,6 +442,15 @@ if (tagUsagePanel) {
     });
 }
 
+document.querySelectorAll('[data-mobile-filters]').forEach((filters) => {
+    const toggle = filters.querySelector('[data-filters-toggle]');
+    toggle.addEventListener('click', () => {
+        const collapsed = filters.classList.toggle('is-mobile-collapsed');
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+        toggle.textContent = collapsed ? 'Показать фильтры' : 'Скрыть фильтры';
+    });
+});
+
 const commandSearch = document.querySelector('[data-command-search]');
 if (commandSearch) {
     const cards = [...document.querySelectorAll('[data-command-card]')];
@@ -459,7 +468,11 @@ if (commandSearch) {
             }
         });
         groups.forEach((group) => {
-            group.hidden = !group.querySelector('[data-command-card]:not([hidden])');
+            const hasVisibleCommands = Boolean(group.querySelector('[data-command-card]:not([hidden])'));
+            group.hidden = !hasVisibleCommands;
+            if (group.matches('details')) {
+                group.open = Boolean(query) && hasVisibleCommands;
+            }
         });
         resultCount.textContent = query ? `Найдено: ${visible}` : `Команд: ${visible}`;
         emptyState.hidden = visible > 0;
