@@ -21,6 +21,7 @@ class PhotoInputTests(unittest.TestCase):
             result = photo_input(path)
 
         self.assertIsInstance(result, InputFile)
+        self.assertIsNotNone(result.attach_name)
         self.assertEqual(result.filename, 'placeholder.png')
         self.assertEqual(result.input_file_content, b'placeholder-image')
 
@@ -33,6 +34,7 @@ class PhotoInputTests(unittest.TestCase):
                 result = photo_input('local:character.png')
 
         self.assertIsInstance(result, InputFile)
+        self.assertIsNotNone(result.attach_name)
         self.assertEqual(result.filename, 'character.png')
         self.assertEqual(result.input_file_content, b'local-character-image')
 

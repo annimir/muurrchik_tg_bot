@@ -150,7 +150,8 @@ class HandlerIntegrationTests(PostgresTestCase):
         from handlers.cards.view import card_command, show_card_description
 
         user = queries.ensure_user(100, 'player')
-        queries.upsert_user_card_bio(user['id'], 'Player biography')
+        player_bio = 'Player biography. ' + 'Дополнительные сведения об игроке. ' * 12 + 'Конец биографии игрока.'
+        queries.upsert_user_card_bio(user['id'], player_bio)
         queries.db(
             "UPDATE users SET chat_position = 'Модератор' WHERE id = %s",
             (user['id'],),
@@ -213,6 +214,8 @@ class HandlerIntegrationTests(PostgresTestCase):
         self.assertIn('🎮 Игры: Genshin Impact', caption)
         self.assertIn('🏛️ Принадлежность: Предвестник, Фатуи', caption)
         self.assertIn('&lt;b&gt;', caption)
+        self.assertIn(player_bio, caption)
+        self.assertGreater(len(player_bio), 240)
         buttons = [
             button
             for row in reply_photo.await_args.kwargs['reply_markup'].inline_keyboard
@@ -245,6 +248,7 @@ class HandlerIntegrationTests(PostgresTestCase):
         from handlers.cards.view import CARD_PLACEHOLDER
 
         self.assertIsInstance(media.media, InputFile)
+        self.assertIsNotNone(media.media.attach_name)
         self.assertEqual(media.media.filename, 'card-placeholder.png')
         self.assertEqual(media.media.input_file_content, CARD_PLACEHOLDER.read_bytes())
         self.assertIn('<b>КЕРИДРА</b>', media.caption)
