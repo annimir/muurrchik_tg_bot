@@ -241,7 +241,12 @@ class HandlerIntegrationTests(PostgresTestCase):
         edit_media.assert_awaited_once()
         edit_text.assert_not_awaited()
         media = edit_media.await_args.kwargs['media']
-        self.assertTrue(str(media.media).endswith('card-placeholder.png'))
+        from telegram import InputFile
+        from handlers.cards.view import CARD_PLACEHOLDER
+
+        self.assertIsInstance(media.media, InputFile)
+        self.assertEqual(media.media.filename, 'card-placeholder.png')
+        self.assertEqual(media.media.input_file_content, CARD_PLACEHOLDER.read_bytes())
         self.assertIn('<b>КЕРИДРА</b>', media.caption)
         back_button = edit_media.await_args.kwargs['reply_markup'].inline_keyboard[1][0]
         self.assertEqual(back_button.callback_data, f'cardplayer:{user["id"]}')
