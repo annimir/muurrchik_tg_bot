@@ -69,6 +69,10 @@ class WebIntegrationTests(PostgresTestCase):
 
         self.assertEqual(home.status_code, 200)
         self.assertIn('Летопись', home.text)
+        self.assertIn('<link rel="icon" href="/static/favicon.png" type="image/png">', home.text)
+        favicon = self.client.get('/static/favicon.png')
+        self.assertEqual(favicon.status_code, 200)
+        self.assertEqual(favicon.headers['content-type'], 'image/png')
         self.assertIn('muted playsinline', home.text)
         self.assertIn('data-media-open=', home.text)
         self.assertIn(f'href="/media?tag={tag["id"]}&amp;sort=newest"', home.text)
