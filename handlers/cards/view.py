@@ -137,7 +137,7 @@ def _build_player_card(db_user: dict, display_name: str, lang: str):
 
     card = get_user_card(db_user['id'])
     bio_text = card['bio'] if card and card['bio'] else message(lang, card_bio_none, 'card')
-    blocks.append(_esc(_excerpt(bio_text, 240)))
+    blocks.append(_esc(bio_text))
 
     birthday = _birthday_text(get_birthday(db_user['tg_id']))
     if birthday:
