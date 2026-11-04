@@ -7,7 +7,8 @@
     <h1>Фото и видео</h1>
     <p>Находите нужные моменты по тегам, типу публикации и дате.</p>
 </section>
-<form class="filters" method="get" action="/media">
+<form class="filters is-mobile-collapsed" method="get" action="/media" data-mobile-filters>
+    <button class="button button-quiet filters-toggle" type="button" data-filters-toggle aria-expanded="false">Показать фильтры</button>
     <div class="filter-dropdown" data-filter-dropdown data-tag-filter>
         <button class="button button-secondary filter-dropdown-toggle" type="button" data-filter-toggle aria-expanded="false">{{ tag_filter_label }}</button>
         <div class="filter-popup filter-popup-tags" hidden>
@@ -52,8 +53,7 @@
             <div class="filter-popup-actions"><button type="button" data-filter-close>Готово</button></div>
         </div>
     </div>
-    <button class="button" type="submit">Применить</button>
-    <a class="button button-quiet" href="/media">Сбросить</a>
+    <div class="filter-actions"><button class="button" type="submit">Применить</button><a class="button button-quiet" href="/media">Сбросить</a></div>
 </form>
 <div class="results-count">Найдено: {{ pagination.total }}</div>
 {% if items %}
