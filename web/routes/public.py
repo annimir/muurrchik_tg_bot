@@ -1,5 +1,6 @@
 from math import ceil
 
+import httpx
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from database.queries import get_user_titles
@@ -16,6 +17,7 @@ from web.queries import (
     update_user_avatar,
 )
 from web.rendering import templates
+from web.video_embeds import resolve_video_embed
 
 router = APIRouter()
 PAGE_SIZE = 24
@@ -234,6 +236,20 @@ async def media_file(usage_id: int):
     if not item or not item['media_file_id']:
         raise HTTPException(status_code=404, detail='Файл не найден')
     return await get_media_store().get_response(item['media_file_id'], f'publication-{usage_id}')
+
+
+@router.get('/media/embed/{usage_id}', name='media_embed')
+async def media_embed(usage_id: int):
+    item = get_public_media(usage_id)
+    if not item or not item['media_url']:
+        raise HTTPException(status_code=404, detail='Видео не найдено')
+    try:
+        embed = await resolve_video_embed(item['media_url'])
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail='Сервис видео временно недоступен') from exc
+    if not embed or embed['resolve'] or not embed['url']:
+        raise HTTPException(status_code=404, detail='Встроенный плеер недоступен')
+    return {'url': embed['url']}
 
 
 @router.get('/media/characters/{character_id}', name='character_photo')

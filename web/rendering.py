@@ -4,6 +4,8 @@ from urllib.parse import urlencode
 
 from fastapi.templating import Jinja2Templates
 
+from web.video_embeds import get_video_embed
+
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=BASE_DIR / 'templates')
 
@@ -56,4 +58,5 @@ templates.env.filters['media_kind'] = media_kind
 templates.env.filters['media_caption'] = media_caption
 templates.env.filters['number_ru'] = number_ru
 templates.env.filters['status_ru'] = status_ru
+templates.env.filters['video_embed'] = get_video_embed
 templates.env.globals['media_url'] = media_url

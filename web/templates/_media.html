@@ -8,10 +8,18 @@
         {% elif item.media_type == 'video' %}
             <video src="/media/files/{{ item.id }}" controls muted playsinline preload="metadata">Ваш браузер не поддерживает видео.</video>
         {% else %}
+            {% set embed = item.media_url|video_embed(item.id) %}
+            {% if embed and embed.url %}
+            <button class="external-media external-media-button" type="button" data-media-open="{{ embed.url }}" data-media-kind="embed" data-media-platform="{{ embed.platform }}" data-media-vertical="{{ 'true' if embed.vertical else 'false' }}" {{ 'data-media-resolve=true' if embed.resolve else '' }}>
+                <span class="external-media-mark" aria-hidden="true">▶</span>
+                <span data-media-label>Смотреть на сайте</span>
+            </button>
+            {% else %}
             <a class="external-media" href="{{ item.media_url }}" target="_blank" rel="noopener noreferrer">
                 <span class="external-media-mark" aria-hidden="true">▶</span>
                 <span>Открыть видео</span>
             </a>
+            {% endif %}
         {% endif %}
         {% if item.media_type in ('photo', 'video') %}
         <button class="media-expand" type="button" data-media-open="/media/files/{{ item.id }}" data-media-kind="{{ item.media_type }}" aria-label="Открыть {{ item.media_type|media_kind }} во весь экран">+</button>
@@ -24,6 +32,7 @@
         </div>
         <div class="media-author">Автор: {% if item.author_id %}<a href="/users/{{ item.author_id }}">{{ item.author_tag or 'Игрок' }}</a>{% else %}неизвестен{% endif %}</div>
         {% if caption %}<p class="caption">{{ caption }}</p>{% endif %}
+        {% if item.media_type == 'video_link' %}<a class="external-media-source" href="{{ item.media_url }}" target="_blank" rel="noopener noreferrer">Открыть оригинал</a>{% endif %}
         <time datetime="{{ item.used_at.isoformat() }}">{{ item.used_at|datetime_ru }}</time>
         {% if admin %}
         <form method="post" action="/admin/media/{{ item.id }}/visibility" class="inline-form">
