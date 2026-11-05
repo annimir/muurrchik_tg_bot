@@ -21,17 +21,55 @@ if (mediaDialog) {
     };
 
     document.querySelectorAll('[data-media-open]').forEach((trigger) => {
-        trigger.addEventListener('click', (event) => {
+        const label = trigger.querySelector('[data-media-label]');
+        const defaultLabel = label?.textContent;
+        trigger.addEventListener('click', async (event) => {
             event.preventDefault();
             event.stopPropagation();
             content.replaceChildren();
-            const source = trigger.dataset.mediaOpen;
+            if (label) {
+                label.textContent = defaultLabel;
+            }
+            let source = trigger.dataset.mediaOpen;
+            if (trigger.dataset.mediaResolve === 'true') {
+                trigger.disabled = true;
+                trigger.setAttribute('aria-busy', 'true');
+                if (label) {
+                    label.textContent = 'Загружаем плеер…';
+                }
+                try {
+                    const response = await fetch(source, {
+                        headers: {'X-Requested-With': 'XMLHttpRequest'},
+                        credentials: 'same-origin',
+                    });
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    source = (await response.json()).url;
+                } catch (error) {
+                    if (label) {
+                        label.textContent = 'Плеер недоступен. Откройте оригинал ниже';
+                    }
+                    return;
+                } finally {
+                    trigger.disabled = false;
+                    trigger.setAttribute('aria-busy', 'false');
+                }
+            }
             let media;
             if (trigger.dataset.mediaKind === 'video') {
                 media = document.createElement('video');
                 media.controls = true;
                 media.playsInline = true;
                 configureVideo(media);
+            } else if (trigger.dataset.mediaKind === 'embed') {
+                media = document.createElement('iframe');
+                media.className = 'media-embed';
+                media.classList.toggle('is-vertical', trigger.dataset.mediaVertical === 'true');
+                media.title = `Видео ${trigger.dataset.mediaPlatform}`;
+                media.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+                media.allowFullscreen = true;
+                media.referrerPolicy = 'strict-origin-when-cross-origin';
             } else {
                 media = document.createElement('img');
                 media.alt = 'Полноразмерное изображение';

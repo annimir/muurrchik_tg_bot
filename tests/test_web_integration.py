@@ -119,6 +119,51 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertNotIn('Forest photo', outside.text)
         self.assertIn('Hero', characters.text)
 
+    def test_embedded_video_links_and_short_link_resolution(self):
+        tag = queries.create_tag('videos')
+        urls = (
+            'https://youtu.be/dQw4w9WgXcQ',
+            'https://www.tiktok.com/@scout2015/video/6718335390845095173',
+            'https://www.instagram.com/reel/abcDEF_123-/',
+            'https://vm.tiktok.com/ZM8abcDEF/',
+        )
+        for index, url in enumerate(urls, start=1):
+            queries.log_tag_usage(
+                tag['id'], index, 100, 'video_link', chat_id=200,
+                media_url=url, caption=f'Video {index}',
+            )
+
+        response = self.client.get('/media')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.text.count('data-media-kind="embed"'), 4)
+        self.assertEqual(response.text.count('Смотреть на сайте'), 4)
+        self.assertEqual(response.text.count('Открыть оригинал'), 4)
+        self.assertIn(
+            'data-media-open="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&amp;rel=0"',
+            response.text,
+        )
+        self.assertIn(
+            'data-media-open="https://www.tiktok.com/player/v1/6718335390845095173?autoplay=1"',
+            response.text,
+        )
+        self.assertIn(
+            'data-media-open="https://www.instagram.com/reel/abcDEF_123-/embed"', response.text,
+        )
+        self.assertIn('data-media-resolve=true', response.text)
+        usage_id = queries.db(
+            'SELECT id FROM tag_usage WHERE media_url = %s', (urls[-1],),
+        ).one()['id']
+        self.assertIn(f'data-media-open="/media/embed/{usage_id}"', response.text)
+        resolved = {
+            'url': 'https://www.tiktok.com/player/v1/6718335390845095173?autoplay=1',
+            'resolve': False,
+        }
+        with patch('web.routes.public.resolve_video_embed', new=AsyncMock(return_value=resolved)):
+            embed_response = self.client.get(f'/media/embed/{usage_id}')
+        self.assertEqual(embed_response.status_code, 200)
+        self.assertEqual(embed_response.json(), {'url': resolved['url']})
+
     def test_media_tag_filter_sorts_latin_then_cyrillic(self):
         for name in ('яблоко', 'Zulu', 'Арбуз', 'alpha'):
             queries.create_tag(name)
