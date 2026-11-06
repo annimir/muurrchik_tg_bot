@@ -934,6 +934,8 @@ class WebIntegrationTests(PostgresTestCase):
             media_file_id='photo-file', media_file_unique_id='photo-unique', caption='Visible photo',
         )
         usage = queries.db('SELECT * FROM tag_usage ORDER BY id LIMIT 1').one()
+        admin_page = self.client.get('/admin/media')
+        self.assertIn(f'value="{csrf}"', admin_page.text)
 
         response = self.client.post(f"/admin/media/{usage['id']}/visibility", data={
             'is_public': 'false', 'csrf_token': csrf,
