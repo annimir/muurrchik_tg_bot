@@ -383,7 +383,7 @@ class WebIntegrationTests(PostgresTestCase):
 
         response = self.client.post(f'/admin/players/{user["id"]}/edit', data={
             'bio': 'Player biography', 'birthday': '05.02', 'games': ['genshin', 'zzz'],
-            'csrf_token': csrf,
+            'version': 1, 'csrf_token': csrf,
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertEqual(queries.get_user_card(user['id'])['bio'], 'Player biography')
@@ -395,16 +395,18 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertIn('Zenless Zone Zero', public_profile.text)
 
         response = self.client.post(f'/admin/players/{user["id"]}/edit', data={
-            'bio': 'Updated biography', 'birthday': '2000-02-29', 'games': ['hsr'],
-            'csrf_token': csrf,
+            'bio': 'Updated biography', 'birthday': '29.02', 'games': ['hsr'],
+            'version': 2, 'csrf_token': csrf,
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 303)
-        self.assertEqual(queries.get_birthday(100), {'day': 29, 'month': 2, 'year': 2000})
+        self.assertEqual(queries.get_birthday(100), {'day': 29, 'month': 2, 'year': None})
         self.assertEqual(queries.get_user_games(user['id']), {'hsr'})
-        self.assertIn('2000-02-29', self.client.get(f'/admin/players/{user["id"]}/edit').text)
+        editor = self.client.get(f'/admin/players/{user["id"]}/edit').text
+        self.assertIn('value="29.02"', editor)
+        self.assertNotIn('2000-02-29', editor)
 
         response = self.client.post(f'/admin/players/{user["id"]}/edit', data={
-            'bio': '', 'birthday': '', 'games': [], 'csrf_token': csrf,
+            'bio': '', 'birthday': '', 'games': [], 'version': 3, 'csrf_token': csrf,
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertIsNone(queries.get_user_card(user['id'])['bio'])
@@ -421,7 +423,7 @@ class WebIntegrationTests(PostgresTestCase):
 
         response = self.client.post(f'/admin/players/{user["id"]}/edit', data={
             'bio': 'Player biography', 'birthday': '05.02',
-            'chat_position': 'Модератор', 'games': [], 'csrf_token': csrf,
+            'chat_position': 'Модератор', 'games': [], 'version': 1, 'csrf_token': csrf,
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertEqual(queries.get_user_by_id(user['id'])['chat_position'], 'Модератор')
@@ -477,8 +479,11 @@ class WebIntegrationTests(PostgresTestCase):
         profile_with_character = self.client.get(f'/users/{user["id"]}')
         self.assertIn(f'/media/characters/{character["id"]}', profile_with_character.text)
         self.assertIn('Основной', profile_with_character.text)
+        self.assertIn('03.02', profile_with_character.text)
+        self.assertNotIn('03.02.2001', profile_with_character.text)
         character_page = self.client.get(f'/characters/{character["id"]}')
         self.assertIn('Character history', character_page.text)
+        self.assertNotIn('03.02.2001', character_page.text)
         self.assertNotIn('Player biography', character_page.text)
         self.assertIn('https://wiki.example/focalors', character_page.text)
         self.assertIn(f'href="/media?tag={direct_tag["id"]}">Фокалорс</a>', character_page.text)
@@ -490,11 +495,18 @@ class WebIntegrationTests(PostgresTestCase):
         url = f'/admin/players/{user["id"]}/edit'
 
         invalid_responses = [
-            self.client.post(url, data={'bio': 'x' * 601, 'birthday': '', 'csrf_token': csrf}),
-            self.client.post(url, data={'bio': 'Bio', 'birthday': '31.02', 'csrf_token': csrf}),
-            self.client.post(url, data={'bio': 'Bio', 'birthday': '3000-01-01', 'csrf_token': csrf}),
             self.client.post(url, data={
-                'bio': 'Bio', 'birthday': '05.02', 'games': ['unknown'], 'csrf_token': csrf,
+                'bio': 'x' * 601, 'birthday': '', 'version': 1, 'csrf_token': csrf,
+            }),
+            self.client.post(url, data={
+                'bio': 'Bio', 'birthday': '31.02', 'version': 1, 'csrf_token': csrf,
+            }),
+            self.client.post(url, data={
+                'bio': 'Bio', 'birthday': '2000-01-01', 'version': 1, 'csrf_token': csrf,
+            }),
+            self.client.post(url, data={
+                'bio': 'Bio', 'birthday': '05.02', 'games': ['unknown'],
+                'version': 1, 'csrf_token': csrf,
             }),
         ]
 
@@ -504,7 +516,8 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertEqual(queries.get_user_games(user['id']), set())
         self.assertEqual(self.client.get('/admin/players/999/edit').status_code, 404)
         self.assertEqual(self.client.post(
-            '/admin/players/999/edit', data={'bio': '', 'birthday': '', 'csrf_token': csrf},
+            '/admin/players/999/edit',
+            data={'bio': '', 'birthday': '', 'version': 1, 'csrf_token': csrf},
         ).status_code, 404)
 
     def test_admin_creates_character_and_reassigns(self):
@@ -545,7 +558,7 @@ class WebIntegrationTests(PostgresTestCase):
             ):
                 response = self.client.post(f"/admin/characters/{character['id']}/edit", data={
                     'name': 'Hero', 'birth_date': '', 'description': 'Description',
-                    'wiki_url': 'https://wiki.example/hero', 'csrf_token': csrf,
+                    'wiki_url': 'https://wiki.example/hero', 'version': 1, 'csrf_token': csrf,
                 }, files={'photo': ('hero.png', image, 'image/png')}, follow_redirects=False)
                 self.assertEqual(response.status_code, 303)
                 updated = queries.get_character_by_id(character['id'])
@@ -557,7 +570,7 @@ class WebIntegrationTests(PostgresTestCase):
 
                 response = self.client.post(f"/admin/characters/{character['id']}/edit", data={
                     'name': 'Hero', 'birth_date': '', 'description': 'Description',
-                    'wiki_url': '', 'remove_photo': 'true', 'csrf_token': csrf,
+                    'wiki_url': '', 'remove_photo': 'true', 'version': 2, 'csrf_token': csrf,
                 }, follow_redirects=False)
                 self.assertEqual(response.status_code, 303)
                 self.assertIsNone(queries.get_character_by_id(character['id'])['photo_file_id'])
@@ -582,21 +595,21 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertIn('Leader updated', self.client.get('/admin/characters').text)
 
         response = self.client.post(f'/admin/characters/{first["id"]}/edit', data={
-            'name': 'Renamed', 'birth_date': '2001-02-03', 'position_id': str(position_id),
-            'description': 'Updated', 'csrf_token': csrf,
+            'name': 'Renamed', 'birth_date': '03.02', 'position_id': str(position_id),
+            'description': 'Updated', 'version': 1, 'csrf_token': csrf,
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 303)
         updated_character = queries.get_character_by_id(first['id'])
         self.assertEqual(updated_character['name'], 'Renamed')
+        self.assertEqual(updated_character['birth_date'].isoformat(), '2000-02-03')
         self.assertEqual(updated_character['position_id'], position_id)
 
         response = self.client.post(f'/admin/characters/{second["id"]}/edit', data={
             'name': 'Second', 'birth_date': '', 'position_id': str(position_id),
-            'description': 'Other', 'csrf_token': csrf,
-        })
-        self.assertEqual(response.status_code, 400)
-        self.assertIn('Должность уже занята', response.text)
-        self.assertIsNone(queries.get_character_by_id(second['id'])['position_id'])
+            'description': 'Other', 'version': 1, 'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(queries.get_character_by_id(second['id'])['position_id'], position_id)
 
         response = self.client.post(f'/admin/characters/{first["id"]}/delete', data={
             'csrf_token': csrf,
@@ -610,6 +623,131 @@ class WebIntegrationTests(PostgresTestCase):
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertIsNone(queries.get_position_by_name('Leader updated'))
+
+    def test_admin_creates_character_with_wiki_photo_and_player_list(self):
+        import tempfile
+        from web.media import TelegramMediaStore
+
+        csrf = self.admin_session()
+        user = queries.ensure_user(100, 'player')
+        image = b'\x89PNG\r\n\x1a\nimage-content'
+        with tempfile.TemporaryDirectory() as cache_dir:
+            store = TelegramMediaStore(cache_dir, 'test-token')
+            with (
+                patch('web.routes.admin.get_media_store', return_value=store),
+                patch('web.routes.public.get_media_store', return_value=store),
+            ):
+                form = self.client.get('/admin/characters')
+                self.assertIn('Выберите игрока', form.text)
+                self.assertIn(f'value="{user["id"]}">player</option>', form.text)
+                self.assertIn('name="wiki_url"', form.text)
+                self.assertIn('name="photo"', form.text)
+                response = self.client.post('/admin/characters', data={
+                    'owner_user_id': user['id'], 'name': 'Hero', 'birth_date': '03.02',
+                    'description': 'Description', 'wiki_url': 'https://wiki.example/hero',
+                    'csrf_token': csrf,
+                }, files={'photo': ('hero.png', image, 'image/png')}, follow_redirects=False)
+                self.assertEqual(response.status_code, 303)
+                character = queries.db("SELECT * FROM character WHERE name = 'Hero'").one()
+                self.assertEqual(character['wiki_url'], 'https://wiki.example/hero')
+                self.assertEqual(character['birth_date'].isoformat(), '2000-02-03')
+                self.assertTrue(character['photo_file_id'].startswith('local:'))
+                photo = self.client.get(f'/media/characters/{character["id"]}')
+                self.assertEqual(photo.content, image)
+
+    def test_admin_games_crud(self):
+        csrf = self.admin_session()
+        user = queries.ensure_user(100, 'player')
+
+        listing = self.client.get('/admin/games')
+        self.assertEqual(listing.status_code, 200)
+        self.assertIn('Wuthering Waves', listing.text)
+        response = self.client.post('/admin/games', data={
+            'name': 'Custom Game', 'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertIsNotNone(queries.game_code_exists('custom_game'))
+        duplicate = self.client.post('/admin/games', data={
+            'name': 'custom game', 'csrf_token': csrf,
+        })
+        self.assertEqual(duplicate.status_code, 400)
+
+        response = self.client.post(f'/admin/players/{user["id"]}/edit', data={
+            'bio': '', 'birthday': '', 'games': ['custom_game'],
+            'version': 1, 'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(queries.get_user_games(user['id']), {'custom_game'})
+        response = self.client.post('/admin/games/custom_game/delete', data={
+            'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(queries.get_user_games(user['id']), set())
+        self.assertEqual(self.client.post('/admin/games/custom_game/delete', data={
+            'csrf_token': csrf,
+        }).status_code, 404)
+
+    def test_admin_edit_rejects_stale_versions(self):
+        from web.auth import SESSION_COOKIE, create_admin_session
+
+        first_csrf = self.admin_session()
+        user = queries.ensure_user(100, 'player')
+        character = queries.create_character_row(user['id'], 'Hero', None, None, 'Old', True)
+        response = self.client.post(f'/admin/players/{user["id"]}/edit', data={
+            'bio': 'First admin', 'birthday': '', 'games': [],
+            'version': 1, 'csrf_token': first_csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+
+        queries.add_admin(200)
+        second_token, second_csrf = create_admin_session(200)
+        self.client.cookies.set(SESSION_COOKIE, second_token)
+        stale_player = self.client.post(f'/admin/players/{user["id"]}/edit', data={
+            'bio': 'Second admin', 'birthday': '', 'games': [],
+            'version': 1, 'csrf_token': second_csrf,
+        })
+        self.assertEqual(stale_player.status_code, 409)
+        self.assertIn('изменил другой администратор', stale_player.text)
+        self.assertIn('Second admin', stale_player.text)
+        self.assertIn('name="version" value="2"', stale_player.text)
+        self.assertEqual(queries.get_user_card(user['id'])['bio'], 'First admin')
+        confirmed_player = self.client.post(f'/admin/players/{user["id"]}/edit', data={
+            'bio': 'Second admin', 'birthday': '', 'games': [],
+            'version': 2, 'csrf_token': second_csrf,
+        }, follow_redirects=False)
+        self.assertEqual(confirmed_player.status_code, 303)
+        self.assertEqual(queries.get_user_card(user['id'])['bio'], 'Second admin')
+
+        response = self.client.post(f'/admin/characters/{character["id"]}/edit', data={
+            'name': 'Hero', 'birth_date': '', 'description': 'First admin',
+            'version': 1, 'csrf_token': second_csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        stale_character = self.client.post(f'/admin/characters/{character["id"]}/edit', data={
+            'name': 'Hero', 'birth_date': '', 'description': 'Stale edit',
+            'version': 1, 'csrf_token': second_csrf,
+        })
+        self.assertEqual(stale_character.status_code, 409)
+        self.assertIn('изменил другой администратор', stale_character.text)
+        self.assertIn('Stale edit', stale_character.text)
+        self.assertIn('name="version" value="2"', stale_character.text)
+        self.assertEqual(queries.get_character_by_id(character['id'])['description'], 'First admin')
+
+    def test_character_tag_alias_requires_valid_tag_name(self):
+        csrf = self.admin_session()
+        user = queries.ensure_user(100, 'player')
+        character = queries.create_character_row(user['id'], 'Ху Тао', None, None, None, True)
+        tag = queries.create_tag('ХуТао')
+
+        response = self.client.post('/admin/tags/characters', data={
+            'character_id': character['id'], 'tag_id': tag['id'], 'csrf_token': csrf,
+        })
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('без пробелов', response.text)
+        self.assertIsNone(queries.db(
+            'SELECT 1 FROM tag_alias WHERE alias = %s', ('Ху Тао',),
+        ).one())
 
     def test_admin_manages_tag_aliases_and_character_links(self):
         csrf = self.admin_session()

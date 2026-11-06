@@ -1,4 +1,12 @@
 from database.queries import db, get_character_tags
+from services.validation import is_valid_tag_name
+
+
+class ConcurrentEditError(ValueError):
+    pass
+
+
+_UNSET = object()
 
 
 def get_public_stats():
@@ -468,14 +476,16 @@ def add_admin_tag_alias(admin_tg_id, tag_id, alias, character_id=None):
         alias = alias.strip()
         if not alias:
             raise ValueError('Введите алиас')
+        if not is_valid_tag_name(alias):
+            raise ValueError('Алиас может содержать только буквы, цифры, дефис и подчёркивание, без пробелов')
         collision = tx(
             '''
             SELECT 'tag' AS source, id, name, status, name AS matched_name
-            FROM tag WHERE lower(name) = lower(%s)
+            FROM tag WHERE lower(replace(name, 'ё', 'е')) = lower(replace(%s, 'ё', 'е'))
             UNION ALL
             SELECT 'alias' AS source, t.id, t.name, t.status, ta.alias AS matched_name
             FROM tag_alias ta JOIN tag t ON t.id = ta.tag_id
-            WHERE lower(ta.alias) = lower(%s)
+            WHERE lower(replace(ta.alias, 'ё', 'е')) = lower(replace(%s, 'ё', 'е'))
             LIMIT 1
             ''',
             (alias, alias),
@@ -735,7 +745,7 @@ def list_admin_players():
 def get_admin_player(user_id):
     return db(
         '''
-        SELECT u.id, u.tag, u.chat_position, uc.bio, b.day, b.month, b.year,
+        SELECT u.id, u.tag, u.chat_position, u.lock_version, uc.bio, b.day, b.month, b.year,
             COALESCE((SELECT array_agg(ug.game_code ORDER BY ug.game_code)
                       FROM user_games ug WHERE ug.user_id = u.id), ARRAY[]::text[]) AS game_codes
         FROM users u
@@ -751,16 +761,58 @@ def list_games():
     return db('SELECT code, name FROM games ORDER BY name').all()
 
 
-def update_admin_player(admin_tg_id, user_id, bio, birthday, game_codes, chat_position):
+def list_admin_games():
+    return db(
+        '''
+        SELECT g.code, g.name, COUNT(ug.user_id) AS user_count
+        FROM games g
+        LEFT JOIN user_games ug ON ug.game_code = g.code
+        GROUP BY g.code, g.name
+        ORDER BY g.name
+        '''
+    ).all()
+
+
+def create_admin_game(admin_tg_id, name, code):
+    with db.transaction() as tx:
+        if tx('SELECT 1 FROM games WHERE lower(name) = lower(%s)', (name,)).one():
+            raise ValueError('Игра с таким названием уже существует')
+        base_code = code
+        suffix = 2
+        while tx('SELECT 1 FROM games WHERE code = %s', (code,)).one():
+            code = f'{base_code}_{suffix}'
+            suffix += 1
+        tx('INSERT INTO games (code, name) VALUES (%s, %s)', (code, name)).close()
+        _audit(tx, admin_tg_id, 'create', 'game', code, {'name': name})
+        return code
+
+
+def delete_admin_game(admin_tg_id, code):
+    with db.transaction() as tx:
+        game = tx('DELETE FROM games WHERE code = %s RETURNING name', (code,)).one()
+        if not game:
+            raise ValueError('Игра не найдена')
+        _audit(tx, admin_tg_id, 'delete', 'game', code, {'name': game['name']})
+
+
+def update_admin_player(admin_tg_id, user_id, bio, birthday, game_codes, chat_position, version):
     game_codes = sorted(set(game_codes))
     with db.transaction() as tx:
-        if not tx('SELECT id FROM users WHERE id = %s AND left_at IS NULL FOR UPDATE', (user_id,)).one():
+        current = tx(
+            'SELECT id, lock_version FROM users WHERE id = %s AND left_at IS NULL FOR UPDATE',
+            (user_id,),
+        ).one()
+        if not current:
             raise ValueError('Игрок не найден')
+        if current['lock_version'] != version:
+            raise ConcurrentEditError(
+                'Профиль уже изменил другой администратор. Проверьте данные и нажмите «Сохранить» ещё раз для перезаписи.'
+            )
         valid_games = {row['code'] for row in tx('SELECT code FROM games').all()}
         if not set(game_codes) <= valid_games:
             raise ValueError('Выбрана неизвестная игра')
         tx(
-            'UPDATE users SET chat_position = %s WHERE id = %s',
+            'UPDATE users SET chat_position = %s, lock_version = lock_version + 1 WHERE id = %s',
             (chat_position or None, user_id),
         ).close()
         tx(
@@ -896,20 +948,11 @@ def _validate_character_position(tx, position_id, character_id=None):
         return
     if not tx('SELECT id FROM positions WHERE id = %s', (position_id,)).one():
         raise ValueError('Выбрана неизвестная должность')
-    holder = tx(
-        '''
-        SELECT name FROM character
-        WHERE position_id = %s AND (%s IS NULL OR id <> %s)
-        ''',
-        (position_id, character_id, character_id),
-    ).one()
-    if holder:
-        raise ValueError(f'Должность уже занята персонажем «{holder["name"]}»')
 
 
 def create_character(
     admin_tg_id, owner_user_id, name, birth_date=None, description=None, is_primary=False,
-    position_id=None,
+    position_id=None, wiki_url=None, photo_file_id=None,
 ):
     with db.transaction() as tx:
         if not tx('SELECT 1 FROM users WHERE id = %s FOR UPDATE', (owner_user_id,)).one():
@@ -928,10 +971,13 @@ def create_character(
             tx('UPDATE character SET is_primary = FALSE WHERE owner_user_id = %s', (owner_user_id,)).close()
         row = tx(
             '''
-            INSERT INTO character (owner_user_id, name, birth_date, description, is_primary, position_id)
-            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
+            INSERT INTO character (
+                owner_user_id, name, birth_date, description, is_primary, position_id,
+                wiki_url, photo_file_id
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
             ''',
-            (owner_user_id, name, birth_date, description, primary, position_id),
+            (owner_user_id, name, birth_date, description, primary, position_id, wiki_url, photo_file_id),
         ).one()
         _audit(tx, admin_tg_id, 'create', 'character', row['id'], {
             'owner_user_id': owner_user_id, 'name': name, 'position_id': position_id,
@@ -970,40 +1016,40 @@ def get_admin_character(character_id):
 
 def update_character(
     admin_tg_id, character_id, name, birth_date=None, description=None, wiki_url=None,
-    position_id=None,
+    position_id=None, version=None, photo_file_id=_UNSET,
 ):
     with db.transaction() as tx:
-        if not tx('SELECT 1 FROM character WHERE id = %s FOR UPDATE', (character_id,)).one():
+        current = tx(
+            'SELECT lock_version FROM character WHERE id = %s FOR UPDATE', (character_id,),
+        ).one()
+        if not current:
             raise ValueError('Персонаж не найден')
+        if current['lock_version'] != version:
+            raise ConcurrentEditError(
+                'Персонажа уже изменил другой администратор. Проверьте данные и нажмите «Сохранить» ещё раз для перезаписи.'
+            )
         if tx(
             'SELECT 1 FROM character WHERE lower(name) = lower(%s) AND id <> %s',
             (name, character_id),
         ).one():
             raise ValueError('Персонаж с таким именем уже существует')
         _validate_character_position(tx, position_id, character_id)
+        photo_assignment = '' if photo_file_id is _UNSET else ', photo_file_id = %s'
+        params = [name, birth_date, description, wiki_url, position_id]
+        if photo_file_id is not _UNSET:
+            params.append(photo_file_id)
+        params.append(character_id)
         tx(
-            '''
+            f'''
             UPDATE character
-            SET name = %s, birth_date = %s, description = %s, wiki_url = %s, position_id = %s
+            SET name = %s, birth_date = %s, description = %s, wiki_url = %s, position_id = %s,
+                lock_version = lock_version + 1{photo_assignment}
             WHERE id = %s
             ''',
-            (name, birth_date, description, wiki_url, position_id, character_id),
+            tuple(params),
         ).close()
         _audit(tx, admin_tg_id, 'update', 'character', character_id, {
-            'name': name, 'position_id': position_id,
-        })
-
-
-def update_character_photo(admin_tg_id, character_id, photo_file_id):
-    with db.transaction() as tx:
-        if not tx('SELECT 1 FROM character WHERE id = %s FOR UPDATE', (character_id,)).one():
-            raise ValueError('Персонаж не найден')
-        tx(
-            'UPDATE character SET photo_file_id = %s WHERE id = %s',
-            (photo_file_id, character_id),
-        ).close()
-        _audit(tx, admin_tg_id, 'update_photo', 'character', character_id, {
-            'has_photo': photo_file_id is not None,
+            'name': name, 'position_id': position_id, 'photo_changed': photo_file_id is not _UNSET,
         })
 
 

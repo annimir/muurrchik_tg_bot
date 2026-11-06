@@ -5,8 +5,8 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from database.queries import (
     get_all_positions, get_all_positions_with_holders, get_position_by_name,
-    add_position, remove_position, get_position_holder_character,
-    assign_position_to_character, revoke_position_by_id,
+    add_position, remove_position,
+    assign_position_to_character, revoke_position_from_character,
     get_user_by_tg_id, create_user, get_user_characters, get_character_by_id, get_user_language,
 )
 from services.admin import is_admin
@@ -19,7 +19,7 @@ from message.keys import (
     adminpos_assign_choose_position, adminpos_assign_no_positions,
     adminpos_assign_forward_prompt, adminpos_assign_forward_invalid,
     adminpos_assign_no_characters, adminpos_assign_choose_character,
-    adminpos_assign_done, adminpos_assign_done_with_revoke,
+    adminpos_assign_done,
     adminpos_revoke_no_occupied, adminpos_revoke_choose, adminpos_revoke_done,
 )
 
@@ -206,7 +206,6 @@ async def _finalize_position_assignment(update, context, character, lang, via_me
     position_id = data['position_id']
     position_name = data['position_name']
 
-    previous_holder = get_position_holder_character(position_id)
     assign_position_to_character(character['id'], position_id)
 
     admin_tg_id = update.effective_user.id
@@ -214,14 +213,7 @@ async def _finalize_position_assignment(update, context, character, lang, via_me
         "Админ %s назначил должность '%s' персонажу #%d (%s)",
         admin_tg_id, position_name, character['id'], character['name'],
     )
-
-    if previous_holder and previous_holder['id'] != character['id']:
-        text = message(
-            lang, adminpos_assign_done_with_revoke, 'adminpos',
-            position_name, character['name'], previous_holder['name'],
-        )
-    else:
-        text = message(lang, adminpos_assign_done, 'adminpos', position_name, character['name'])
+    text = message(lang, adminpos_assign_done, 'adminpos', position_name, character['name'])
 
     if via_query:
         await via_query.edit_message_text(text)
@@ -251,7 +243,7 @@ async def start_revoke_position(update: Update, context: ContextTypes.DEFAULT_TY
         return ConversationHandler.END
 
     keyboard = [
-        [InlineKeyboardButton(f'{r["name"]} — {r["character_name"]}', callback_data=f'posrevoke:{r["id"]}')]
+        [InlineKeyboardButton(f'{r["name"]} — {r["character_name"]}', callback_data=f'posrevoke:{r["id"]}:{r["character_id"]}')]
         for r in occupied
     ]
     await update.effective_message.reply_text(message(lang, adminpos_revoke_choose, 'adminpos'), reply_markup=InlineKeyboardMarkup(keyboard))
@@ -263,16 +255,17 @@ async def choose_revoke_position(update: Update, context: ContextTypes.DEFAULT_T
     await query.answer()
     lang = get_user_language(update.effective_user.id)
 
-    position_id = int(query.data.split(':')[1])
-    holder = get_position_holder_character(position_id)
+    _, position_id, character_id = query.data.split(':')
+    position_id, character_id = int(position_id), int(character_id)
+    holder = get_character_by_id(character_id)
 
-    if not holder:
+    if not holder or holder['position_id'] != position_id:
         return ConversationHandler.END
 
     positions = {p['id']: p['name'] for p in get_all_positions()}
     position_name = positions.get(position_id, '?')
 
-    revoke_position_by_id(position_id)
+    revoke_position_from_character(character_id)
     logger.info("Админ %s снял должность '%s' с персонажа #%d", update.effective_user.id, position_name, holder['id'])
 
     await query.edit_message_text(message(lang, adminpos_revoke_done, 'adminpos', position_name, holder['name']))

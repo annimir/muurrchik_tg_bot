@@ -11,12 +11,14 @@
 </section>
 <section class="panel">
     <h2>Добавить персонажа</h2>
-    <form class="admin-form" method="post" action="/admin/characters">
+    <form class="admin-form" method="post" action="/admin/characters" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <label>Игрок<select name="owner_user_id" required>{% for user in users %}<option value="{{ user.id }}">{{ user.tag or 'Игрок #' + user.id|string }}</option>{% endfor %}</select></label>
+        <label>Игрок<select name="owner_user_id" required><option value="" disabled selected>Выберите игрока</option>{% for user in users %}<option value="{{ user.id }}">{{ user.tag or 'Игрок #' + user.id|string }}</option>{% endfor %}</select></label>
         <label>Имя<input name="name" required maxlength="100"></label>
-        <label>День рождения<input type="date" name="birth_date"></label>
+        <label>День рождения<input name="birth_date" placeholder="ДД.ММ"></label>
         <label>Должность<select name="position_id"><option value="">Не назначена</option>{% for position in positions %}<option value="{{ position.id }}">{{ position.name }}</option>{% endfor %}</select></label>
+        <label>Ссылка на Wiki<input type="url" name="wiki_url" placeholder="https://..."></label>
+        <label>Фотография<input type="file" name="photo" accept="image/png,image/jpeg,image/webp"></label>
         <label class="form-wide">Описание<textarea name="description" rows="4" maxlength="5000"></textarea></label>
         <label class="checkbox"><input type="checkbox" name="is_primary" value="true"> Основной персонаж</label>
         <button class="button" type="submit">Добавить</button>

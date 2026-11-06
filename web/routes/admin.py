@@ -6,6 +6,7 @@ from fastapi.responses import RedirectResponse
 
 from config.config import config
 from database.queries import get_all_admin_ids, get_all_positions, get_user_titles
+from services.games import slugify_game_name
 from services.validation import MAX_NAME_LENGTH, MAX_TEXT_LENGTH
 from web.auth import (
     SESSION_COOKIE, create_admin_session, csrf_protect, read_admin_session,
@@ -13,19 +14,20 @@ from web.auth import (
 )
 from web.charts import build_daily_bars, build_line_chart, build_pie_chart
 from web.queries import (
+    ConcurrentEditError,
     add_admin_character_affiliation, add_admin_tag_alias, add_admin_user_title,
-    assign_character, create_admin_affiliation, create_admin_position, create_character,
-    delete_admin_affiliation, delete_admin_position, delete_admin_tag, delete_admin_tag_alias,
+    assign_character, create_admin_affiliation, create_admin_game, create_admin_position,
+    create_character, delete_admin_affiliation, delete_admin_game, delete_admin_position,
+    delete_admin_tag, delete_admin_tag_alias,
     delete_admin_user_title, delete_character, get_admin_affiliation, get_admin_character,
     get_admin_overview, get_admin_player, get_admin_tag, get_admin_tag_character_links,
     get_daily_analytics, get_public_user_characters, get_recent_audit,
     get_tag_popularity_for_day, get_tag_subscription_popularity, get_tag_usage_bounds,
     get_tag_usage_series, list_admin_affiliations, list_admin_character_affiliations,
-    list_admin_character_tag_links, list_admin_characters, list_admin_media,
+    list_admin_character_tag_links, list_admin_characters, list_admin_games, list_admin_media,
     list_admin_players, list_admin_tags, list_admin_users, list_games,
     remove_admin_character_affiliation, set_media_visibility, update_admin_affiliation,
     update_admin_player, update_admin_position, update_admin_tag_status, update_character,
-    update_character_photo,
 )
 from web.media import get_media_store
 from web.rendering import templates
@@ -180,23 +182,22 @@ async def dashboard(
     )
 
 
-def _parse_player_birthday(value):
+def _parse_character_birthday(value):
     value = value.strip()
     if not value:
         return None
     try:
-        if '.' in value:
-            day_text, month_text = value.split('.')
-            birthday = {'day': int(day_text), 'month': int(month_text), 'year': None}
-            date(2000, birthday['month'], birthday['day'])
-        else:
-            parsed = date.fromisoformat(value)
-            birthday = {'day': parsed.day, 'month': parsed.month, 'year': parsed.year}
+        day_text, month_text = value.split('.')
+        return date(2000, int(month_text), int(day_text))
     except (TypeError, ValueError):
-        raise ValueError('Укажите дату в формате ДД.ММ или ГГГГ-ММ-ДД') from None
-    if birthday['year'] and date(birthday['year'], birthday['month'], birthday['day']) > date.today():
-        raise ValueError('Дата рождения не может быть в будущем')
-    return birthday
+        raise ValueError('Укажите день рождения в формате ДД.ММ') from None
+
+
+def _parse_player_birthday(value):
+    parsed = _parse_character_birthday(value)
+    if not parsed:
+        return None
+    return {'day': parsed.day, 'month': parsed.month, 'year': None}
 
 
 @router.get('/players', name='admin_players')
@@ -238,6 +239,7 @@ async def update_player_action(
     birthday: str = Form(''),
     chat_position: str = Form(''),
     games: list[str] = Form(default=[]),
+    version: int = Form(...),
     session=Depends(require_admin),
     _=Depends(csrf_protect),
 ):
@@ -253,14 +255,17 @@ async def update_player_action(
             raise ValueError(f'Должность не должна превышать {MAX_NAME_LENGTH} символов')
         parsed_birthday = _parse_player_birthday(birthday)
         update_admin_player(
-            session['tg_id'], user_id, bio, parsed_birthday, games, chat_position,
+            session['tg_id'], user_id, bio, parsed_birthday, games, chat_position, version,
         )
     except ValueError as exc:
-        submitted_player = {**player, 'bio': bio, 'game_codes': games, 'chat_position': chat_position}
+        current_player = get_admin_player(user_id) or player
+        submitted_player = {
+            **current_player, 'bio': bio, 'game_codes': games, 'chat_position': chat_position,
+        }
         return templates.TemplateResponse(
             request=request, name='admin/player_edit.html',
             context=_player_edit_context(session, submitted_player, str(exc), birthday),
-            status_code=400,
+            status_code=409 if isinstance(exc, ConcurrentEditError) else 400,
         )
     return RedirectResponse('/admin/players', status_code=303)
 
@@ -650,23 +655,33 @@ async def create_character_action(
     birth_date: str = Form(''),
     description: str = Form(''),
     position_id: str = Form(''),
+    wiki_url: str = Form(''),
     is_primary: bool = Form(False),
+    photo: UploadFile | None = File(None),
     session=Depends(require_admin),
     _=Depends(csrf_protect),
 ):
     name = name.strip()
     description = description.strip()
+    wiki_url = wiki_url.strip()
+    saved_photo = None
     try:
         if not 1 <= len(name) <= MAX_NAME_LENGTH:
             raise ValueError(f'Имя должно содержать от 1 до {MAX_NAME_LENGTH} символов')
         if len(description) > MAX_TEXT_LENGTH:
             raise ValueError(f'Описание не должно превышать {MAX_TEXT_LENGTH} символов')
-        parsed_birth_date = date.fromisoformat(birth_date) if birth_date else None
+        if wiki_url and (urlparse(wiki_url).scheme not in {'http', 'https'} or len(wiki_url) > 2048):
+            raise ValueError('Укажите корректную ссылку HTTP или HTTPS')
+        if photo and photo.filename:
+            saved_photo = await get_media_store().save_upload(photo)
         create_character(
-            session['tg_id'], owner_user_id, name, parsed_birth_date,
+            session['tg_id'], owner_user_id, name, _parse_character_birthday(birth_date),
             description or None, is_primary, _optional_position_id(position_id),
+            wiki_url or None, saved_photo,
         )
     except ValueError as exc:
+        if saved_photo:
+            get_media_store().delete_local(saved_photo)
         return templates.TemplateResponse(
             request=request, name='admin/characters.html',
             context=_characters_context(session, str(exc)), status_code=400,
@@ -693,10 +708,10 @@ async def assign_character_action(
     return RedirectResponse('/admin/characters', status_code=303)
 
 
-def _character_edit_context(session, character, error=None):
+def _character_edit_context(session, character, error=None, birth_date_input=None):
     return {
         'character': character, 'positions': get_all_positions(), 'csrf_token': session['csrf'],
-        'active_page': 'admin_characters', 'error': error,
+        'active_page': 'admin_characters', 'error': error, 'birth_date_input': birth_date_input,
     }
 
 
@@ -720,6 +735,7 @@ async def update_character_action(
     description: str = Form(''),
     wiki_url: str = Form(''),
     position_id: str = Form(''),
+    version: int = Form(...),
     photo: UploadFile | None = File(None),
     remove_photo: bool = Form(False),
     session=Depends(require_admin),
@@ -731,6 +747,8 @@ async def update_character_action(
     name = name.strip()
     description = description.strip()
     wiki_url = wiki_url.strip()
+    saved_photo = None
+    parsed_position_id = position_id
     try:
         if not 1 <= len(name) <= MAX_NAME_LENGTH:
             raise ValueError(f'Имя должно содержать от 1 до {MAX_NAME_LENGTH} символов')
@@ -738,23 +756,31 @@ async def update_character_action(
             raise ValueError(f'Описание не должно превышать {MAX_TEXT_LENGTH} символов')
         if wiki_url and (urlparse(wiki_url).scheme not in {'http', 'https'} or len(wiki_url) > 2048):
             raise ValueError('Укажите корректную ссылку HTTP или HTTPS')
-        parsed_birth_date = date.fromisoformat(birth_date) if birth_date else None
-        update_character(
-            session['tg_id'], character_id, name, parsed_birth_date, description or None,
-            wiki_url or None, _optional_position_id(position_id),
-        )
+        parsed_position_id = _optional_position_id(position_id)
         new_photo = character['photo_file_id']
         if remove_photo:
             new_photo = None
         elif photo and photo.filename:
-            new_photo = await get_media_store().save_upload(photo)
+            saved_photo = await get_media_store().save_upload(photo)
+            new_photo = saved_photo
+        update_character(
+            session['tg_id'], character_id, name, _parse_character_birthday(birth_date),
+            description or None, wiki_url or None, parsed_position_id, version, new_photo,
+        )
         if new_photo != character['photo_file_id']:
-            update_character_photo(session['tg_id'], character_id, new_photo)
             get_media_store().delete_local(character['photo_file_id'])
     except ValueError as exc:
+        if saved_photo:
+            get_media_store().delete_local(saved_photo)
+        current_character = get_admin_character(character_id) or character
+        submitted_character = {
+            **current_character, 'name': name, 'description': description,
+            'wiki_url': wiki_url, 'position_id': parsed_position_id,
+        }
         return templates.TemplateResponse(
             request=request, name='admin/character_edit.html',
-            context=_character_edit_context(session, character, str(exc)), status_code=400,
+            context=_character_edit_context(session, submitted_character, str(exc), birth_date),
+            status_code=409 if isinstance(exc, ConcurrentEditError) else 400,
         )
     return RedirectResponse('/admin/characters', status_code=303)
 
@@ -828,6 +854,68 @@ async def delete_position_action(
             context=_characters_context(session, str(exc)), status_code=400,
         )
     return RedirectResponse('/admin/characters', status_code=303)
+
+
+@router.get('/games', name='admin_games')
+async def games(request: Request, session=Depends(require_admin)):
+    return templates.TemplateResponse(
+        request=request,
+        name='admin/games.html',
+        context={
+            'games': list_admin_games(), 'csrf_token': session['csrf'],
+            'active_page': 'admin_games', 'error': None,
+        },
+    )
+
+
+@router.post('/games', name='admin_create_game')
+async def create_game_action(
+    request: Request,
+    name: str = Form(''),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    name = name.strip()
+    error = None
+    status_code = 200
+    try:
+        if not 1 <= len(name) <= MAX_NAME_LENGTH:
+            raise ValueError(f'Название должно содержать от 1 до {MAX_NAME_LENGTH} символов')
+        create_admin_game(session['tg_id'], name, slugify_game_name(name))
+    except ValueError as exc:
+        error = str(exc)
+        status_code = 400
+    if error is None:
+        return RedirectResponse('/admin/games', status_code=303)
+    return templates.TemplateResponse(
+        request=request, name='admin/games.html',
+        context={
+            'games': list_admin_games(), 'csrf_token': session['csrf'],
+            'active_page': 'admin_games', 'error': error,
+        },
+        status_code=status_code,
+    )
+
+
+@router.post('/games/{code}/delete', name='admin_delete_game')
+async def delete_game_action(
+    request: Request,
+    code: str,
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        delete_admin_game(session['tg_id'], code)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/games.html',
+            context={
+                'games': list_admin_games(), 'csrf_token': session['csrf'],
+                'active_page': 'admin_games', 'error': str(exc),
+            },
+            status_code=404,
+        )
+    return RedirectResponse('/admin/games', status_code=303)
 
 
 @router.get('/media', name='admin_media')

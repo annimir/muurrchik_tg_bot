@@ -43,10 +43,7 @@ def _excerpt(text, limit):
 def _birthday_text(birthday):
     if not birthday:
         return None
-    text = f'{birthday["day"]:02}.{birthday["month"]:02}'
-    if birthday['year']:
-        text += f'.{birthday["year"]:04}'
-    return text
+    return f'{birthday["day"]:02}.{birthday["month"]:02}'
 
 
 def _player_markup(db_user, characters, lang):
@@ -187,7 +184,7 @@ def _build_character_card(db_user, character, lang, page=0):
     if character['birth_date']:
         birthday_block = _esc(message(
             lang, card_character_birthday_label, 'card',
-            character['birth_date'].strftime('%d.%m.%Y'),
+            character['birth_date'].strftime('%d.%m'),
         ))
     tag_block = None
     tag_text = _character_tag_text(character['id'])

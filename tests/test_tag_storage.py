@@ -32,6 +32,14 @@ class TagStorageTests(unittest.TestCase):
 
         self.assertEqual(storage.find('пЕРСОНАЖ')['tag'], 'Персонаж')
 
+    def test_case_and_yo_variants_match_existing_tag(self):
+        storage = TagStorage()
+        storage.load_from(['Кейя', 'Филёл'])
+
+        self.assertEqual(storage.find('кеия'), {'status': 'suggest', 'tag': 'Кейя', 'score': 100.0})
+        self.assertEqual(storage.find('филел'), {'status': 'suggest', 'tag': 'Филёл', 'score': 100.0})
+        self.assertEqual(storage.find('филёл'), {'status': 'found', 'tag': 'Филёл'})
+
     def test_unrelated_short_name_is_created_without_suggestion(self):
         storage = TagStorage()
         storage.load_from(['еимия', 'ЯэМико'])
