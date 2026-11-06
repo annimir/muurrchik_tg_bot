@@ -305,6 +305,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); }
 .game-options small, .admin-form label small { color: var(--muted); }
 .assign-form { align-items: center; gap: 9px; }
 .form-error { padding: 13px 17px; margin-bottom: 20px; border: 1px solid rgba(241,166,166,.5); border-radius: 5px; color: var(--danger); background: rgba(130,40,50,.15); }
+.admin-panel-toggle { position: absolute; top: 10px; right: 10px; z-index: 1; width: 30px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--panel-solid); color: var(--gold); cursor: pointer; line-height: 1; }
+.admin-panel-toggle:hover { border-color: var(--gold); }
+.admin-panel-content > h2:first-child { padding-right: 34px; }
+.panel.is-collapsed { padding-bottom: 18px; }
+.panel.is-collapsed .admin-panel-content { display: none; }
+.admin-toasts { position: fixed; right: 20px; bottom: 20px; z-index: 1000; display: grid; gap: 10px; width: min(380px, calc(100vw - 40px)); }
+.admin-toast { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 14px 16px; border: 1px solid var(--teal); border-radius: 8px; background: var(--panel-solid); box-shadow: var(--shadow); color: var(--ink); }
+.admin-toast.is-error { border-color: var(--danger); }
+.admin-toast-close { padding: 0; border: 0; background: transparent; color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer; }
+@media (max-width: 620px) { .admin-toasts { right: 12px; bottom: 12px; width: calc(100vw - 24px); } }
 .danger-zone { border-color: rgba(241,166,166,.35); }
 .button-danger { border-color: rgba(241,166,166,.6); background: rgba(130,40,50,.35); color: var(--danger); }
 .button-danger:hover { color: #ffd7d7; }

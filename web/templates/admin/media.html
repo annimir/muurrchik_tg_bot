@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from '_media.html' import media_card %}
+{% from '_media.html' import media_card with context %}
 {% block title %}Модерация медиа{% endblock %}
 {% block content %}
 {% include 'admin/_nav.html' %}
