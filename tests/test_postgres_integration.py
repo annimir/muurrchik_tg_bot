@@ -19,7 +19,7 @@ class DatabaseIntegrationTests(PostgresTestCase):
         self.assertEqual(updated['tag'], 'updated')
         self.assertEqual(queries.db('SELECT COUNT(*) AS cnt FROM users').one()['cnt'], 1)
 
-    def test_primary_character_and_position_transfer(self):
+    def test_primary_character_and_shared_position(self):
         user = queries.ensure_user(100, 'user')
         first = queries.create_character_row(user['id'], 'First', None, None, None, True)
         second = queries.create_character_row(user['id'], 'Second', None, None, None, False)
@@ -31,7 +31,7 @@ class DatabaseIntegrationTests(PostgresTestCase):
 
         self.assertEqual(queries.db('SELECT COUNT(*) AS cnt FROM character WHERE is_primary').one()['cnt'], 1)
         self.assertTrue(queries.get_character_by_id(second['id'])['is_primary'])
-        self.assertIsNone(queries.get_character_by_id(first['id'])['position_id'])
+        self.assertEqual(queries.get_character_by_id(first['id'])['position_id'], position_id)
         self.assertEqual(queries.get_character_by_id(second['id'])['position_id'], position_id)
 
     def test_request_claim_and_approval_are_atomic(self):
@@ -207,7 +207,8 @@ class HandlerIntegrationTests(PostgresTestCase):
         self.assertNotIn('\n\n@player\n\n', caption)
         self.assertNotIn('Player\n', caption)
         self.assertIn('🏅 Титулы: Архивариус', caption)
-        self.assertIn('День рождения: 05.02.2000', caption)
+        self.assertIn('День рождения: 05.02', caption)
+        self.assertNotIn('05.02.2000', caption)
         self.assertNotIn('День рождения персонажа:', caption)
         self.assertNotIn('Теги и алиасы:', caption)
         self.assertIn('Другие персонажи: Керидра', caption)
@@ -260,7 +261,8 @@ class HandlerIntegrationTests(PostgresTestCase):
         first_page = edit_media.await_args.kwargs['media'].caption
         self.assertIn('<b>ФОКАЛОРС</b>', first_page)
         self.assertIn('Архонт', first_page)
-        self.assertIn('День рождения персонажа: 03.02.2001', first_page)
+        self.assertIn('День рождения персонажа: 03.02', first_page)
+        self.assertNotIn('03.02.2001', first_page)
         self.assertIn('Теги и алиасы: #Фокалорс, #Фурина, #Фурина лучшая', first_page)
         self.assertIn('&lt;b&gt;', first_page)
         self.assertLessEqual(len(first_page), 1024)

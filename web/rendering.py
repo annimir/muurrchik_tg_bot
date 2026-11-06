@@ -18,6 +18,10 @@ def date_ru(value):
     return value.strftime('%d.%m.%Y') if value else ''
 
 
+def birthday_ru(value):
+    return value.strftime('%d.%m') if value else ''
+
+
 def media_kind(value):
     return {'photo': 'Фото', 'video': 'Видео', 'video_link': 'Ссылка'}.get(value, value)
 
@@ -54,6 +58,7 @@ def status_ru(value):
 
 templates.env.filters['datetime_ru'] = datetime_ru
 templates.env.filters['date_ru'] = date_ru
+templates.env.filters['birthday_ru'] = birthday_ru
 templates.env.filters['media_kind'] = media_kind
 templates.env.filters['media_caption'] = media_caption
 templates.env.filters['number_ru'] = number_ru

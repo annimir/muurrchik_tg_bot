@@ -7,8 +7,9 @@
 <section class="panel">
     <form class="admin-form" method="post" action="/admin/characters/{{ character.id }}/edit" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="version" value="{{ character.lock_version }}">
         <label>Имя<input name="name" required maxlength="100" value="{{ character.name }}"></label>
-        <label>День рождения<input type="date" name="birth_date" value="{{ character.birth_date.isoformat() if character.birth_date else '' }}"></label>
+        <label>День рождения<input name="birth_date" placeholder="ДД.ММ" value="{% if birth_date_input is not none %}{{ birth_date_input }}{% elif character.birth_date %}{{ character.birth_date|birthday_ru }}{% endif %}"></label>
         <label>Должность<select name="position_id"><option value="">Не назначена</option>{% for position in positions %}<option value="{{ position.id }}" {{ 'selected' if position.id == character.position_id else '' }}>{{ position.name }}</option>{% endfor %}</select></label>
         <label>Ссылка на Wiki<input type="url" name="wiki_url" value="{{ character.wiki_url or '' }}" placeholder="https://..."></label>
         <label class="form-wide">Описание<textarea name="description" rows="6" maxlength="5000">{{ character.description or '' }}</textarea></label>

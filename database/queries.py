@@ -875,12 +875,14 @@ def get_position_holder_character(position_id):
 
 
 def assign_position_to_character(character_id, position_id):
-    with db.transaction() as tx:
-        tx('UPDATE character SET position_id = NULL WHERE position_id = %s', (position_id,)).close()
-        tx(
-            'UPDATE character SET position_id = %s WHERE id = %s',
-            (position_id, character_id),
-        ).close()
+    db(
+        'UPDATE character SET position_id = %s WHERE id = %s',
+        (position_id, character_id),
+    ).close()
+
+
+def revoke_position_from_character(character_id):
+    db('UPDATE character SET position_id = NULL WHERE id = %s', (character_id,)).close()
 
 
 def revoke_position_by_id(position_id):

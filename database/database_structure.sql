@@ -174,7 +174,8 @@ INSERT INTO games (code, name) VALUES
     ('hsr', 'Honkai: Star Rail'),
     ('zzz', 'Zenless Zone Zero'),
     ('endfield', 'Arknights: Endfield'),
-    ('hi3', 'Honkai Impact 3rd')
+    ('hi3', 'Honkai Impact 3rd'),
+    ('wuthering_waves', 'Wuthering Waves')
 ON CONFLICT (code) DO NOTHING;
 
 DO $$
@@ -200,10 +201,7 @@ CREATE TABLE IF NOT EXISTS positions (
 
 ALTER TABLE character ADD COLUMN IF NOT EXISTS position_id INTEGER REFERENCES positions(id) ON DELETE SET NULL;
 
--- гарантия "один держатель на должность одновременно" — та же техника,
--- что и с is_primary в Этапе D (частичный уникальный индекс)
-CREATE UNIQUE INDEX IF NOT EXISTS one_holder_per_position
-    ON character (position_id) WHERE position_id IS NOT NULL;
+DROP INDEX IF EXISTS one_holder_per_position;
 
 CREATE TABLE IF NOT EXISTS affiliations (
     id        SERIAL PRIMARY KEY,
@@ -263,6 +261,8 @@ CREATE INDEX IF NOT EXISTS idx_users_tag_trgm ON users USING gin (tag gin_trgm_o
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_file_id TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_updated_at TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_position TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS lock_version INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE character ADD COLUMN IF NOT EXISTS lock_version INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS titles TEXT;
 
 INSERT INTO user_titles (user_id, name)

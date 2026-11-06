@@ -14,21 +14,19 @@ from message.keys import (
 
 logger = logging.getLogger(__name__)
 
-DATE_PATTERN = re.compile(r'^(\d{1,2})\.(\d{1,2})(?:\.(\d{4}))?$')
+DATE_PATTERN = re.compile(r'^(\d{1,2})\.(\d{1,2})$')
 
 
 def _parse_date(raw: str):
     match = DATE_PATTERN.match(raw)
     if not match:
         return None
-    day, month, year = match.groups()
-    day, month = int(day), int(month)
-    year = int(year) if year else None
+    day, month = (int(part) for part in match.groups())
     try:
-        date(year or 2000, month, day)
+        date(2000, month, day)
     except ValueError:
         return None
-    return day, month, year
+    return day, month, None
 
 
 async def _check_group(update: Update, lang: str) -> bool:

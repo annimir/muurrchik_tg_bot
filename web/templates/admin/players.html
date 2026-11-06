@@ -10,7 +10,7 @@
         <td>{{ player.titles|truncate(100) if player.titles else '—' }}</td>
         <td>{{ player.chat_position or '—' }}</td>
         <td>{{ player.bio|truncate(100) if player.bio else '—' }}</td>
-        <td>{% if player.day %}{% if player.year %}{{ '%02d.%02d.%04d'|format(player.day, player.month, player.year) }}{% else %}{{ '%02d.%02d'|format(player.day, player.month) }}{% endif %}{% else %}—{% endif %}</td>
+        <td>{% if player.day %}{{ '%02d.%02d'|format(player.day, player.month) }}{% else %}—{% endif %}</td>
         <td>{{ player.game_names or '—' }}</td>
         <td><a class="button button-small button-quiet" href="/admin/players/{{ player.id }}/edit">Редактировать</a></td>
     </tr>{% endfor %}

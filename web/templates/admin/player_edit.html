@@ -7,11 +7,12 @@
 <section class="panel">
     <form class="admin-form" method="post" action="/admin/players/{{ player.id }}/edit">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="version" value="{{ player.lock_version }}">
         <label class="form-wide">О игроке<textarea name="bio" rows="6" maxlength="600" placeholder="Информация для публичного профиля">{{ player.bio or '' }}</textarea></label>
         <label>Должность в чате<input name="chat_position" maxlength="100" value="{{ player.chat_position or '' }}"></label>
         <label>День рождения
-            <input name="birthday" placeholder="ДД.ММ или ГГГГ-ММ-ДД" value="{% if birthday_input is not none %}{{ birthday_input }}{% elif player.year %}{{ '%04d-%02d-%02d'|format(player.year, player.month, player.day) }}{% elif player.day %}{{ '%02d.%02d'|format(player.day, player.month) }}{% endif %}">
-            <small>Без года: 24.05. Полная дата: 2000-05-24. Пустое поле удалит дату.</small>
+            <input name="birthday" placeholder="ДД.ММ" value="{% if birthday_input is not none %}{{ birthday_input }}{% elif player.day %}{{ '%02d.%02d'|format(player.day, player.month) }}{% endif %}">
+            <small>Формат: 24.05. Пустое поле удалит дату.</small>
         </label>
         <fieldset class="form-wide game-options"><legend>Игры</legend><div class="game-options-list">
             {% for game in games %}<label class="checkbox"><input type="checkbox" name="games" value="{{ game.code }}" {{ 'checked' if game.code in player.game_codes else '' }}> {{ game.name }}</label>{% endfor %}

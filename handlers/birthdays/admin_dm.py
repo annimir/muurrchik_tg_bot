@@ -22,15 +22,14 @@ MAIN_MENU, WAITING_FORWARD, WAITING_DATE, MANAGING_ENTRY = range(4)
 
 def _parse_date(raw: str):
     parts = raw.strip().split('.')
-    if len(parts) not in (2, 3):
+    if len(parts) != 2:
         return None
     try:
         day, month = int(parts[0]), int(parts[1])
-        year = int(parts[2]) if len(parts) == 3 else None
-        date(year or 2000, month, day)
+        date(2000, month, day)
     except ValueError:
         return None
-    return day, month, year
+    return day, month, None
 
 
 def _back_keyboard(lang):
@@ -128,7 +127,7 @@ async def select_existing_user(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data['target_tag'] = row['tag']
     context.user_data['target_name'] = row['tag']
 
-    year_part = f'.{row["year"]}' if row['year'] else ''
+    year_part = ''
     keyboard = [
         [InlineKeyboardButton(message(lang, admin_button_edit, 'admin'), callback_data='manage:edit')],
         [InlineKeyboardButton(message(lang, admin_button_delete, 'admin'), callback_data='manage:delete')],

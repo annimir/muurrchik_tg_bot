@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Управление играми{% endblock %}
+{% block content %}
+{% include 'admin/_nav.html' %}
+<section class="page-heading"><div class="eyebrow">Настройка архива</div><h1>Игры</h1><p>Этот список используется в профилях игроков и команде /mygames.</p></section>
+{% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+<section class="panel">
+    <h2>Добавить игру</h2>
+    <form class="admin-form" method="post" action="/admin/games">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>Название<input name="name" required maxlength="100" placeholder="Например, Wuthering Waves"></label>
+        <button class="button" type="submit">Добавить игру</button>
+    </form>
+</section>
+<section class="panel">
+    <h2>Список игр</h2>
+    {% if games %}<div class="table-wrap"><table><thead><tr><th>Название</th><th>Код</th><th>Игроков</th><th>Действия</th></tr></thead><tbody>
+    {% for game in games %}<tr><td>{{ game.name }}</td><td><code>{{ game.code }}</code></td><td>{{ game.user_count }}</td><td><form method="post" action="/admin/games/{{ game.code }}/delete" data-confirm="Удалить игру {{ game.name }}? Она исчезнет из профилей {{ game.user_count }} игроков."><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button button-small button-danger" type="submit">Удалить</button></form></td></tr>{% endfor %}
+    </tbody></table></div>{% else %}<p>Игр пока нет.</p>{% endif %}
+</section>
+{% endblock %}
