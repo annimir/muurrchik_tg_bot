@@ -37,16 +37,35 @@ function setAdminPanelCollapsed(panel, collapsed) {
     }
 }
 
+function isSmallAdminForm(panel) {
+    const form = panel.querySelector(':scope > form.admin-form');
+    const extraBlocks = [...panel.children].filter((element) => (
+        !element.matches('h2, form.admin-form')
+    ));
+    if (!form || extraBlocks.length || form.querySelector('textarea, input[type="file"], fieldset')) {
+        return false;
+    }
+    const controls = form.querySelectorAll(
+        ':scope > label, :scope > .filter-select, :scope > button',
+    ).length;
+    return controls <= 3;
+}
+
 function configureAdminPanels(root = document) {
     root.querySelectorAll('.panel:not(.collapsible-panel)').forEach((panel) => {
-        if (panel.querySelector(':scope > .admin-panel-toggle')) {
+        const heading = panel.querySelector(':scope > h2');
+        if (!heading || isSmallAdminForm(panel)
+            || panel.querySelector(':scope > .admin-panel-toggle')) {
             return;
         }
+        panel.classList.add('admin-collapsible');
         const content = document.createElement('div');
         content.className = 'admin-panel-content';
-        while (panel.firstChild) {
-            content.appendChild(panel.firstChild);
-        }
+        [...panel.childNodes].forEach((node) => {
+            if (node !== heading) {
+                content.appendChild(node);
+            }
+        });
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'admin-panel-toggle';
