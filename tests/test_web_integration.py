@@ -136,6 +136,12 @@ class WebIntegrationTests(PostgresTestCase):
         response = self.client.get('/media')
 
         self.assertEqual(response.status_code, 200)
+        policy = response.headers['content-security-policy']
+        for origin in (
+            'https://www.youtube-nocookie.com', 'https://www.youtube.com',
+            'https://www.tiktok.com', 'https://www.instagram.com',
+        ):
+            self.assertIn(origin, policy)
         self.assertEqual(response.text.count('data-media-kind="embed"'), 4)
         self.assertEqual(response.text.count('Смотреть на сайте'), 4)
         self.assertEqual(response.text.count('Открыть оригинал'), 4)

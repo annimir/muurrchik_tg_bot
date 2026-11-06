@@ -29,7 +29,9 @@ def create_app():
         response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; script-src 'self' https://telegram.org https://*.telegram.org; "
-            "frame-src https://oauth.telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+            "frame-src https://oauth.telegram.org https://www.youtube-nocookie.com "
+            "https://www.youtube.com https://www.tiktok.com https://www.instagram.com; "
+            "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
             "media-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         )
         return response
