@@ -117,7 +117,10 @@ function adminSuccessMessage(action) {
     if (action.includes('/delete')) {
         return 'Удаление выполнено';
     }
-    if (/\/(edit|status|visibility|assign)(\/)?$/.test(action)) {
+    if (action.endsWith('/cancel')) {
+        return 'Заявка отменена';
+    }
+    if (/\/(edit|status|visibility|assign|active)(\/)?$/.test(action)) {
         return 'Изменения сохранены';
     }
     return 'Создание выполнено';

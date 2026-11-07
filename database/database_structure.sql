@@ -300,3 +300,75 @@ CREATE TABLE IF NOT EXISTS admin_audit_log (
 
 CREATE INDEX IF NOT EXISTS idx_admin_audit_log_created_at
     ON admin_audit_log (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS game_modes (
+    id          SERIAL PRIMARY KEY,
+    game_code   TEXT NOT NULL REFERENCES games(code) ON DELETE CASCADE,
+    name        TEXT NOT NULL,
+    is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (game_code, name)
+);
+
+CREATE TABLE IF NOT EXISTS helper_profiles (
+    user_id      INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    is_active    BOOLEAN NOT NULL DEFAULT TRUE,
+    is_paused    BOOLEAN NOT NULL DEFAULT FALSE,
+    dm_available BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS helper_modes (
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    mode_id     INTEGER NOT NULL REFERENCES game_modes(id) ON DELETE CASCADE,
+    is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, mode_id)
+);
+
+CREATE TABLE IF NOT EXISTS help_requests (
+    id                  SERIAL PRIMARY KEY,
+    requester_user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    mode_id             INTEGER NOT NULL REFERENCES game_modes(id),
+    chat_id             BIGINT NOT NULL,
+    message_thread_id   BIGINT,
+    status              TEXT NOT NULL DEFAULT 'OPEN',
+    assigned_helper_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    scheduled_for       TIMESTAMPTZ,
+    request_message_id  BIGINT,
+    expires_at          TIMESTAMPTZ,
+    lock_version        INTEGER NOT NULL DEFAULT 1,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    completed_at        TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS help_request_offers (
+    id                  SERIAL PRIMARY KEY,
+    request_id          INTEGER NOT NULL REFERENCES help_requests(id) ON DELETE CASCADE,
+    helper_user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status              TEXT NOT NULL DEFAULT 'PENDING',
+    telegram_message_id BIGINT,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    responded_at        TIMESTAMPTZ,
+    UNIQUE (request_id, helper_user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_helper_modes_mode_active
+    ON helper_modes (mode_id) WHERE is_active = TRUE;
+CREATE INDEX IF NOT EXISTS idx_help_requests_status_created
+    ON help_requests (status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_help_requests_requester_status
+    ON help_requests (requester_user_id, status);
+CREATE UNIQUE INDEX IF NOT EXISTS one_active_help_request_per_mode
+    ON help_requests (requester_user_id, mode_id)
+    WHERE status IN ('OPEN', 'SCHEDULING', 'CONFIRMING', 'ASSIGNED');
+CREATE INDEX IF NOT EXISTS idx_help_request_offers_helper_status
+    ON help_request_offers (helper_user_id, status);
+
+INSERT INTO game_modes (game_code, name) VALUES
+    ('genshin', 'Театр воображариума'),
+    ('genshin', 'Витая бездна'),
+    ('genshin', 'Мрачный натиск')
+ON CONFLICT (game_code, name) DO NOTHING;

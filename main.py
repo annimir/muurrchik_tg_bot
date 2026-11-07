@@ -47,6 +47,12 @@ from handlers.tags.callbacks import callback_router
 
 from handlers.games.commands import mygames_command, toggle_game_callback, games_done_callback
 from handlers.games.admin import add_game_command, remove_game_command, list_games_command
+from handlers.assistance.helpers import helper_command, helper_callback, start_command
+from handlers.assistance.requests import (
+    assist_command, assist_select_callback, assist_offer_callback, assist_time_callback,
+    assist_custom_time_message, assist_request_callback,
+)
+from handlers.assistance.jobs import expire_assistance_requests
 
 from handlers.characters.requests import (
     start_character_request, ask_name, ask_birthdate, ask_description, ask_photo,
@@ -216,6 +222,21 @@ application.add_handler(CallbackQueryHandler(callback_router, pattern=r'^(subscr
 application.add_handler(CommandHandler('mygames', mygames_command))
 application.add_handler(CallbackQueryHandler(toggle_game_callback, pattern=r'^gametoggle:'))
 application.add_handler(CallbackQueryHandler(games_done_callback, pattern=r'^gamesdone$'))
+
+# ---------- помощь игрокам ----------
+application.add_handler(CommandHandler('start', start_command))
+application.add_handler(CommandHandler('helper', helper_command))
+application.add_handler(CommandHandler('assist', assist_command, filters=filters.ChatType.GROUPS))
+application.add_handler(CallbackQueryHandler(helper_callback, pattern=r'^helper:'))
+application.add_handler(CallbackQueryHandler(assist_select_callback, pattern=r'^assist:select:'))
+application.add_handler(CallbackQueryHandler(assist_offer_callback, pattern=r'^assist_offer:'))
+application.add_handler(CallbackQueryHandler(assist_time_callback, pattern=r'^assist_time:'))
+application.add_handler(CallbackQueryHandler(assist_request_callback, pattern=r'^assist_request:'))
+application.add_handler(
+    MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, assist_custom_time_message),
+    group=2,
+)
+application.job_queue.run_repeating(expire_assistance_requests, interval=60, first=30)
 
 # ---------- заявки на персонажей ----------
 character_request_conv = ConversationHandler(

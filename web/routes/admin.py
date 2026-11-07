@@ -5,6 +5,11 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from fastapi.responses import RedirectResponse
 
 from config.config import config
+from database.assistance import (
+    admin_cancel_help_request, create_game_mode, list_admin_game_modes,
+    list_admin_helpers, list_admin_help_requests, set_game_mode_active,
+    set_helper_admin_active,
+)
 from database.queries import get_all_admin_ids, get_all_positions, get_user_titles
 from services.games import slugify_game_name
 from services.validation import MAX_NAME_LENGTH, MAX_TEXT_LENGTH
@@ -916,6 +921,117 @@ async def delete_game_action(
             status_code=404,
         )
     return RedirectResponse('/admin/games', status_code=303)
+
+
+ASSISTANCE_STATUS_LABELS = {
+    'OPEN': 'Ожидает ответов',
+    'SCHEDULING': 'Выбор времени',
+    'CONFIRMING': 'Ожидает подтверждения',
+    'ASSIGNED': 'Назначена',
+    'COMPLETED': 'Завершена',
+    'CANCELLED': 'Отменена',
+    'REJECTED': 'Все отказались',
+    'NO_HELPERS': 'Нет помогаторов',
+    'EXPIRED': 'Истекла',
+}
+
+
+def _assistance_context(session, error=None, selected_status='', selected_game=''):
+    return {
+        'games': list_games(), 'modes': list_admin_game_modes(),
+        'helpers': list_admin_helpers(),
+        'requests': list_admin_help_requests(selected_status, selected_game),
+        'status_labels': ASSISTANCE_STATUS_LABELS,
+        'active_statuses': ('OPEN', 'SCHEDULING', 'CONFIRMING', 'ASSIGNED'),
+        'selected_status': selected_status, 'selected_game': selected_game,
+        'csrf_token': session['csrf'], 'active_page': 'admin_assistance', 'error': error,
+    }
+
+
+@router.get('/assistance', name='admin_assistance')
+async def assistance(
+    request: Request, status: str = '', game: str = '', session=Depends(require_admin),
+):
+    if status and status not in ASSISTANCE_STATUS_LABELS:
+        raise HTTPException(status_code=400, detail='Неизвестный статус заявки')
+    return templates.TemplateResponse(
+        request=request, name='admin/assistance.html',
+        context=_assistance_context(session, selected_status=status, selected_game=game),
+    )
+
+
+@router.post('/assistance/modes', name='admin_create_assistance_mode')
+async def create_assistance_mode_action(
+    request: Request,
+    game_code: str = Form(...),
+    name: str = Form(''),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    name = name.strip()
+    try:
+        if not 1 <= len(name) <= MAX_NAME_LENGTH:
+            raise ValueError(f'Название должно содержать от 1 до {MAX_NAME_LENGTH} символов')
+        create_game_mode(session['tg_id'], game_code, name)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/assistance.html',
+            context=_assistance_context(session, str(exc)), status_code=400,
+        )
+    return RedirectResponse('/admin/assistance', status_code=303)
+
+
+@router.post('/assistance/modes/{mode_id}/active', name='admin_toggle_assistance_mode')
+async def toggle_assistance_mode_action(
+    request: Request,
+    mode_id: int,
+    active: bool = Form(...),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        set_game_mode_active(session['tg_id'], mode_id, active)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/assistance.html',
+            context=_assistance_context(session, str(exc)), status_code=404,
+        )
+    return RedirectResponse('/admin/assistance', status_code=303)
+
+
+@router.post('/assistance/helpers/{user_id}/active', name='admin_toggle_helper')
+async def toggle_helper_action(
+    request: Request,
+    user_id: int,
+    active: bool = Form(...),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        set_helper_admin_active(session['tg_id'], user_id, active)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/assistance.html',
+            context=_assistance_context(session, str(exc)), status_code=404,
+        )
+    return RedirectResponse('/admin/assistance', status_code=303)
+
+
+@router.post('/assistance/requests/{request_id}/cancel', name='admin_cancel_assistance')
+async def cancel_assistance_action(
+    request: Request,
+    request_id: int,
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        admin_cancel_help_request(session['tg_id'], request_id)
+    except ValueError as exc:
+        return templates.TemplateResponse(
+            request=request, name='admin/assistance.html',
+            context=_assistance_context(session, str(exc)), status_code=404,
+        )
+    return RedirectResponse('/admin/assistance', status_code=303)
 
 
 @router.get('/media', name='admin_media')
