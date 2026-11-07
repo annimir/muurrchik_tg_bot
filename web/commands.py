@@ -32,6 +32,8 @@ PAIMON_COMMAND_GROUPS = [
         'description': 'Личные настройки и информация, которая отображается в профиле.',
         'commands': [
             {'usage': '/mygames', 'description': 'Выбрать игры, в которые вы играете.'},
+            {'usage': '/assist', 'description': 'Создать заявку на помощь с игровым режимом.'},
+            {'usage': '/helper', 'description': 'Выбрать режимы, в которых вы готовы помогать.'},
             {'usage': '/setbirthday <ДД.ММ>', 'description': 'Указать день рождения игрока.'},
             {'usage': '/mybirthday', 'description': 'Показать сохранённый день рождения.'},
             {'usage': '/deletebirthday', 'description': 'Удалить свой день рождения.'},

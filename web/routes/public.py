@@ -18,6 +18,7 @@ from web.queries import (
 )
 from web.rendering import templates
 from web.video_embeds import resolve_video_embed
+from database.assistance import get_helper_public_summary, list_helper_modes
 
 router = APIRouter()
 PAGE_SIZE = 24
@@ -197,7 +198,10 @@ async def user_detail(request: Request, user_id: int):
             'user': user, 'games': get_public_user_games(user_id),
             'titles': get_user_titles(user_id),
             'characters': get_public_user_characters(user_id),
-            'subscriptions': get_public_user_subscriptions(user_id), 'active_page': 'users',
+            'subscriptions': get_public_user_subscriptions(user_id),
+            'helper_profile': get_helper_public_summary(user_id),
+            'helper_modes': list_helper_modes(user_id, active_only=True),
+            'active_page': 'users',
         },
     )
 
