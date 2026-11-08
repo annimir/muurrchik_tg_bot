@@ -14,7 +14,10 @@
     <div class="wish-banner-info"><div class="eyebrow">Событийный баннер персонажа</div><h2>{{ selected_banner.name }}</h2><p>Pity 5★ и 50/50 общие для одновременных баннеров персонажей.</p></div>
     {% set remaining = participant.remaining if participant else event.pull_allowance %}
     <div class="wish-counters"><span>Осталось: <strong id="wish-remaining">{{ remaining }}</strong></span><span>Pity 5★: <strong id="wish-pity5">{{ participant.pity5 if participant else 0 }}</strong>/90</span><span>Pity 4★: <strong id="wish-pity4">{{ participant.pity4 if participant else 0 }}</strong>/10</span><span id="wish-guarantee">{{ 'Следующий 5★ гарантированно featured' if participant and participant.featured5_guaranteed else '50/50 на следующий 5★' }}</span></div>
-    <button class="button wish-pull-button" type="button" id="wish-pull" data-event-id="{{ event.id }}" data-banner-id="{{ selected_banner.id }}" {{ 'disabled' if remaining < 10 else '' }}>Помолиться ×10</button>
+    <div class="wish-pull-actions">
+        <button class="button button-secondary wish-pull-button" type="button" data-wish-count="1" data-event-id="{{ event.id }}" data-banner-id="{{ selected_banner.id }}" {{ 'disabled' if remaining < 1 else '' }}>Помолиться ×1</button>
+        <button class="button wish-pull-button" type="button" id="wish-pull" data-wish-count="10" data-event-id="{{ event.id }}" data-banner-id="{{ selected_banner.id }}" {{ 'disabled' if remaining < 10 else '' }}>Помолиться ×10</button>
+    </div>
     <button class="button button-quiet" type="button" id="wish-skip" hidden>Пропустить анимацию</button>
     <div class="wish-animation" id="wish-animation" hidden aria-hidden="true"></div>
     <div class="wish-results" id="wish-results" aria-live="polite"></div>

@@ -104,10 +104,11 @@ class WishRewardDatabaseTests(PostgresTestCase):
             1000, 'first_ten_five_star', 50, 1, None, 1, True,
         )
 
-        def force_five_star(items, state):
+        def force_five_star(items, state, count=10):
+            self.assertEqual(count, 10)
             return perform_ten_wishes(items, state, rng=lambda: 0)
 
-        with patch('database.wishes.perform_ten_wishes', side_effect=force_five_star):
+        with patch('database.wishes.perform_wish_batch', side_effect=force_five_star):
             result = self.wishes.perform_wishes(
                 self.event['id'], self.user['id'], self.banner['id'],
             )
@@ -121,6 +122,25 @@ class WishRewardDatabaseTests(PostgresTestCase):
         stats = self.wishes.get_wish_participant_stats(self.event['id'])[0]
         self.assertEqual(stats['used'], 10)
         self.assertEqual(stats['bonus_earned'], 50)
+
+    def test_single_five_star_does_not_trigger_first_ten_reward(self):
+        from services.wishes import perform_wishes as perform_wish_batch
+
+        self.rewards.update_wish_reward_rule(
+            1000, 'first_ten_five_star', 50, 1, None, 1, True,
+        )
+
+        def force_five_star(items, state, count=1):
+            return perform_wish_batch(items, state, count=count, rng=lambda: 0)
+
+        with patch('database.wishes.perform_wish_batch', side_effect=force_five_star):
+            result = self.wishes.perform_wishes(
+                self.event['id'], self.user['id'], self.banner['id'], count=1,
+            )
+
+        self.assertEqual(result['drops'][0]['rarity'], 5)
+        self.assertEqual(result['rewards'], [])
+        self.assertEqual(result['remaining'], 299)
 
     async def test_telegram_message_awards_daily_activity_and_praise_silently(self):
         from unittest.mock import AsyncMock, MagicMock
