@@ -101,6 +101,7 @@ async def wishes_page(
 async def wishes_pull(
     event_id: int,
     banner_id: int = Form(...),
+    count: int = Form(10),
     session=Depends(require_user),
     _=Depends(csrf_protect),
 ):
@@ -108,7 +109,7 @@ async def wishes_pull(
     if not user:
         raise HTTPException(status_code=404, detail='Игрок не найден')
     try:
-        result = perform_wishes(event_id, user['id'], banner_id)
+        result = perform_wishes(event_id, user['id'], banner_id, count)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {

@@ -42,13 +42,15 @@ def _roll_five_star(state, rng):
     return False, False
 
 
-def perform_ten_wishes(items, current_state=None, rng=None):
+def perform_wishes(items, current_state=None, count=10, rng=None):
     if len(items) < 1:
         raise ValueError('Баннер пуст')
+    if count < 1:
+        raise ValueError('Количество молитв должно быть положительным')
     state = dict(INITIAL_WISH_STATE | (current_state or {}))
     rng = rng or random.SystemRandom().random
     drops = []
-    for _ in range(10):
+    for _ in range(count):
         state['pity5'] += 1
         state['pity4'] += 1
         pity5_at = state['pity5']
@@ -83,3 +85,7 @@ def perform_ten_wishes(items, current_state=None, rng=None):
             'pity4_at': pity4_at,
         })
     return state, drops
+
+
+def perform_ten_wishes(items, current_state=None, rng=None):
+    return perform_wishes(items, current_state, count=10, rng=rng)

@@ -1,5 +1,5 @@
-const wishPullButton = document.querySelector('#wish-pull');
-if (wishPullButton) {
+const wishPullButtons = [...document.querySelectorAll('[data-wish-count]')];
+if (wishPullButtons.length) {
     const animation = document.querySelector('#wish-animation');
     const results = document.querySelector('#wish-results');
     const skipButton = document.querySelector('#wish-skip');
@@ -36,6 +36,12 @@ if (wishPullButton) {
 
     const showWishError = (message) => showWishToast(message, true);
 
+    const updateWishButtons = (remaining) => {
+        wishPullButtons.forEach((button) => {
+            button.disabled = remaining < Number(button.dataset.wishCount);
+        });
+    };
+
     const updateParticipant = (participant) => {
         document.querySelector('#wish-remaining').textContent = participant.remaining;
         document.querySelector('#wish-pity5').textContent = participant.pity5;
@@ -43,7 +49,7 @@ if (wishPullButton) {
         document.querySelector('#wish-guarantee').textContent = participant.featured5_guaranteed
             ? 'Следующий 5★ гарантированно featured'
             : '50/50 на следующий 5★';
-        wishPullButton.disabled = participant.remaining < 10;
+        updateWishButtons(participant.remaining);
     };
 
     const updateRewards = (rules, summary) => {
@@ -191,35 +197,38 @@ if (wishPullButton) {
         canvasAnimation.start();
     };
 
-    wishPullButton.addEventListener('click', async () => {
-        wishPullButton.disabled = true;
-        const body = new FormData();
-        body.append('banner_id', wishPullButton.dataset.bannerId);
-        body.append('csrf_token', csrfToken);
-        try {
-            const response = await fetch(`/wishes/${wishPullButton.dataset.eventId}/pull`, {
-                method: 'POST',
-                body,
-                headers: {'X-Requested-With': 'XMLHttpRequest'},
-                credentials: 'same-origin',
-            });
-            const payload = await response.json();
-            if (!response.ok) {
-                throw new Error(payload.detail || 'Не удалось выполнить молитву');
+    wishPullButtons.forEach((wishPullButton) => {
+        wishPullButton.addEventListener('click', async () => {
+            wishPullButtons.forEach((button) => { button.disabled = true; });
+            const body = new FormData();
+            body.append('banner_id', wishPullButton.dataset.bannerId);
+            body.append('count', wishPullButton.dataset.wishCount);
+            body.append('csrf_token', csrfToken);
+            try {
+                const response = await fetch(`/wishes/${wishPullButton.dataset.eventId}/pull`, {
+                    method: 'POST',
+                    body,
+                    headers: {'X-Requested-With': 'XMLHttpRequest'},
+                    credentials: 'same-origin',
+                });
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.detail || 'Не удалось выполнить молитву');
+                }
+                updateParticipant(payload.participant);
+                updateStats(payload.stats);
+                updateHistory(payload.drops);
+                updateRewards(payload.reward_rules, payload.reward_summary);
+                if (payload.rewards.length) {
+                    const total = payload.rewards.reduce((sum, reward) => sum + reward.amount, 0);
+                    const details = payload.rewards.map((reward) => reward.title).join(', ');
+                    showWishToast(`Получено +${total} бонусных молитв: ${details}`);
+                }
+                playAnimation(payload.drops);
+            } catch (error) {
+                showWishError(error.message);
+                updateWishButtons(Number(document.querySelector('#wish-remaining').textContent));
             }
-            updateParticipant(payload.participant);
-            updateStats(payload.stats);
-            updateHistory(payload.drops);
-            updateRewards(payload.reward_rules, payload.reward_summary);
-            if (payload.rewards.length) {
-                const total = payload.rewards.reduce((sum, reward) => sum + reward.amount, 0);
-                const details = payload.rewards.map((reward) => reward.title).join(', ');
-                showWishToast(`Получено +${total} бонусных молитв: ${details}`);
-            }
-            playAnimation(payload.drops);
-        } catch (error) {
-            showWishError(error.message);
-            wishPullButton.disabled = false;
-        }
+        });
     });
 }

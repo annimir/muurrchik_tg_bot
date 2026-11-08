@@ -78,6 +78,31 @@ class WishDatabaseTests(PostgresTestCase):
         )
         self.assertEqual(len(self.wishes.get_recent_drops(self.event['id'], self.user['id'])), 10)
 
+    def test_single_wish_spends_non_multiple_remainder(self):
+        result = self.wishes.perform_wishes(
+            self.event['id'], self.user['id'], self.banner['id'], count=1,
+        )
+        self.assertEqual(len(result['drops']), 1)
+        self.assertEqual(result['remaining'], 299)
+        queries.db(
+            'UPDATE wish_participants SET remaining = 1 WHERE event_id = %s AND user_id = %s',
+            (self.event['id'], self.user['id']),
+        ).close()
+        with self.assertRaises(ValueError):
+            self.wishes.perform_wishes(
+                self.event['id'], self.user['id'], self.banner['id'], count=10,
+            )
+
+        result = self.wishes.perform_wishes(
+            self.event['id'], self.user['id'], self.banner['id'], count=1,
+        )
+
+        self.assertEqual(result['remaining'], 0)
+        participant = self.wishes.get_participant(self.event['id'], self.user['id'])
+        self.assertEqual(participant['used'], 300)
+        self.assertEqual(participant['pity5'], 2)
+        self.assertEqual(len(self.wishes.get_recent_drops(self.event['id'], self.user['id'])), 2)
+
     def test_default_catalog_is_localized(self):
         from pathlib import Path
 
@@ -188,6 +213,25 @@ class WishWebIntegrationTests(PostgresTestCase):
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertEqual(self.wishes.get_wish_event(self.event['id'])['status'], 'ARCHIVED')
+
+    def test_single_wish_endpoint_and_invalid_count(self):
+        page = self.client.get('/wishes')
+        self.assertIn('data-wish-count="1"', page.text)
+        self.assertIn('Помолиться ×1', page.text)
+
+        response = self.client.post(f'/wishes/{self.event["id"]}/pull', data={
+            'banner_id': self.banner['id'], 'count': 1, 'csrf_token': self.csrf,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()['drops']), 1)
+        self.assertEqual(response.json()['remaining'], 299)
+
+        response = self.client.post(f'/wishes/{self.event["id"]}/pull', data={
+            'banner_id': self.banner['id'], 'count': 2, 'csrf_token': self.csrf,
+        })
+        self.assertEqual(response.status_code, 400)
+        participant = self.wishes.get_participant(self.event['id'], self.user['id'])
+        self.assertEqual(participant['remaining'], 299)
 
     def test_admin_updates_reward_settings(self):
         from database.wish_rewards import list_wish_reward_rules, update_wish_reward_rule

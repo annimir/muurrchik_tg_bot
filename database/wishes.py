@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 from database.queries import db
 from database.wish_rewards import record_wish_activity_tx
-from services.wishes import perform_ten_wishes
+from services.wishes import perform_wishes as perform_wish_batch
 from services.wish_catalog import get_item_localization
 
 MOSCOW_TZ = ZoneInfo('Europe/Moscow')
@@ -178,7 +178,9 @@ def get_participant(event_id, user_id):
     ).one()
 
 
-def perform_wishes(event_id, user_id, banner_id):
+def perform_wishes(event_id, user_id, banner_id, count=10):
+    if count not in {1, 10}:
+        raise ValueError('Можно выполнить только 1 или 10 молитв')
     with db.transaction() as tx:
         event = tx("SELECT * FROM wish_events WHERE id = %s AND status = 'ACTIVE' FOR UPDATE", (event_id,)).one()
         if not event:
@@ -204,19 +206,19 @@ def perform_wishes(event_id, user_id, banner_id):
             ''',
             (event_id, user_id),
         ).one()
-        if participant['remaining'] < 10:
-            raise ValueError('Недостаточно молитв: для выполнения нужно 10')
+        if participant['remaining'] < count:
+            raise ValueError(f'Недостаточно молитв: для выполнения нужно {count}')
         items = tx('SELECT * FROM wish_items WHERE banner_id = %s ORDER BY id', (banner_id,)).all()
-        state, drops = perform_ten_wishes(items, participant)
+        state, drops = perform_wish_batch(items, participant, count=count)
         tx(
             '''
-            UPDATE wish_participants SET remaining = remaining - 10,
+            UPDATE wish_participants SET remaining = remaining - %s,
                 pity5 = %s, pity4 = %s, featured5_guaranteed = %s,
                 featured4_guaranteed = %s, radiance_streak = %s, updated_at = now()
             WHERE event_id = %s AND user_id = %s
             ''',
             (
-                state['pity5'], state['pity4'], state['featured5_guaranteed'],
+                count, state['pity5'], state['pity4'], state['featured5_guaranteed'],
                 state['featured4_guaranteed'], state['radiance_streak'], event_id, user_id,
             ),
         ).close()
@@ -235,7 +237,7 @@ def perform_wishes(event_id, user_id, banner_id):
                 ),
             ).close()
         rewards = []
-        if used == 0 and any(drop['rarity'] == 5 for drop in drops):
+        if count == 10 and used == 0 and any(drop['rarity'] == 5 for drop in drops):
             reward = record_wish_activity_tx(
                 tx, event_id, user_id, 'first_ten_five_star', 'wish_event', event_id,
             )

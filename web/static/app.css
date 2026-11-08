@@ -619,7 +619,9 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
 .wish-banner-info { padding: 40px 20px; text-align: center; border: 1px solid var(--line); border-radius: 8px; background: radial-gradient(circle at 50% 0%, rgba(121,199,192,.22), transparent 65%); }
 .wish-counters { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px 24px; margin: 20px 0; color: var(--muted); }
 .wish-counters strong { color: var(--gold-light); }
+.wish-pull-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
 .wish-pull-button { display: block; margin: 0 auto; min-width: 220px; }
+.wish-pull-actions .wish-pull-button { margin: 0; }
 #wish-skip { display: block; margin: 12px auto 0; }
 #wish-skip[hidden] { display: none; }
 .wish-animation { position: relative; height: 320px; margin-top: 22px; overflow: hidden; border-radius: 8px; background: linear-gradient(#071426 0%, #173d6d 68%, #6090c4 100%); }
