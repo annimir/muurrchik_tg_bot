@@ -195,11 +195,57 @@ class WishWebIntegrationTests(PostgresTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers['content-type'], 'image/webp')
 
-    def test_wishes_require_admin_session(self):
+    def test_wishes_require_telegram_session(self):
         from fastapi.testclient import TestClient
         from web.app import create_app
 
         with TestClient(create_app()) as client:
             response = client.get('/wishes', follow_redirects=False)
+            login = client.get('/wishes/login')
         self.assertEqual(response.status_code, 303)
-        self.assertEqual(response.headers['location'], '/admin/login')
+        self.assertEqual(response.headers['location'], '/wishes/login')
+        self.assertEqual(login.status_code, 200)
+        self.assertIn('Войти через Telegram', login.text)
+
+    def test_non_admin_can_pull_but_not_open_admin_controls(self):
+        from web.auth import SESSION_COOKIE, create_admin_session
+
+        player = queries.ensure_user(200, 'regular_player')
+        token, csrf = create_admin_session(200)
+        self.client.cookies.set(SESSION_COOKIE, token)
+
+        page = self.client.get('/wishes')
+        self.assertEqual(page.status_code, 200)
+        self.assertIn('Тестовый режим для всех игроков', page.text)
+        self.assertIn('action="/wishes/logout"', page.text)
+        self.assertNotIn('action="/admin/logout"', page.text)
+        response = self.client.post(f'/wishes/{self.event["id"]}/pull', data={
+            'banner_id': self.banner['id'], 'csrf_token': csrf,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['remaining'], 290)
+        participant = self.wishes.get_participant(self.event['id'], player['id'])
+        self.assertEqual(participant['used'], 10)
+
+        admin_page = self.client.get('/admin/wishes', follow_redirects=False)
+        self.assertEqual(admin_page.status_code, 303)
+        self.assertEqual(admin_page.headers['location'], '/admin/login')
+
+    def test_telegram_login_creates_player_session(self):
+        from unittest.mock import patch
+
+        from fastapi.testclient import TestClient
+        from web.app import create_app
+
+        with TestClient(create_app()) as client:
+            with patch('web.routes.wishes.verify_telegram_login', return_value=True):
+                response = client.get('/wishes/login/telegram', params={
+                    'id': 200, 'username': 'new_player', 'first_name': 'New',
+                }, follow_redirects=False)
+            self.assertEqual(response.status_code, 303)
+            self.assertEqual(response.headers['location'], '/wishes')
+            page = client.get('/wishes')
+
+        self.assertEqual(page.status_code, 200)
+        self.assertIn('new_player', page.text)
+        self.assertEqual(queries.get_user_by_tg_id(200)['tag'], 'new_player')
