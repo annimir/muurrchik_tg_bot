@@ -122,7 +122,7 @@ class WishRewardDatabaseTests(PostgresTestCase):
         self.assertEqual(stats['used'], 10)
         self.assertEqual(stats['bonus_earned'], 50)
 
-    async def test_telegram_message_awards_daily_activity_and_praise_once(self):
+    async def test_telegram_message_awards_daily_activity_and_praise_silently(self):
         from unittest.mock import AsyncMock, MagicMock
 
         from handlers.wishes.activity import wish_activity_message_handler
@@ -146,8 +146,7 @@ class WishRewardDatabaseTests(PostgresTestCase):
 
         participant = self.wishes.get_participant(self.event['id'], self.user['id'])
         self.assertEqual(participant['bonus_earned'], 2)
-        self.assertEqual(update.effective_message.reply_text.await_count, 1)
-        self.assertIn('+2 молитв', update.effective_message.reply_text.await_args.args[0])
+        self.assertEqual(update.effective_message.reply_text.await_count, 0)
 
     def test_admin_updates_reward_rule(self):
         self.rewards.update_wish_reward_rule(
