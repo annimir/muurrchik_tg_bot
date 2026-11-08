@@ -372,3 +372,78 @@ INSERT INTO game_modes (game_code, name) VALUES
     ('genshin', 'Витая бездна'),
     ('genshin', 'Мрачный натиск')
 ON CONFLICT (game_code, name) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS wish_events (
+    id              SERIAL PRIMARY KEY,
+    period          TEXT NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'ACTIVE',
+    pull_allowance  INTEGER NOT NULL DEFAULT 300,
+    reset_from_id   INTEGER REFERENCES wish_events(id) ON DELETE SET NULL,
+    created_by      BIGINT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS one_active_wish_event
+    ON wish_events (status) WHERE status = 'ACTIVE';
+
+CREATE TABLE IF NOT EXISTS wish_banners (
+    id          SERIAL PRIMARY KEY,
+    event_id    INTEGER NOT NULL REFERENCES wish_events(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL,
+    is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order  INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (event_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS wish_items (
+    id          SERIAL PRIMARY KEY,
+    banner_id   INTEGER NOT NULL REFERENCES wish_banners(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL,
+    rarity      SMALLINT NOT NULL CHECK (rarity IN (3, 4, 5)),
+    item_type   TEXT NOT NULL CHECK (item_type IN ('character', 'weapon')),
+    featured    BOOLEAN NOT NULL DEFAULT FALSE,
+    image_url   TEXT,
+    sort_order  INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (banner_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS wish_participants (
+    event_id                INTEGER NOT NULL REFERENCES wish_events(id) ON DELETE CASCADE,
+    user_id                 INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    remaining               INTEGER NOT NULL,
+    pity5                   INTEGER NOT NULL DEFAULT 0,
+    pity4                   INTEGER NOT NULL DEFAULT 0,
+    featured5_guaranteed    BOOLEAN NOT NULL DEFAULT FALSE,
+    featured4_guaranteed    BOOLEAN NOT NULL DEFAULT FALSE,
+    radiance_streak         INTEGER NOT NULL DEFAULT 0,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (event_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS wish_drops (
+    id              BIGSERIAL PRIMARY KEY,
+    event_id        INTEGER NOT NULL REFERENCES wish_events(id) ON DELETE CASCADE,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    banner_id       INTEGER REFERENCES wish_banners(id) ON DELETE SET NULL,
+    item_name       TEXT NOT NULL,
+    rarity          SMALLINT NOT NULL,
+    item_type       TEXT NOT NULL,
+    featured        BOOLEAN NOT NULL DEFAULT FALSE,
+    radiant         BOOLEAN NOT NULL DEFAULT FALSE,
+    pull_number     INTEGER NOT NULL,
+    pity5_at        INTEGER NOT NULL,
+    pity4_at        INTEGER NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (event_id, user_id, pull_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_wish_drops_event_user ON wish_drops (event_id, user_id, id);
+
+CREATE TABLE IF NOT EXISTS wish_winners (
+    event_id    INTEGER NOT NULL REFERENCES wish_events(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind        TEXT NOT NULL CHECK (kind IN ('LUCKIEST', 'UNLUCKIEST')),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (event_id, kind)
+);

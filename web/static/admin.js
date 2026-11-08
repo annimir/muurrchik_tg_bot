@@ -120,7 +120,13 @@ function adminSuccessMessage(action) {
     if (action.endsWith('/cancel')) {
         return 'Заявка отменена';
     }
-    if (/\/(edit|status|visibility|assign|active)(\/)?$/.test(action)) {
+    if (action.endsWith('/restart')) {
+        return 'Ивент перезапущен';
+    }
+    if (action.endsWith('/winners')) {
+        return 'Победители рассчитаны';
+    }
+    if (/\/(edit|status|visibility|assign|active|allowance)(\/)?$/.test(action)) {
         return 'Изменения сохранены';
     }
     return 'Создание выполнено';

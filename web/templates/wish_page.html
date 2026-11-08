@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Месячные молитвы{% endblock %}
+{% block scripts %}<script src="/static/wishes.js" defer></script>{% endblock %}
+{% block content %}
+{% include 'admin/_nav.html' %}
+<section class="page-heading"><div class="eyebrow">Тестовый режим для администраторов</div><h1>Месячные молитвы</h1><p>Ивент {{ event.period }} · {{ event.pull_allowance }} молитв на участника. Счётчики полностью сбрасываются каждый месяц.</p></section>
+{% if winners %}<section class="panel winner-panel"><h2>Награда «Благословение полой Луны»</h2><div class="badge-list">{% for winner in winners %}<span class="badge">{{ 'Самый удачливый' if winner.kind == 'LUCKIEST' else 'Самый неудачливый' }}: {{ winner.tag or winner.user_id }}</span>{% endfor %}</div></section>{% endif %}
+<section class="panel wish-panel">
+    <div class="wish-banner-tabs">{% for banner in banners %}<a class="button button-secondary {{ 'active' if banner.id == selected_banner.id else '' }}" href="/wishes?banner={{ banner.id }}">{{ banner.name }}</a>{% endfor %}</div>
+    <div class="wish-banner-info"><div class="eyebrow">Событийный баннер персонажа</div><h2>{{ selected_banner.name }}</h2><p>Pity 5★ и 50/50 общие для одновременных баннеров персонажей.</p></div>
+    {% set remaining = participant.remaining if participant else event.pull_allowance %}
+    <div class="wish-counters"><span>Осталось: <strong id="wish-remaining">{{ remaining }}</strong></span><span>Pity 5★: <strong id="wish-pity5">{{ participant.pity5 if participant else 0 }}</strong>/90</span><span>Pity 4★: <strong id="wish-pity4">{{ participant.pity4 if participant else 0 }}</strong>/10</span><span id="wish-guarantee">{{ 'Следующий 5★ гарантированно featured' if participant and participant.featured5_guaranteed else '50/50 на следующий 5★' }}</span></div>
+    <button class="button wish-pull-button" type="button" id="wish-pull" data-event-id="{{ event.id }}" data-banner-id="{{ selected_banner.id }}" {{ 'disabled' if remaining < 10 else '' }}>Помолиться ×10</button>
+    <button class="button button-quiet" type="button" id="wish-skip" hidden>Пропустить анимацию</button>
+    <div class="wish-animation" id="wish-animation" hidden aria-hidden="true"></div>
+    <div class="wish-results" id="wish-results" aria-live="polite"></div>
+</section>
+<section class="panel"><h2>Участники</h2><div class="table-wrap"><table><thead><tr><th>Игрок</th><th>Использовано</th><th>Осталось</th><th>5★</th><th>Featured 5★</th><th>4★</th><th>3★</th><th>Средний pity 5★</th><th>Текущий pity</th><th>Конкурс</th></tr></thead><tbody id="wish-stats-body">{% for row in stats %}<tr><td>{{ row.tag or row.id }}</td><td>{{ row.used }}</td><td>{{ row.remaining }}</td><td>{{ row.five_star_count }}</td><td>{{ row.featured_five_count }}</td><td>{{ row.four_star_count }}</td><td>{{ row.three_star_count }}</td><td>{{ '%0.1f'|format(row.average_five_pity) if row.average_five_pity is not none else '—' }}</td><td>{{ row.pity5 }} / {{ row.pity4 }}</td><td>{{ 'Участвует' if row.remaining == 0 else 'Нужно использовать все молитвы' }}</td></tr>{% else %}<tr><td colspan="10">Пока никто не сделал молитв.</td></tr>{% endfor %}</tbody></table></div></section>
+<section class="panel"><h2>Последние выпадения</h2><div class="badge-list" id="wish-history">{% for drop in recent_drops %}<span class="badge wish-rarity-{{ drop.rarity }}">{{ drop.item_name }} · {{ drop.rarity }}★</span>{% else %}<span class="muted">История появится после первой молитвы.</span>{% endfor %}</div></section>
+<details class="panel collapsible-panel"><summary><h2>Правила и шансы</h2><span class="collapse-label" aria-hidden="true"></span></summary><p>5★: базовый шанс 0,6%, гарант на 90-й. 4★: базовый шанс 5,1%, гарант на 10-й. Soft pity начинается с 74-й и является приближённой моделью. После проигрыша 50/50 следующий 5★ гарантированно featured. Capturing Radiance учитывается по официальным правилам. Для конкурса нужно использовать все молитвы; при равенстве учитывается средний pity 5★, затем проводится жребий.</p></details>
+{% endblock %}

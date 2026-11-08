@@ -11,6 +11,12 @@ from database.assistance import (
     set_helper_admin_active,
 )
 from database.queries import get_all_admin_ids, get_all_positions, get_user_titles
+from database.wishes import (
+    add_wish_item, calculate_wish_winners, create_wish_banner, delete_wish_item,
+    get_or_create_current_wish_event, get_wish_participant_stats, list_wish_banners,
+    list_wish_events, list_wish_items, list_wish_winners, restart_wish_event,
+    set_wish_allowance, set_wish_banner_active,
+)
 from services.games import slugify_game_name
 from services.validation import MAX_NAME_LENGTH, MAX_TEXT_LENGTH
 from web.auth import (
@@ -921,6 +927,141 @@ async def delete_game_action(
             status_code=404,
         )
     return RedirectResponse('/admin/games', status_code=303)
+
+
+def _wishes_admin_context(session, error=None, banner_id=None):
+    event = get_or_create_current_wish_event()
+    banners = list_wish_banners(event['id'])
+    selected = next((banner for banner in banners if banner['id'] == banner_id), banners[0])
+    return {
+        'event': event, 'banners': banners, 'selected_banner': selected,
+        'items': list_wish_items(selected['id']), 'stats': get_wish_participant_stats(event['id']),
+        'winners': list_wish_winners(event['id']), 'events': list_wish_events(),
+        'csrf_token': session['csrf'], 'active_page': 'admin_wishes', 'error': error,
+    }
+
+
+def _wishes_admin_error(request, session, exc, status_code=400):
+    return templates.TemplateResponse(
+        request=request, name='admin/wishes.html',
+        context=_wishes_admin_context(session, str(exc)), status_code=status_code,
+    )
+
+
+@router.get('/wishes', name='admin_wishes')
+async def wishes_admin(request: Request, banner: int | None = None, session=Depends(require_admin)):
+    return templates.TemplateResponse(
+        request=request, name='admin/wishes.html',
+        context=_wishes_admin_context(session, banner_id=banner),
+    )
+
+
+@router.post('/wishes/allowance', name='admin_wish_allowance')
+async def wish_allowance_action(
+    request: Request,
+    allowance: int = Form(...),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        if allowance < 10 or allowance % 10:
+            raise ValueError('Лимит должен быть положительным и кратным 10')
+        event = get_or_create_current_wish_event()
+        set_wish_allowance(session['tg_id'], event['id'], allowance)
+    except ValueError as exc:
+        return _wishes_admin_error(request, session, exc)
+    return RedirectResponse('/admin/wishes', status_code=303)
+
+
+@router.post('/wishes/restart', name='admin_wish_restart')
+async def wish_restart_action(request: Request, session=Depends(require_admin), _=Depends(csrf_protect)):
+    try:
+        event = get_or_create_current_wish_event()
+        restart_wish_event(session['tg_id'], event['id'])
+    except ValueError as exc:
+        return _wishes_admin_error(request, session, exc)
+    return RedirectResponse('/admin/wishes', status_code=303)
+
+
+@router.post('/wishes/banners', name='admin_create_wish_banner')
+async def wish_banner_create_action(
+    request: Request,
+    name: str = Form(''),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    name = name.strip()
+    try:
+        if not 1 <= len(name) <= MAX_NAME_LENGTH:
+            raise ValueError(f'Название должно содержать от 1 до {MAX_NAME_LENGTH} символов')
+        event = get_or_create_current_wish_event()
+        create_wish_banner(session['tg_id'], event['id'], name)
+    except ValueError as exc:
+        return _wishes_admin_error(request, session, exc)
+    return RedirectResponse('/admin/wishes', status_code=303)
+
+
+@router.post('/wishes/banners/{banner_id}/active', name='admin_toggle_wish_banner')
+async def wish_banner_active_action(
+    request: Request,
+    banner_id: int,
+    active: bool = Form(...),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        set_wish_banner_active(session['tg_id'], banner_id, active)
+    except ValueError as exc:
+        return _wishes_admin_error(request, session, exc, 404)
+    return RedirectResponse('/admin/wishes', status_code=303)
+
+
+@router.post('/wishes/items', name='admin_create_wish_item')
+async def wish_item_create_action(
+    request: Request,
+    banner_id: int = Form(...),
+    name: str = Form(''),
+    rarity: int = Form(...),
+    item_type: str = Form(...),
+    featured: bool = Form(False),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    name = name.strip()
+    try:
+        if not 1 <= len(name) <= MAX_NAME_LENGTH:
+            raise ValueError(f'Название должно содержать от 1 до {MAX_NAME_LENGTH} символов')
+        if rarity not in {3, 4, 5} or item_type not in {'character', 'weapon'}:
+            raise ValueError('Неизвестный тип предмета')
+        add_wish_item(session['tg_id'], banner_id, name, rarity, item_type, featured)
+    except ValueError as exc:
+        return _wishes_admin_error(request, session, exc)
+    return RedirectResponse('/admin/wishes', status_code=303)
+
+
+@router.post('/wishes/items/{item_id}/delete', name='admin_delete_wish_item')
+async def wish_item_delete_action(
+    request: Request,
+    item_id: int,
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        delete_wish_item(session['tg_id'], item_id)
+    except ValueError as exc:
+        return _wishes_admin_error(request, session, exc, 404)
+    return RedirectResponse('/admin/wishes', status_code=303)
+
+
+@router.post('/wishes/winners', name='admin_calculate_wish_winners')
+async def wish_winners_action(request: Request, session=Depends(require_admin), _=Depends(csrf_protect)):
+    try:
+        event = get_or_create_current_wish_event()
+        if not calculate_wish_winners(event['id']):
+            raise ValueError('Нет участников, использовавших все молитвы')
+    except ValueError as exc:
+        return _wishes_admin_error(request, session, exc)
+    return RedirectResponse('/admin/wishes', status_code=303)
 
 
 ASSISTANCE_STATUS_LABELS = {

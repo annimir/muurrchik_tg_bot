@@ -5,7 +5,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from web.rendering import templates
-from web.routes import admin, public
+from web.routes import admin, public, wishes
 
 
 def create_app():
@@ -19,6 +19,7 @@ def create_app():
     app.mount('/static', StaticFiles(directory=Path(__file__).resolve().parent / 'static'), name='static')
     app.include_router(public.router)
     app.include_router(admin.router)
+    app.include_router(wishes.router)
 
     @app.middleware('http')
     async def security_headers(request: Request, call_next):
