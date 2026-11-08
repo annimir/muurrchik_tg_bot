@@ -403,6 +403,7 @@ CREATE TABLE IF NOT EXISTS wish_items (
     item_type   TEXT NOT NULL CHECK (item_type IN ('character', 'weapon')),
     featured    BOOLEAN NOT NULL DEFAULT FALSE,
     image_url   TEXT,
+    display_name TEXT,
     sort_order  INTEGER NOT NULL DEFAULT 0,
     UNIQUE (banner_id, name)
 );

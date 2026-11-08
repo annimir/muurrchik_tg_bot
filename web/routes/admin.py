@@ -1023,17 +1023,26 @@ async def wish_item_create_action(
     name: str = Form(''),
     rarity: int = Form(...),
     item_type: str = Form(...),
+    display_name: str = Form(''),
+    image_url: str = Form(''),
     featured: bool = Form(False),
     session=Depends(require_admin),
     _=Depends(csrf_protect),
 ):
     name = name.strip()
+    display_name = display_name.strip()
+    image_url = image_url.strip()
     try:
         if not 1 <= len(name) <= MAX_NAME_LENGTH:
             raise ValueError(f'Название должно содержать от 1 до {MAX_NAME_LENGTH} символов')
         if rarity not in {3, 4, 5} or item_type not in {'character', 'weapon'}:
             raise ValueError('Неизвестный тип предмета')
-        add_wish_item(session['tg_id'], banner_id, name, rarity, item_type, featured)
+        if image_url and not image_url.startswith('/static/'):
+            raise ValueError('Изображение должно находиться в /static/')
+        add_wish_item(
+            session['tg_id'], banner_id, name, rarity, item_type, featured,
+            image_url or None, display_name or None,
+        )
     except ValueError as exc:
         return _wishes_admin_error(request, session, exc)
     return RedirectResponse('/admin/wishes', status_code=303)

@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 from database.queries import db
 from services.wishes import perform_ten_wishes
+from services.wish_catalog import get_item_localization
 
 MOSCOW_TZ = ZoneInfo('Europe/Moscow')
 DEFAULT_ALLOWANCE = 300
@@ -46,12 +47,16 @@ def _audit(tx, admin_tg_id, action, entity_type, entity_id):
 
 
 def _add_item(tx, banner_id, name, rarity, item_type, featured=False):
+    localization = get_item_localization(name)
     tx(
         '''
-        INSERT INTO wish_items (banner_id, name, rarity, item_type, featured)
-        VALUES (%s, %s, %s, %s, %s) ON CONFLICT (banner_id, name) DO NOTHING
+        INSERT INTO wish_items (banner_id, name, rarity, item_type, featured, image_url, display_name)
+        VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (banner_id, name) DO NOTHING
         ''',
-        (banner_id, name, rarity, item_type, featured),
+        (
+            banner_id, name, rarity, item_type, featured,
+            localization.get('local_url'), localization.get('display_name'),
+        ),
     ).close()
 
 
@@ -87,9 +92,9 @@ def _copy_content(tx, source_event_id, target_event_id):
         tx(
             '''
             INSERT INTO wish_items (
-                banner_id, name, rarity, item_type, featured, image_url, sort_order
+                banner_id, name, rarity, item_type, featured, image_url, display_name, sort_order
             )
-            SELECT %s, name, rarity, item_type, featured, image_url, sort_order
+            SELECT %s, name, rarity, item_type, featured, image_url, display_name, sort_order
             FROM wish_items WHERE banner_id = %s
             ''',
             (copied['id'], banner['id']),
@@ -365,14 +370,19 @@ def set_wish_banner_active(admin_tg_id, banner_id, active):
         _audit(tx, admin_tg_id, 'update', 'wish_banner', banner_id)
 
 
-def add_wish_item(admin_tg_id, banner_id, name, rarity, item_type, featured, image_url=None):
+def add_wish_item(
+    admin_tg_id, banner_id, name, rarity, item_type, featured, image_url=None, display_name=None,
+):
+    localization = get_item_localization(name)
+    image_url = image_url or localization.get('local_url')
+    display_name = display_name or localization.get('display_name')
     with db.transaction() as tx:
         row = tx(
             '''
-            INSERT INTO wish_items (banner_id, name, rarity, item_type, featured, image_url)
-            VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING RETURNING id
+            INSERT INTO wish_items (banner_id, name, rarity, item_type, featured, image_url, display_name)
+            VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING RETURNING id
             ''',
-            (banner_id, name, rarity, item_type, featured, image_url),
+            (banner_id, name, rarity, item_type, featured, image_url, display_name),
         ).one()
         if not row:
             raise ValueError('Такой предмет уже есть в баннере')

@@ -1,0 +1,548 @@
+[
+  {
+    "name": "Aino",
+    "display_name": "Айно",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/b/bf/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%90%D0%B9%D0%BD%D0%BE_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20250810130142&path-prefix=ru",
+    "local_url": "/static/wishes/items/aino.webp"
+  },
+  {
+    "name": "Amber",
+    "display_name": "Эмбер",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/5/53/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%AD%D0%BC%D0%B1%D0%B5%D1%80_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20221005162550&path-prefix=ru",
+    "local_url": "/static/wishes/items/amber.webp"
+  },
+  {
+    "name": "Barbara",
+    "display_name": "Барбара",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/b/b4/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%91%D0%B0%D1%80%D0%B1%D0%B0%D1%80%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20201022021651&path-prefix=ru",
+    "local_url": "/static/wishes/items/barbara.webp"
+  },
+  {
+    "name": "Beidou",
+    "display_name": "Бэй Доу",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/a/a3/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%91%D1%8D%D0%B9_%D0%94%D0%BE%D1%83_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20201015181407&path-prefix=ru",
+    "local_url": "/static/wishes/items/beidou.webp"
+  },
+  {
+    "name": "Bennett",
+    "display_name": "Беннет",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/4e/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%91%D0%B5%D0%BD%D0%BD%D0%B5%D1%82_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20201021042837&path-prefix=ru",
+    "local_url": "/static/wishes/items/bennett.webp"
+  },
+  {
+    "name": "Black Tassel",
+    "display_name": "Чёрная кисть",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/b/bf/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%A7%D1%91%D1%80%D0%BD%D0%B0%D1%8F_%D0%BA%D0%B8%D1%81%D1%82%D1%8C.png/revision/latest?cb=20201207093031&path-prefix=ru",
+    "local_url": "/static/wishes/items/black_tassel.webp"
+  },
+  {
+    "name": "Bloodtainted Greatsword",
+    "display_name": "Меч драконьей крови",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/2/22/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9C%D0%B5%D1%87_%D0%B4%D1%80%D0%B0%D0%BA%D0%BE%D0%BD%D1%8C%D0%B5%D0%B9_%D0%BA%D1%80%D0%BE%D0%B2%D0%B8.png/revision/latest?cb=20201207074404&path-prefix=ru",
+    "local_url": "/static/wishes/items/bloodtainted_greatsword.webp"
+  },
+  {
+    "name": "Candace",
+    "display_name": "Кандакия",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/b/b3/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9A%D0%B0%D0%BD%D0%B4%D0%B0%D0%BA%D0%B8%D1%8F_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20220822104545&path-prefix=ru",
+    "local_url": "/static/wishes/items/candace.webp"
+  },
+  {
+    "name": "Charlotte",
+    "display_name": "Шарлотта",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/0/0a/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A8%D0%B0%D1%80%D0%BB%D0%BE%D1%82%D1%82%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20230925105417&path-prefix=ru",
+    "local_url": "/static/wishes/items/charlotte.webp"
+  },
+  {
+    "name": "Chevreuse",
+    "display_name": "Шеврёз",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/e/ef/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A8%D0%B5%D0%B2%D1%80%D1%91%D0%B7_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20231106105311&path-prefix=ru",
+    "local_url": "/static/wishes/items/chevreuse.webp"
+  },
+  {
+    "name": "Chongyun",
+    "display_name": "Чун Юнь",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/2/2e/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A7%D1%83%D0%BD_%D0%AE%D0%BD%D1%8C_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20201024004059&path-prefix=ru",
+    "local_url": "/static/wishes/items/chongyun.webp"
+  },
+  {
+    "name": "Collei",
+    "display_name": "Коллеи",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/6/6c/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9A%D0%BE%D0%BB%D0%BB%D0%B5%D0%B8_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20220711055746&path-prefix=ru",
+    "local_url": "/static/wishes/items/collei.webp"
+  },
+  {
+    "name": "Cool Steel",
+    "display_name": "Холодное лезвие",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/c/c1/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%A5%D0%BE%D0%BB%D0%BE%D0%B4%D0%BD%D0%BE%D0%B5_%D0%BB%D0%B5%D0%B7%D0%B2%D0%B8%D0%B5.png/revision/latest?cb=20210221084710&path-prefix=ru",
+    "local_url": "/static/wishes/items/cool_steel.webp"
+  },
+  {
+    "name": "Dahlia",
+    "display_name": "Далия",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/2/2a/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%94%D0%B0%D0%BB%D0%B8%D1%8F_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20250513100621&path-prefix=ru",
+    "local_url": "/static/wishes/items/dahlia.webp"
+  },
+  {
+    "name": "Dark Iron Sword",
+    "display_name": "Тёмный железный меч",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/d/d5/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%A2%D1%91%D0%BC%D0%BD%D1%8B%D0%B9_%D0%B6%D0%B5%D0%BB%D0%B5%D0%B7%D0%BD%D1%8B%D0%B9_%D0%BC%D0%B5%D1%87.png/revision/latest?cb=20210122085146&path-prefix=ru",
+    "local_url": "/static/wishes/items/dark_iron_sword.webp"
+  },
+  {
+    "name": "Debate Club",
+    "display_name": "Дубина переговоров",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/f/f0/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%94%D1%83%D0%B1%D0%B8%D0%BD%D0%B0_%D0%BF%D0%B5%D1%80%D0%B5%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%BE%D0%B2.png/revision/latest?cb=20201207074153&path-prefix=ru",
+    "local_url": "/static/wishes/items/debate_club.webp"
+  },
+  {
+    "name": "Dehya",
+    "display_name": "Дэхья",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/4a/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%94%D1%8D%D1%85%D1%8C%D1%8F_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20230116145339&path-prefix=ru",
+    "local_url": "/static/wishes/items/dehya.webp"
+  },
+  {
+    "name": "Diluc",
+    "display_name": "Дилюк",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/f/f7/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%94%D0%B8%D0%BB%D1%8E%D0%BA_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20201020013558&path-prefix=ru",
+    "local_url": "/static/wishes/items/diluc.webp"
+  },
+  {
+    "name": "Diona",
+    "display_name": "Диона",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/3/3d/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%94%D0%B8%D0%BE%D0%BD%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.png/revision/latest?cb=20210505121018&path-prefix=ru",
+    "local_url": "/static/wishes/items/diona.webp"
+  },
+  {
+    "name": "Dori",
+    "display_name": "Дори",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/0/05/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%94%D0%BE%D1%80%D0%B8_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20220711055612&path-prefix=ru",
+    "local_url": "/static/wishes/items/dori.webp"
+  },
+  {
+    "name": "Dragon’s Bane",
+    "display_name": "Гроза драконов",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/c/c2/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%93%D1%80%D0%BE%D0%B7%D0%B0_%D0%B4%D1%80%D0%B0%D0%BA%D0%BE%D0%BD%D0%BE%D0%B2.png/revision/latest?cb=20201207093337&path-prefix=ru",
+    "local_url": "/static/wishes/items/dragon_s_bane.webp"
+  },
+  {
+    "name": "Emerald Orb",
+    "display_name": "Изумрудный шар",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/f/fb/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%98%D0%B7%D1%83%D0%BC%D1%80%D1%83%D0%B4%D0%BD%D1%8B%D0%B9_%D1%88%D0%B0%D1%80.png/revision/latest?cb=20210217133827&path-prefix=ru",
+    "local_url": "/static/wishes/items/emerald_orb.webp"
+  },
+  {
+    "name": "Eye of Perception",
+    "display_name": "Око сознания",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/e/eb/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9E%D0%BA%D0%BE_%D1%81%D0%BE%D0%B7%D0%BD%D0%B0%D0%BD%D0%B8%D1%8F.png/revision/latest?cb=20210127085007&path-prefix=ru",
+    "local_url": "/static/wishes/items/eye_of_perception.webp"
+  },
+  {
+    "name": "Faruzan",
+    "display_name": "Фарузан",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/e/e5/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A4%D0%B0%D1%80%D1%83%D0%B7%D0%B0%D0%BD_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20221031103633&path-prefix=ru",
+    "local_url": "/static/wishes/items/faruzan.webp"
+  },
+  {
+    "name": "Favonius Codex",
+    "display_name": "Кодекс Фавония",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/a/a4/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9A%D0%BE%D0%B4%D0%B5%D0%BA%D1%81_%D0%A4%D0%B0%D0%B2%D0%BE%D0%BD%D0%B8%D1%8F.png/revision/latest?cb=20210127064903&path-prefix=ru",
+    "local_url": "/static/wishes/items/favonius_codex.webp"
+  },
+  {
+    "name": "Favonius Greatsword",
+    "display_name": "Меч Фавония",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/f/fb/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9C%D0%B5%D1%87_%D0%A4%D0%B0%D0%B2%D0%BE%D0%BD%D0%B8%D1%8F.png/revision/latest?cb=20210203042031&path-prefix=ru",
+    "local_url": "/static/wishes/items/favonius_greatsword.webp"
+  },
+  {
+    "name": "Favonius Lance",
+    "display_name": "Копьё Фавония",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/5/5e/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9A%D0%BE%D0%BF%D1%8C%D1%91_%D0%A4%D0%B0%D0%B2%D0%BE%D0%BD%D0%B8%D1%8F.png/revision/latest?cb=20210130225308&path-prefix=ru",
+    "local_url": "/static/wishes/items/favonius_lance.webp"
+  },
+  {
+    "name": "Favonius Sword",
+    "display_name": "Меч Фавония",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/f/fb/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9C%D0%B5%D1%87_%D0%A4%D0%B0%D0%B2%D0%BE%D0%BD%D0%B8%D1%8F.png/revision/latest?cb=20210203042031&path-prefix=ru",
+    "local_url": "/static/wishes/items/favonius_sword.webp"
+  },
+  {
+    "name": "Favonius Warbow",
+    "display_name": "Боевой лук Фавония",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/5/53/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%91%D0%BE%D0%B5%D0%B2%D0%BE%D0%B9_%D0%BB%D1%83%D0%BA_%D0%A4%D0%B0%D0%B2%D0%BE%D0%BD%D0%B8%D1%8F.png/revision/latest?cb=20210123122939&path-prefix=ru",
+    "local_url": "/static/wishes/items/favonius_warbow.webp"
+  },
+  {
+    "name": "Ferrous Shadow",
+    "display_name": "Металлическая тень",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/7/72/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9C%D0%B5%D1%82%D0%B0%D0%BB%D0%BB%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F_%D1%82%D0%B5%D0%BD%D1%8C.png/revision/latest?cb=20201207074206&path-prefix=ru",
+    "local_url": "/static/wishes/items/ferrous_shadow.webp"
+  },
+  {
+    "name": "Fischl",
+    "display_name": "Фишль",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/d/d6/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A4%D0%B8%D1%88%D0%BB%D1%8C_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20220325130339&path-prefix=ru",
+    "local_url": "/static/wishes/items/fischl.webp"
+  },
+  {
+    "name": "Freminet",
+    "display_name": "Фремине",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/b/b9/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A4%D1%80%D0%B5%D0%BC%D0%B8%D0%BD%D0%B5_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0_1.jpg/revision/latest?cb=20230703112854&path-prefix=ru",
+    "local_url": "/static/wishes/items/freminet.webp"
+  },
+  {
+    "name": "Furina",
+    "display_name": "Фурина",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/9/93/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A4%D1%83%D1%80%D0%B8%D0%BD%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0_1.jpg/revision/latest?cb=20240329163418&path-prefix=ru",
+    "local_url": "/static/wishes/items/furina.webp"
+  },
+  {
+    "name": "Gaming",
+    "display_name": "Ка Мин",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/6/65/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9A%D0%B0_%D0%9C%D0%B8%D0%BD_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20231218101036&path-prefix=ru",
+    "local_url": "/static/wishes/items/gaming.webp"
+  },
+  {
+    "name": "Gorou",
+    "display_name": "Горо",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/41/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%93%D0%BE%D1%80%D0%BE_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.png/revision/latest?cb=20211011121334&path-prefix=ru",
+    "local_url": "/static/wishes/items/gorou.webp"
+  },
+  {
+    "name": "Halberd",
+    "display_name": "Алебарда",
+    "image_url": "https://static.wikia.nocookie.net/gensin-impact/images/4/41/Weapon_Halberd.png/revision/latest?cb=20201116033956",
+    "local_url": "/static/wishes/items/halberd.webp"
+  },
+  {
+    "name": "Harbinger of Dawn",
+    "display_name": "Предвестник зари",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/0/0d/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9F%D1%80%D0%B5%D0%B4%D0%B2%D0%B5%D1%81%D1%82%D0%BD%D0%B8%D0%BA_%D0%B7%D0%B0%D1%80%D0%B8.png/revision/latest?cb=20210221084655&path-prefix=ru",
+    "local_url": "/static/wishes/items/harbinger_of_dawn.webp"
+  },
+  {
+    "name": "Iansan",
+    "display_name": "Иансан",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/0/06/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%98%D0%B0%D0%BD%D1%81%D0%B0%D0%BD_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20250218100958&path-prefix=ru",
+    "local_url": "/static/wishes/items/iansan.webp"
+  },
+  {
+    "name": "Ifa",
+    "display_name": "Ифа",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/f/f6/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%98%D1%84%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20250401123917&path-prefix=ru",
+    "local_url": "/static/wishes/items/ifa.webp"
+  },
+  {
+    "name": "Illuga",
+    "display_name": "Иллуги",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/7/77/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%98%D0%BB%D0%BB%D1%83%D0%B3%D0%B8_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20260101175650&path-prefix=ru",
+    "local_url": "/static/wishes/items/illuga.webp"
+  },
+  {
+    "name": "Jahoda",
+    "display_name": "Ягода",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/0/09/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%AF%D0%B3%D0%BE%D0%B4%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20251024155359&path-prefix=ru",
+    "local_url": "/static/wishes/items/jahoda.webp"
+  },
+  {
+    "name": "Jean",
+    "display_name": "Джинн",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/2/2c/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%94%D0%B6%D0%B8%D0%BD%D0%BD_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20210918082728&path-prefix=ru",
+    "local_url": "/static/wishes/items/jean.webp"
+  },
+  {
+    "name": "Kachina",
+    "display_name": "Качина",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/5/53/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9A%D0%B0%D1%87%D0%B8%D0%BD%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20240715141617&path-prefix=ru",
+    "local_url": "/static/wishes/items/kachina.webp"
+  },
+  {
+    "name": "Kaeya",
+    "display_name": "Кэйа",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/9/97/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9A%D1%8D%D0%B9%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20200926114938&path-prefix=ru",
+    "local_url": "/static/wishes/items/kaeya.webp"
+  },
+  {
+    "name": "Kaveh",
+    "display_name": "Кавех",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/45/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9A%D0%B0%D0%B2%D0%B5%D1%85_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20230224075919&path-prefix=ru",
+    "local_url": "/static/wishes/items/kaveh.webp"
+  },
+  {
+    "name": "Keqing",
+    "display_name": "Кэ Цин",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/8/8d/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9A%D1%8D_%D0%A6%D0%B8%D0%BD_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20230407200423&path-prefix=ru",
+    "local_url": "/static/wishes/items/keqing.webp"
+  },
+  {
+    "name": "Kirara",
+    "display_name": "Кирара",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/43/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9A%D0%B8%D1%80%D0%B0%D1%80%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20230410084921&path-prefix=ru",
+    "local_url": "/static/wishes/items/kirara.webp"
+  },
+  {
+    "name": "Kujou Sara",
+    "display_name": "Сара",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/5/5b/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A1%D0%B0%D1%80%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20210722153429&path-prefix=ru",
+    "local_url": "/static/wishes/items/kujou_sara.webp"
+  },
+  {
+    "name": "Kuki Shinobu",
+    "display_name": "Синобу",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/45/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A1%D0%B8%D0%BD%D0%BE%D0%B1%D1%83_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20220328111453&path-prefix=ru",
+    "local_url": "/static/wishes/items/kuki_shinobu.webp"
+  },
+  {
+    "name": "Layla",
+    "display_name": "Лайла",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/e/e5/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9B%D0%B0%D0%B9%D0%BB%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20221209121941&path-prefix=ru",
+    "local_url": "/static/wishes/items/layla.webp"
+  },
+  {
+    "name": "Lion’s Roar",
+    "display_name": "Драконий рык",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/d/d9/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%94%D1%80%D0%B0%D0%BA%D0%BE%D0%BD%D0%B8%D0%B9_%D1%80%D1%8B%D0%BA.png/revision/latest?cb=20210221083002&path-prefix=ru",
+    "local_url": "/static/wishes/items/lion_s_roar.webp"
+  },
+  {
+    "name": "Lisa",
+    "display_name": "Лиза",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/3/3e/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9B%D0%B8%D0%B7%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.png/revision/latest?cb=20210122035858&path-prefix=ru",
+    "local_url": "/static/wishes/items/lisa.webp"
+  },
+  {
+    "name": "Lynette",
+    "display_name": "Линетт",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/4d/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9B%D0%B8%D0%BD%D0%B5%D1%82%D1%82_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0_1.jpg/revision/latest?cb=20230703124000&path-prefix=ru",
+    "local_url": "/static/wishes/items/lynette.webp"
+  },
+  {
+    "name": "Magic Guide",
+    "display_name": "Руководство по магии",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/0/03/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%A0%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE_%D0%BF%D0%BE_%D0%BC%D0%B0%D0%B3%D0%B8%D0%B8.png/revision/latest?cb=20210217133851&path-prefix=ru",
+    "local_url": "/static/wishes/items/magic_guide.webp"
+  },
+  {
+    "name": "Mitya",
+    "display_name": "Митя",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/9/9d/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9C%D0%B8%D1%82%D1%8F_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20261004074906&path-prefix=ru",
+    "local_url": "/static/wishes/items/mitya.webp"
+  },
+  {
+    "name": "Mizuki",
+    "display_name": "Мидзуки",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/9/90/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9C%D0%B8%D0%B4%D0%B7%D1%83%D0%BA%D0%B8_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20250106125548&path-prefix=ru",
+    "local_url": "/static/wishes/items/mizuki.webp"
+  },
+  {
+    "name": "Mona",
+    "display_name": "Мона",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/7/70/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9C%D0%BE%D0%BD%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20210330130549&path-prefix=ru",
+    "local_url": "/static/wishes/items/mona.webp"
+  },
+  {
+    "name": "Ningguang",
+    "display_name": "Нин Гуан",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/a/a6/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9D%D0%B8%D0%BD_%D0%93%D1%83%D0%B0%D0%BD_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20240329163428&path-prefix=ru",
+    "local_url": "/static/wishes/items/ningguang.webp"
+  },
+  {
+    "name": "Noelle",
+    "display_name": "Ноэлль",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/e/e2/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9D%D0%BE%D1%8D%D0%BB%D0%BB%D1%8C_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20201011172451&path-prefix=ru",
+    "local_url": "/static/wishes/items/noelle.webp"
+  },
+  {
+    "name": "Ororon",
+    "display_name": "Оророн",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/4a/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%9E%D1%80%D0%BE%D1%80%D0%BE%D0%BD_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20241007101017&path-prefix=ru",
+    "local_url": "/static/wishes/items/ororon.webp"
+  },
+  {
+    "name": "Otherworldly Story",
+    "display_name": "Потусторонняя история",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/49/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9F%D0%BE%D1%82%D1%83%D1%81%D1%82%D0%BE%D1%80%D0%BE%D0%BD%D0%BD%D1%8F%D1%8F_%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F.png/revision/latest?cb=20210206234630&path-prefix=ru",
+    "local_url": "/static/wishes/items/otherworldly_story.webp"
+  },
+  {
+    "name": "Qiqi",
+    "display_name": "Ци Ци",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/49/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A6%D0%B8_%D0%A6%D0%B8_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20201021085924&path-prefix=ru",
+    "local_url": "/static/wishes/items/qiqi.webp"
+  },
+  {
+    "name": "Rainslasher",
+    "display_name": "Дождерез",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/d/de/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%94%D0%BE%D0%B6%D0%B4%D0%B5%D1%80%D0%B5%D0%B7.png/revision/latest?cb=20201207074809&path-prefix=ru",
+    "local_url": "/static/wishes/items/rainslasher.webp"
+  },
+  {
+    "name": "Raven Bow",
+    "display_name": "Лук ворона",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/e/e3/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9B%D1%83%D0%BA_%D0%B2%D0%BE%D1%80%D0%BE%D0%BD%D0%B0.png/revision/latest?cb=20210123083914&path-prefix=ru",
+    "local_url": "/static/wishes/items/raven_bow.webp"
+  },
+  {
+    "name": "Razor",
+    "display_name": "Рэйзор",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/0/0f/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A0%D1%8D%D0%B9%D0%B7%D0%BE%D1%80_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20201007072532&path-prefix=ru",
+    "local_url": "/static/wishes/items/razor.webp"
+  },
+  {
+    "name": "Rosaria",
+    "display_name": "Розария",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/3/3c/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A0%D0%BE%D0%B7%D0%B0%D1%80%D0%B8%D1%8F_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20210330090504&path-prefix=ru",
+    "local_url": "/static/wishes/items/rosaria.webp"
+  },
+  {
+    "name": "Rust",
+    "display_name": "Ржавый лук",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/b/b1/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%A0%D0%B6%D0%B0%D0%B2%D1%8B%D0%B9_%D0%BB%D1%83%D0%BA.png/revision/latest?cb=20210124134900&path-prefix=ru",
+    "local_url": "/static/wishes/items/rust.webp"
+  },
+  {
+    "name": "Sacrificial Bow",
+    "display_name": "Церемониальный лук",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/2/24/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%A6%D0%B5%D1%80%D0%B5%D0%BC%D0%BE%D0%BD%D0%B8%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9_%D0%BB%D1%83%D0%BA.png/revision/latest?cb=20210126131545&path-prefix=ru",
+    "local_url": "/static/wishes/items/sacrificial_bow.webp"
+  },
+  {
+    "name": "Sacrificial Fragments",
+    "display_name": "Церемониальные мемуары",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/6/63/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%A6%D0%B5%D1%80%D0%B5%D0%BC%D0%BE%D0%BD%D0%B8%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5_%D0%BC%D0%B5%D0%BC%D1%83%D0%B0%D1%80%D1%8B.png/revision/latest?cb=20210217134102&path-prefix=ru",
+    "local_url": "/static/wishes/items/sacrificial_fragments.webp"
+  },
+  {
+    "name": "Sacrificial Greatsword",
+    "display_name": "Церемониальный двуручный меч",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/49/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%A6%D0%B5%D1%80%D0%B5%D0%BC%D0%BE%D0%BD%D0%B8%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9_%D0%B4%D0%B2%D1%83%D1%80%D1%83%D1%87%D0%BD%D1%8B%D0%B9_%D0%BC%D0%B5%D1%87.png/revision/latest?cb=20201207075057&path-prefix=ru",
+    "local_url": "/static/wishes/items/sacrificial_greatsword.webp"
+  },
+  {
+    "name": "Sacrificial Sword",
+    "display_name": "Церемониальный меч",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/1/1c/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%A6%D0%B5%D1%80%D0%B5%D0%BC%D0%BE%D0%BD%D0%B8%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9_%D0%BC%D0%B5%D1%87.png/revision/latest?cb=20210218145314&path-prefix=ru",
+    "local_url": "/static/wishes/items/sacrificial_sword.webp"
+  },
+  {
+    "name": "Sayu",
+    "display_name": "Саю",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/b/be/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A1%D0%B0%D1%8E_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20210607105352&path-prefix=ru",
+    "local_url": "/static/wishes/items/sayu.webp"
+  },
+  {
+    "name": "Sethos",
+    "display_name": "Сетос",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/40/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A1%D0%B5%D1%82%D0%BE%D1%81_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20240422104045&path-prefix=ru",
+    "local_url": "/static/wishes/items/sethos.webp"
+  },
+  {
+    "name": "Sharpshooter’s Oath",
+    "display_name": "Клятва стрелка",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/8/8b/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9A%D0%BB%D1%8F%D1%82%D0%B2%D0%B0_%D1%81%D1%82%D1%80%D0%B5%D0%BB%D0%BA%D0%B0.png/revision/latest?cb=20210121185207&path-prefix=ru",
+    "local_url": "/static/wishes/items/sharpshooter_s_oath.webp"
+  },
+  {
+    "name": "Shikanoin Heizou",
+    "display_name": "Хэйдзо",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/2/2f/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A5%D1%8D%D0%B9%D0%B4%D0%B7%D0%BE_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20220516104811&path-prefix=ru",
+    "local_url": "/static/wishes/items/shikanoin_heizou.webp"
+  },
+  {
+    "name": "Skyrider Greatsword",
+    "display_name": "Большой меч небесного всадника",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/6/66/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%91%D0%BE%D0%BB%D1%8C%D1%88%D0%BE%D0%B9_%D0%BC%D0%B5%D1%87_%D0%BD%D0%B5%D0%B1%D0%B5%D1%81%D0%BD%D0%BE%D0%B3%D0%BE_%D0%B2%D1%81%D0%B0%D0%B4%D0%BD%D0%B8%D0%BA%D0%B0.png/revision/latest?cb=20201207074358&path-prefix=ru",
+    "local_url": "/static/wishes/items/skyrider_greatsword.webp"
+  },
+  {
+    "name": "Skyrider Sword",
+    "display_name": "Меч небесного всадника",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/e/e2/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9C%D0%B5%D1%87_%D0%BD%D0%B5%D0%B1%D0%B5%D1%81%D0%BD%D0%BE%D0%B3%D0%BE_%D0%B2%D1%81%D0%B0%D0%B4%D0%BD%D0%B8%D0%BA%D0%B0.png/revision/latest?cb=20210221083334&path-prefix=ru",
+    "local_url": "/static/wishes/items/skyrider_sword.webp"
+  },
+  {
+    "name": "Slingshot",
+    "display_name": "Рогатка",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/f/f9/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%A0%D0%BE%D0%B3%D0%B0%D1%82%D0%BA%D0%B0.png/revision/latest?cb=20210121171512&path-prefix=ru",
+    "local_url": "/static/wishes/items/slingshot.webp"
+  },
+  {
+    "name": "Sucrose",
+    "display_name": "Сахароза",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/5/5f/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A1%D0%B0%D1%85%D0%B0%D1%80%D0%BE%D0%B7%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20201014082904&path-prefix=ru",
+    "local_url": "/static/wishes/items/sucrose.webp"
+  },
+  {
+    "name": "The Bell",
+    "display_name": "Меч-колокол",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/0/0f/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9C%D0%B5%D1%87-%D0%BA%D0%BE%D0%BB%D0%BE%D0%BA%D0%BE%D0%BB.png/revision/latest?cb=20201207074757&path-prefix=ru",
+    "local_url": "/static/wishes/items/the_bell.webp"
+  },
+  {
+    "name": "The Flute",
+    "display_name": "Меч-флейта",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/e/e5/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9C%D0%B5%D1%87-%D1%84%D0%BB%D0%B5%D0%B9%D1%82%D0%B0.png/revision/latest?cb=20210221082647&path-prefix=ru",
+    "local_url": "/static/wishes/items/the_flute.webp"
+  },
+  {
+    "name": "The Stringless",
+    "display_name": "Бесструнный",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/40/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%91%D0%B5%D1%81%D1%81%D1%82%D1%80%D1%83%D0%BD%D0%BD%D1%8B%D0%B9.png/revision/latest?cb=20210124105907&path-prefix=ru",
+    "local_url": "/static/wishes/items/the_stringless.webp"
+  },
+  {
+    "name": "Thoma",
+    "display_name": "Тома",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/5/58/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A2%D0%BE%D0%BC%D0%B0_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20210830151035&path-prefix=ru",
+    "local_url": "/static/wishes/items/thoma.webp"
+  },
+  {
+    "name": "Thrilling Tales of Dragon Slayers",
+    "display_name": "Эпос о драконоборцах",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/d/d5/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%AD%D0%BF%D0%BE%D1%81_%D0%BE_%D0%B4%D1%80%D0%B0%D0%BA%D0%BE%D0%BD%D0%BE%D0%B1%D0%BE%D1%80%D1%86%D0%B0%D1%85.png/revision/latest?cb=20210217133905&path-prefix=ru",
+    "local_url": "/static/wishes/items/thrilling_tales_of_dragon_slayers.webp"
+  },
+  {
+    "name": "Tighnari",
+    "display_name": "Тигнари",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/e/ea/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A2%D0%B8%D0%B3%D0%BD%D0%B0%D1%80%D0%B8_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20220711055607&path-prefix=ru",
+    "local_url": "/static/wishes/items/tighnari.webp"
+  },
+  {
+    "name": "Valeriy",
+    "display_name": "Валерий",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/7/7d/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%92%D0%B0%D0%BB%D0%B5%D1%80%D0%B8%D0%B9_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20261004074811&path-prefix=ru",
+    "local_url": "/static/wishes/items/valeriy.webp"
+  },
+  {
+    "name": "White Iron Greatsword",
+    "display_name": "Меч из белого железа",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/5/51/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%9C%D0%B5%D1%87_%D0%B8%D0%B7_%D0%B1%D0%B5%D0%BB%D0%BE%D0%B3%D0%BE_%D0%B6%D0%B5%D0%BB%D0%B5%D0%B7%D0%B0.png/revision/latest?cb=20201207074201&path-prefix=ru",
+    "local_url": "/static/wishes/items/white_iron_greatsword.webp"
+  },
+  {
+    "name": "White Tassel",
+    "display_name": "Белая кисть",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/48/%D0%9E%D1%80%D1%83%D0%B6%D0%B8%D0%B5_%D0%91%D0%B5%D0%BB%D0%B0%D1%8F_%D0%BA%D0%B8%D1%81%D1%82%D1%8C.png/revision/latest?cb=20201207093023&path-prefix=ru",
+    "local_url": "/static/wishes/items/white_tassel.webp"
+  },
+  {
+    "name": "Xiangling",
+    "display_name": "Сян Лин",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/2/25/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A1%D1%8F%D0%BD_%D0%9B%D0%B8%D0%BD_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20201023204757&path-prefix=ru",
+    "local_url": "/static/wishes/items/xiangling.webp"
+  },
+  {
+    "name": "Xingqiu",
+    "display_name": "Син Цю",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/8/8d/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A1%D0%B8%D0%BD_%D0%A6%D1%8E_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20201013161755&path-prefix=ru",
+    "local_url": "/static/wishes/items/xingqiu.webp"
+  },
+  {
+    "name": "Xinyan",
+    "display_name": "Синь Янь",
+    "image_url": "https://static.wikia.nocookie.net/genshin-impact/images/4/4d/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%B6_%D0%A1%D0%B8%D0%BD%D1%8C_%D0%AF%D0%BD%D1%8C_%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B0.jpg/revision/latest?cb=20210122140857&path-prefix=ru",
+    "local_url": "/static/wishes/items/xinyan.webp"
+  }
+]
