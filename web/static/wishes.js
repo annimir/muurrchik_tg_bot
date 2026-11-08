@@ -69,21 +69,33 @@ if (wishPullButton) {
 
     const showResults = (drops) => {
         results.replaceChildren();
-        drops.forEach((drop) => {
+        [...drops].sort((first, second) => second.rarity - first.rarity).forEach((drop, index) => {
             const card = document.createElement('div');
             card.className = `wish-result-card wish-rarity-${drop.rarity}`;
+            card.style.animationDelay = `${index * 45}ms`;
+            const topStar = document.createElement('span');
+            topStar.className = 'wish-card-top-star';
+            topStar.textContent = '✧';
+            const monogram = document.createElement('span');
+            monogram.className = 'wish-item-monogram';
+            monogram.textContent = drop.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2);
             const name = document.createElement('strong');
             name.textContent = drop.name;
+            const type = document.createElement('small');
+            type.textContent = drop.item_type === 'character' ? 'Персонаж' : 'Оружие';
             const rarity = document.createElement('span');
+            rarity.className = 'wish-card-rarity';
             rarity.textContent = '★'.repeat(drop.rarity);
-            card.append(name, rarity);
+            card.append(topStar, monogram, name, type, rarity);
             if (drop.featured && drop.rarity >= 4) {
                 const featured = document.createElement('small');
+                featured.className = 'wish-featured-label';
                 featured.textContent = 'Featured';
                 card.appendChild(featured);
             }
             if (drop.radiant) {
                 const radiant = document.createElement('small');
+                radiant.className = 'wish-radiant-label';
                 radiant.textContent = 'Capturing Radiance';
                 card.appendChild(radiant);
             }
@@ -101,10 +113,19 @@ if (wishPullButton) {
         drops.forEach((drop, index) => {
             const star = document.createElement('span');
             star.className = `wish-star wish-rarity-${drop.rarity}`;
-            star.style.left = `${8 + index * 9}%`;
-            star.style.animationDelay = `${index * 70}ms`;
+            star.style.left = `${-12 - index * 3}%`;
+            star.style.top = `${-70 - index * 14}px`;
+            star.style.animationDelay = `${index * 65}ms`;
             animation.appendChild(star);
         });
+        const impact = document.createElement('span');
+        impact.className = `wish-impact wish-rarity-${highestRarity}`;
+        const ring = document.createElement('span');
+        ring.className = 'wish-impact-ring';
+        const beam = document.createElement('span');
+        beam.className = 'wish-impact-beam';
+        impact.append(ring, beam);
+        animation.appendChild(impact);
         animation.hidden = false;
         animation.setAttribute('aria-hidden', 'false');
         skipButton.hidden = false;
@@ -116,7 +137,7 @@ if (wishPullButton) {
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
             finish();
         } else {
-            animationTimer = window.setTimeout(finish, 1900);
+            animationTimer = window.setTimeout(finish, 2600);
         }
     };
 
