@@ -78,6 +78,27 @@ class WishDatabaseTests(PostgresTestCase):
         )
         self.assertEqual(len(self.wishes.get_recent_drops(self.event['id'], self.user['id'])), 10)
 
+    def test_default_catalog_is_localized(self):
+        from pathlib import Path
+
+        items = self.wishes.list_wish_items(self.banner['id'])
+        self.assertEqual(len(items), 90)
+        all_items = {
+            item['name']
+            for banner in self.wishes.list_wish_banners(self.event['id'])
+            for item in self.wishes.list_wish_items(banner['id'])
+        }
+        self.assertEqual(len(all_items), 91)
+        for item in items:
+            with self.subTest(item=item['name']):
+                self.assertTrue(item['display_name'])
+                self.assertTrue(item['image_url'].startswith('/static/wishes/items/')
+                                and item['image_url'].endswith('.webp'))
+                self.assertTrue(Path('web' + item['image_url']).is_file())
+        self.assertIn('Mitya', {item['name'] for item in items})
+        mitya = next(item for item in items if item['name'] == 'Mitya')
+        self.assertEqual(mitya['display_name'], 'Митя')
+
     def test_allowance_and_winners(self):
         self.wishes.set_wish_allowance(1000, self.event['id'], 10)
         self.assertEqual(self.wishes.calculate_wish_winners(self.event['id']), [])

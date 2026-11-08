@@ -73,7 +73,7 @@ def perform_ten_wishes(items, current_state=None, rng=None):
             featured = False
             item = _choose(items, 3, False, rng)
         drops.append({
-            'name': item['name'],
+            'name': item.get('display_name') or item['name'],
             'rarity': item['rarity'],
             'item_type': item['item_type'],
             'image_url': item.get('image_url'),

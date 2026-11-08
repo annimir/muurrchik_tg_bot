@@ -76,9 +76,18 @@ if (wishPullButton) {
             const topStar = document.createElement('span');
             topStar.className = 'wish-card-top-star';
             topStar.textContent = '✧';
-            const monogram = document.createElement('span');
-            monogram.className = 'wish-item-monogram';
-            monogram.textContent = drop.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2);
+            let visual;
+            if (drop.image_url) {
+                visual = document.createElement('img');
+                visual.className = 'wish-item-image';
+                visual.src = drop.image_url;
+                visual.alt = drop.name;
+                visual.loading = 'lazy';
+            } else {
+                visual = document.createElement('span');
+                visual.className = 'wish-item-monogram';
+                visual.textContent = drop.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2);
+            }
             const name = document.createElement('strong');
             name.textContent = drop.name;
             const type = document.createElement('small');
@@ -86,7 +95,7 @@ if (wishPullButton) {
             const rarity = document.createElement('span');
             rarity.className = 'wish-card-rarity';
             rarity.textContent = '★'.repeat(drop.rarity);
-            card.append(topStar, monogram, name, type, rarity);
+            card.append(topStar, visual, name, type, rarity);
             if (drop.featured && drop.rarity >= 4) {
                 const featured = document.createElement('small');
                 featured.className = 'wish-featured-label';
