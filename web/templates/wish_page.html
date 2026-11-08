@@ -2,8 +2,12 @@
 {% block title %}Месячные молитвы{% endblock %}
 {% block scripts %}<script src="/static/wish-canvas.js" defer></script><script src="/static/wishes.js" defer></script>{% endblock %}
 {% block content %}
+{% if is_admin %}
 {% include 'admin/_nav.html' %}
-<section class="page-heading"><div class="eyebrow">Тестовый режим для администраторов</div><h1>Месячные молитвы</h1><p>Ивент {{ event.period }} · {{ event.pull_allowance }} молитв на участника. Счётчики полностью сбрасываются каждый месяц.</p></section>
+{% else %}
+<div class="admin-toolbar"><span class="muted">Вы вошли как {{ user.tag or user.id }}</span><form method="post" action="/wishes/logout"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button button-quiet button-small" type="submit">Выйти</button></form></div>
+{% endif %}
+<section class="page-heading"><div class="eyebrow">Тестовый режим для всех игроков</div><h1>Месячные молитвы</h1><p>Ивент {{ event.period }} · {{ event.pull_allowance }} молитв на участника. Счётчики полностью сбрасываются каждый месяц.</p></section>
 {% if winners %}<section class="panel winner-panel"><h2>Награда «Благословение полой Луны»</h2><div class="badge-list">{% for winner in winners %}<span class="badge">{{ 'Самый удачливый' if winner.kind == 'LUCKIEST' else 'Самый неудачливый' }}: {{ winner.tag or winner.user_id }}</span>{% endfor %}</div></section>{% endif %}
 <section class="panel wish-panel">
     <div class="wish-banner-tabs">{% for banner in banners %}<a class="button button-secondary {{ 'active' if banner.id == selected_banner.id else '' }}" href="/wishes?banner={{ banner.id }}">{{ banner.name }}</a>{% endfor %}</div>

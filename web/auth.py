@@ -46,6 +46,14 @@ def require_admin(request: Request):
     return session
 
 
+def require_user(request: Request):
+    session = read_admin_session(request)
+    if not session:
+        raise HTTPException(status_code=303, headers={'Location': '/wishes/login'})
+    request.state.user_session = session
+    return session
+
+
 async def csrf_protect(request: Request):
     session = read_admin_session(request)
     form = await request.form()

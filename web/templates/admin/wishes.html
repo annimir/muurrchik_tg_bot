@@ -2,7 +2,7 @@
 {% block title %}Управление молитвами{% endblock %}
 {% block content %}
 {% include 'admin/_nav.html' %}
-<section class="page-heading"><div class="eyebrow">Месячный ивент</div><h1>Молитвы</h1><p>Тестовый режим для администраторов. Текущий ивент: {{ event.period }}.</p><a class="button button-secondary" href="/wishes">Открыть страницу молитв</a></section>
+<section class="page-heading"><div class="eyebrow">Месячный ивент</div><h1>Молитвы</h1><p>Тестовый режим открыт всем игрокам. Текущий ивент: {{ event.period }}.</p><a class="button button-secondary" href="/wishes">Открыть страницу молитв</a></section>
 {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
 <section class="panel">
     <h2>Настройки ивента</h2>
