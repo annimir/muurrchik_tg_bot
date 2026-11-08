@@ -19,12 +19,6 @@ def is_paimon_praise(text):
     )
 
 
-def format_reward_message(rewards):
-    total = sum(reward['amount'] for reward in rewards)
-    details = ', '.join(f'{reward["title"]} (+{reward["amount"]})' for reward in rewards)
-    return f'Паймон начислила +{total} молитв: {details}.'
-
-
 async def wish_activity_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.edited_message or not update.effective_user or not update.effective_message:
         return
@@ -39,15 +33,6 @@ async def wish_activity_message_handler(update: Update, context: ContextTypes.DE
         return
     user = ensure_user(tg_user.id, tg_user.username or tg_user.full_name)
     source_id = f'{update.effective_chat.id}:{message_obj.message_id}'
-    rewards = []
-    reward = record_wish_activity('daily_message', user['id'], 'message', source_id)
-    if reward:
-        rewards.append(reward)
+    record_wish_activity('daily_message', user['id'], 'message', source_id)
     if is_paimon_praise(text):
-        reward = record_wish_activity('paimon_praise', user['id'], 'message', source_id)
-        if reward:
-            rewards.append(reward)
-    if rewards:
-        await message_obj.reply_text(
-            format_reward_message(rewards), message_thread_id=message_obj.message_thread_id,
-        )
+        record_wish_activity('paimon_praise', user['id'], 'message', source_id)
