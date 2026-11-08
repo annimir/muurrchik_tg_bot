@@ -1,3 +1,4 @@
+import mimetypes
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -6,6 +7,8 @@ from fastapi.staticfiles import StaticFiles
 
 from web.rendering import templates
 from web.routes import admin, public, wishes
+
+mimetypes.add_type('image/webp', '.webp')
 
 
 def create_app():
