@@ -6,13 +6,35 @@ if (wishPullButton) {
     const csrfToken = document.querySelector('input[name="csrf_token"]').value;
     let canvasAnimation;
 
-    const showWishError = (message) => {
+    const showWishToast = (message, isError = false) => {
         if (typeof showAdminToast === 'function') {
-            showAdminToast(message, true);
-        } else {
-            window.alert(message);
+            showAdminToast(message, isError);
+            return;
         }
+        let container = document.querySelector('.admin-toasts');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'admin-toasts';
+            container.setAttribute('aria-live', 'polite');
+            document.body.appendChild(container);
+        }
+        const toast = document.createElement('div');
+        toast.className = `admin-toast ${isError ? 'is-error' : 'is-success'}`;
+        toast.setAttribute('role', isError ? 'alert' : 'status');
+        const text = document.createElement('span');
+        text.textContent = message;
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'admin-toast-close';
+        close.setAttribute('aria-label', 'Закрыть уведомление');
+        close.textContent = '×';
+        close.addEventListener('click', () => toast.remove());
+        toast.append(text, close);
+        container.appendChild(toast);
+        window.setTimeout(() => toast.remove(), 6000);
     };
+
+    const showWishError = (message) => showWishToast(message, true);
 
     const updateParticipant = (participant) => {
         document.querySelector('#wish-remaining').textContent = participant.remaining;
@@ -22,6 +44,32 @@ if (wishPullButton) {
             ? 'Следующий 5★ гарантированно featured'
             : '50/50 на следующий 5★';
         wishPullButton.disabled = participant.remaining < 10;
+    };
+
+    const updateRewards = (rules, summary) => {
+        document.querySelector('#wish-bonus-today').textContent = summary.today;
+        document.querySelector('#wish-bonus-total').textContent = summary.total;
+        rules.forEach((rule) => {
+            const card = document.querySelector(`[data-reward-code="${rule.code}"]`);
+            if (!card) {
+                return;
+            }
+            card.classList.toggle('is-complete', rule.completed);
+            const progress = card.querySelector('progress');
+            progress.max = rule.threshold;
+            progress.value = rule.progress;
+            card.querySelector('[data-reward-progress]').textContent = `${rule.progress}/${rule.threshold}`;
+            let status = rule.completed ? 'Награда получена' : 'Можно выполнить';
+            if (rule.monthly_reached) {
+                status = 'Месячный лимит исчерпан';
+            } else if (!rule.completed && rule.daily_limit) {
+                status = `Сегодня: до ${rule.daily_limit} наград(ы)`;
+            }
+            if (rule.monthly_limit) {
+                status += ` · За ивент получено: ${rule.earned}`;
+            }
+            card.querySelector('[data-reward-status]').textContent = status;
+        });
     };
 
     const updateStats = (stats) => {
@@ -162,6 +210,12 @@ if (wishPullButton) {
             updateParticipant(payload.participant);
             updateStats(payload.stats);
             updateHistory(payload.drops);
+            updateRewards(payload.reward_rules, payload.reward_summary);
+            if (payload.rewards.length) {
+                const total = payload.rewards.reduce((sum, reward) => sum + reward.amount, 0);
+                const details = payload.rewards.map((reward) => reward.title).join(', ');
+                showWishToast(`Получено +${total} бонусных молитв: ${details}`);
+            }
             playAnimation(payload.drops);
         } catch (error) {
             showWishError(error.message);

@@ -19,6 +19,21 @@
     <div class="wish-animation" id="wish-animation" hidden aria-hidden="true"></div>
     <div class="wish-results" id="wish-results" aria-live="polite"></div>
 </section>
+<section class="panel" id="wish-tasks">
+    <div class="wish-section-heading"><div><div class="eyebrow">Дополнительные молитвы</div><h2>Задания Паймон</h2></div><span class="badge">Сегодня +<strong id="wish-bonus-today">{{ reward_summary.today }}</strong></span></div>
+    <p>Базовый лимит: {{ event.pull_allowance }} · Получено бонусных за ивент: <strong id="wish-bonus-total">{{ reward_summary.total }}</strong></p>
+    <div class="wish-reward-grid">
+        {% for rule in reward_rules %}
+        <article class="wish-reward-card {{ 'is-complete' if rule.completed else '' }}" data-reward-code="{{ rule.code }}">
+            <div class="wish-reward-title"><strong>{{ rule.title }}</strong><span class="badge">+{{ rule.reward }}</span></div>
+            <p>{{ rule.description }}</p>
+            <div class="wish-reward-progress"><progress max="{{ rule.threshold }}" value="{{ rule.progress }}" aria-label="Прогресс задания {{ rule.title }}"></progress><span data-reward-progress>{{ rule.progress }}/{{ rule.threshold }}</span></div>
+            <small data-reward-status>{% if rule.monthly_reached %}Месячный лимит исчерпан{% elif rule.completed %}Награда получена{% elif rule.daily_limit %}Сегодня: до {{ rule.daily_limit }} наград(ы){% else %}Можно выполнить{% endif %}{% if rule.monthly_limit %} · За ивент получено: {{ rule.earned }}{% endif %}</small>
+        </article>
+        {% endfor %}
+    </div>
+    {% if reward_grants %}<div class="wish-reward-history"><h3>Последние начисления</h3>{% for grant in reward_grants %}<div><span>{{ grant.title }}</span><strong>+{{ grant.amount }}</strong><small>{{ grant.created_at|datetime_ru }}</small></div>{% endfor %}</div>{% endif %}
+</section>
 <section class="panel"><h2>Участники</h2><div class="table-wrap"><table><thead><tr><th>Игрок</th><th>Использовано</th><th>Осталось</th><th>5★</th><th>Featured 5★</th><th>4★</th><th>3★</th><th>Средний pity 5★</th><th>Текущий pity</th><th>Конкурс</th></tr></thead><tbody id="wish-stats-body">{% for row in stats %}<tr><td>{{ row.tag or row.id }}</td><td>{{ row.used }}</td><td>{{ row.remaining }}</td><td>{{ row.five_star_count }}</td><td>{{ row.featured_five_count }}</td><td>{{ row.four_star_count }}</td><td>{{ row.three_star_count }}</td><td>{{ '%0.1f'|format(row.average_five_pity) if row.average_five_pity is not none else '—' }}</td><td>{{ row.pity5 }} / {{ row.pity4 }}</td><td>{{ 'Участвует' if row.remaining == 0 else 'Нужно использовать все молитвы' }}</td></tr>{% else %}<tr><td colspan="10">Пока никто не сделал молитв.</td></tr>{% endfor %}</tbody></table></div></section>
 <section class="panel"><h2>Последние выпадения</h2><div class="badge-list" id="wish-history">{% for drop in recent_drops %}<span class="badge wish-rarity-{{ drop.rarity }}">{{ drop.item_name }} · {{ drop.rarity }}★</span>{% else %}<span class="muted">История появится после первой молитвы.</span>{% endfor %}</div></section>
 <details class="panel collapsible-panel"><summary><h2>Правила и шансы</h2><span class="collapse-label" aria-hidden="true"></span></summary><p>5★: базовый шанс 0,6%, гарант на 90-й. 4★: базовый шанс 5,1%, гарант на 10-й. Soft pity начинается с 74-й и является приближённой моделью. После проигрыша 50/50 следующий 5★ гарантированно featured. Capturing Radiance учитывается по официальным правилам. Для конкурса нужно использовать все молитвы; при равенстве учитывается средний pity 5★, затем проводится жребий.</p></details>

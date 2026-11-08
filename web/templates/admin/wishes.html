@@ -11,6 +11,25 @@
     {% if winners %}<div class="badge-list">{% for winner in winners %}<span class="badge">{{ 'Самый удачливый' if winner.kind == 'LUCKIEST' else 'Самый неудачливый' }}: {{ winner.tag or winner.user_id }}</span>{% endfor %}</div>{% endif %}
 </section>
 <section class="panel">
+    <h2>Задания Паймон</h2>
+    <p>Награда и лимиты применяются к новым действиям. Пустой лимит означает «без ограничения», порог — число уникальных действий для начисления.</p>
+    <div class="wish-reward-admin-list">
+    {% for rule in reward_rules %}
+        <form class="wish-reward-admin-form" method="post" action="/admin/wishes/rewards/{{ rule.code }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div><strong>{{ rule.title }}</strong><small>{{ rule.description }}</small></div>
+            <label>Молитв<input type="number" name="reward" min="1" max="1000" required value="{{ rule.reward }}"></label>
+            <label>Порог<input type="number" name="threshold" min="1" max="100" required value="{{ rule.threshold }}"></label>
+            <label>Лимит в день<input type="number" name="daily_limit" min="1" value="{{ rule.daily_limit if rule.daily_limit is not none else '' }}"></label>
+            <label>Лимит в месяц<input type="number" name="monthly_limit" min="1" value="{{ rule.monthly_limit if rule.monthly_limit is not none else '' }}"></label>
+            <label class="checkbox"><input type="checkbox" name="is_active" value="true" {{ 'checked' if rule.is_active else '' }}> Активно</label>
+            <button class="button button-small" type="submit">Сохранить</button>
+        </form>
+    {% endfor %}
+    </div>
+</section>
+<section class="panel"><h2>Последние начисления</h2><div class="table-wrap"><table><thead><tr><th>Игрок</th><th>Задание</th><th>Молитвы</th><th>Дата</th></tr></thead><tbody>{% for grant in reward_grants %}<tr><td>{{ grant.tag or grant.user_id }}</td><td>{{ grant.title }}</td><td>+{{ grant.amount }}</td><td>{{ grant.created_at|datetime_ru }}</td></tr>{% else %}<tr><td colspan="4">Начислений пока нет.</td></tr>{% endfor %}</tbody></table></div></section>
+<section class="panel">
     <h2>Баннеры</h2>
     <form class="admin-form" method="post" action="/admin/wishes/banners"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>Название нового баннера<input name="name" required maxlength="100"></label><button class="button" type="submit">Добавить баннер</button></form>
     <div class="table-wrap"><table><thead><tr><th>Название</th><th>Статус</th><th>Действие</th><th>Предметы</th></tr></thead><tbody>{% for banner in banners %}<tr><td>{{ banner.name }}</td><td>{{ 'Активен' if banner.is_active else 'Скрыт' }}</td><td><form method="post" action="/admin/wishes/banners/{{ banner.id }}/active"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="active" value="{{ 'false' if banner.is_active else 'true' }}"><button class="button button-small button-quiet" type="submit">{{ 'Скрыть' if banner.is_active else 'Активировать' }}</button></form></td><td><a class="button button-small button-quiet" href="/admin/wishes?banner={{ banner.id }}">Показать</a></td></tr>{% endfor %}</tbody></table></div>

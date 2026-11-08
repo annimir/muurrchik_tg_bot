@@ -126,7 +126,7 @@ function adminSuccessMessage(action) {
     if (action.endsWith('/winners')) {
         return 'Победители рассчитаны';
     }
-    if (/\/(edit|status|visibility|assign|active|allowance)(\/)?$/.test(action)) {
+    if (/\/(edit|status|visibility|assign|active|allowance|rewards)(\/|$)/.test(action)) {
         return 'Изменения сохранены';
     }
     return 'Создание выполнено';

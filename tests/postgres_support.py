@@ -36,3 +36,6 @@ class PostgresTestCase(unittest.IsolatedAsyncioTestCase):
             RESTART IDENTITY CASCADE
             '''
         ).close()
+        queries.db(
+            "UPDATE wish_reward_rules SET is_active = FALSE WHERE code = 'first_ten_five_star'"
+        ).close()

@@ -3,6 +3,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from database.queries import db
+from database.wish_rewards import record_wish_activity_tx
 from services.wishes import perform_ten_wishes
 from services.wish_catalog import get_item_localization
 
@@ -167,7 +168,8 @@ def get_participant(event_id, user_id):
     return db(
         '''
         SELECT wp.*, we.pull_allowance,
-            we.pull_allowance - wp.remaining AS used
+            we.pull_allowance + wp.bonus_earned AS total_allowance,
+            we.pull_allowance + wp.bonus_earned - wp.remaining AS used
         FROM wish_participants wp
         JOIN wish_events we ON we.id = wp.event_id
         WHERE wp.event_id = %s AND wp.user_id = %s
@@ -218,7 +220,7 @@ def perform_wishes(event_id, user_id, banner_id):
                 state['featured4_guaranteed'], state['radiance_streak'], event_id, user_id,
             ),
         ).close()
-        used = event['pull_allowance'] - participant['remaining']
+        used = event['pull_allowance'] + participant['bonus_earned'] - participant['remaining']
         for index, drop in enumerate(drops, start=1):
             tx(
                 '''
@@ -232,7 +234,18 @@ def perform_wishes(event_id, user_id, banner_id):
                     drop['featured'], drop['radiant'], used + index, drop['pity5_at'], drop['pity4_at'],
                 ),
             ).close()
-        return {'drops': drops, 'state': state, 'remaining': participant['remaining'] - 10}
+        rewards = []
+        if used == 0 and any(drop['rarity'] == 5 for drop in drops):
+            reward = record_wish_activity_tx(
+                tx, event_id, user_id, 'first_ten_five_star', 'wish_event', event_id,
+            )
+            if reward:
+                rewards.append(reward)
+        remaining = tx(
+            'SELECT remaining FROM wish_participants WHERE event_id = %s AND user_id = %s',
+            (event_id, user_id),
+        ).one()['remaining']
+        return {'drops': drops, 'state': state, 'remaining': remaining, 'rewards': rewards}
 
 
 def get_recent_drops(event_id, user_id, limit=10):
@@ -248,8 +261,9 @@ def get_recent_drops(event_id, user_id, limit=10):
 def get_wish_participant_stats(event_id):
     return db(
         '''
-        SELECT u.id, u.tag, wp.remaining, we.pull_allowance,
-            we.pull_allowance - wp.remaining AS used,
+        SELECT u.id, u.tag, wp.remaining, we.pull_allowance, wp.bonus_earned,
+            we.pull_allowance + wp.bonus_earned AS total_allowance,
+            we.pull_allowance + wp.bonus_earned - wp.remaining AS used,
             wp.pity5, wp.pity4, wp.featured5_guaranteed, wp.featured4_guaranteed,
             COUNT(wd.id) FILTER (WHERE wd.rarity = 5) AS five_star_count,
             COUNT(wd.id) FILTER (WHERE wd.rarity = 4) AS four_star_count,
@@ -261,7 +275,7 @@ def get_wish_participant_stats(event_id):
         JOIN wish_events we ON we.id = wp.event_id
         LEFT JOIN wish_drops wd ON wd.event_id = wp.event_id AND wd.user_id = wp.user_id
         WHERE wp.event_id = %s
-        GROUP BY u.id, u.tag, wp.remaining, we.pull_allowance, wp.pity5, wp.pity4,
+        GROUP BY u.id, u.tag, wp.remaining, we.pull_allowance, wp.bonus_earned, wp.pity5, wp.pity4,
             wp.featured5_guaranteed, wp.featured4_guaranteed
         ORDER BY u.tag NULLS LAST, u.id
         ''',

@@ -53,6 +53,7 @@ from handlers.assistance.requests import (
     assist_custom_time_message, assist_request_callback,
 )
 from handlers.assistance.jobs import expire_assistance_requests
+from handlers.wishes.activity import wish_activity_message_handler
 
 from handlers.characters.requests import (
     start_character_request, ask_name, ask_birthdate, ask_description, ask_photo,
@@ -237,6 +238,12 @@ application.add_handler(
     group=2,
 )
 application.job_queue.run_repeating(expire_assistance_requests, interval=60, first=30)
+
+# ---------- задания Паймон ----------
+application.add_handler(
+    MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.GROUPS, wish_activity_message_handler),
+    group=10,
+)
 
 # ---------- заявки на персонажей ----------
 character_request_conv = ConversationHandler(
