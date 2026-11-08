@@ -189,6 +189,12 @@ class WishWebIntegrationTests(PostgresTestCase):
         self.assertEqual(response.status_code, 303)
         self.assertEqual(self.wishes.get_wish_event(self.event['id'])['status'], 'ARCHIVED')
 
+    def test_wish_images_have_correct_mime_type(self):
+        response = self.client.get('/static/wishes/items/mitya.webp')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers['content-type'], 'image/webp')
+
     def test_wishes_require_admin_session(self):
         from fastapi.testclient import TestClient
         from web.app import create_app
