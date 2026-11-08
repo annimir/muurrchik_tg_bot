@@ -4,7 +4,7 @@ if (wishPullButton) {
     const results = document.querySelector('#wish-results');
     const skipButton = document.querySelector('#wish-skip');
     const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-    let animationTimer;
+    let canvasAnimation;
 
     const showWishError = (message) => {
         if (typeof showAdminToast === 'function') {
@@ -119,35 +119,28 @@ if (wishPullButton) {
         animation.replaceChildren();
         const highestRarity = Math.max(...drops.map((drop) => drop.rarity));
         animation.className = `wish-animation wish-animation-${highestRarity}`;
-        drops.forEach((drop, index) => {
-            const star = document.createElement('span');
-            star.className = `wish-star wish-rarity-${drop.rarity}`;
-            star.style.left = `${-12 - index * 3}%`;
-            star.style.top = `${-70 - index * 14}px`;
-            star.style.animationDelay = `${index * 65}ms`;
-            animation.appendChild(star);
-        });
-        const impact = document.createElement('span');
-        impact.className = `wish-impact wish-rarity-${highestRarity}`;
-        const ring = document.createElement('span');
-        ring.className = 'wish-impact-ring';
-        const beam = document.createElement('span');
-        beam.className = 'wish-impact-beam';
-        impact.append(ring, beam);
-        animation.appendChild(impact);
         animation.hidden = false;
         animation.setAttribute('aria-hidden', 'false');
         skipButton.hidden = false;
         const finish = () => {
-            window.clearTimeout(animationTimer);
+            if (canvasAnimation) {
+                canvasAnimation.destroy();
+                canvasAnimation = null;
+            }
             showResults(drops);
         };
         skipButton.onclick = finish;
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            || typeof WishCanvasAnimation !== 'function') {
             finish();
-        } else {
-            animationTimer = window.setTimeout(finish, 2600);
+            return;
         }
+        canvasAnimation = new WishCanvasAnimation(animation, {
+            rarity: highestRarity,
+            radiant: drops.some((drop) => drop.radiant),
+            onComplete: finish,
+        });
+        canvasAnimation.start();
     };
 
     wishPullButton.addEventListener('click', async () => {
