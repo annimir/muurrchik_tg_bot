@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Месячные молитвы{% endblock %}
-{% block scripts %}<script src="/static/wishes.js" defer></script>{% endblock %}
+{% block scripts %}<script src="/static/wish-canvas.js" defer></script><script src="/static/wishes.js" defer></script>{% endblock %}
 {% block content %}
 {% include 'admin/_nav.html' %}
 <section class="page-heading"><div class="eyebrow">Тестовый режим для администраторов</div><h1>Месячные молитвы</h1><p>Ивент {{ event.period }} · {{ event.pull_allowance }} молитв на участника. Счётчики полностью сбрасываются каждый месяц.</p></section>
