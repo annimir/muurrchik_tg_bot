@@ -641,6 +641,22 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
 .wish-rarity-5 { color: var(--gold-light); }
 .wish-rarity-4 { color: #c5a4ed; }
 .wish-rarity-3 { color: #83c9ff; }
+.wish-section-heading, .wish-reward-title, .wish-reward-progress { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.wish-reward-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.wish-reward-card { padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,.025); }
+.wish-reward-card.is-complete { border-color: rgba(121,199,192,.55); background: rgba(121,199,192,.06); }
+.wish-reward-card p { min-height: 42px; margin: 10px 0; color: var(--muted); }
+.wish-reward-card small { display: block; margin-top: 8px; color: var(--muted); }
+.wish-reward-progress progress { width: 100%; height: 8px; accent-color: var(--teal); }
+.wish-reward-history { margin-top: 22px; }
+.wish-reward-history > div { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; padding: 9px 0; border-top: 1px solid var(--line); }
+.wish-reward-history small { color: var(--muted); }
+.wish-reward-admin-list { display: grid; gap: 12px; }
+.wish-reward-admin-form { display: grid; grid-template-columns: minmax(190px, 1.5fr) repeat(4, minmax(90px, .6fr)) auto auto; align-items: end; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
+.wish-reward-admin-form > div small { display: block; margin-top: 4px; color: var(--muted); }
+.wish-reward-admin-form .checkbox { padding-bottom: 10px; }
+@media (max-width: 1100px) { .wish-reward-admin-form { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; } .wish-reward-admin-form > div { grid-column: 1 / -1; } }
+@media (max-width: 620px) { .wish-reward-grid, .wish-reward-admin-form { grid-template-columns: 1fr; } .wish-reward-card p { min-height: 0; } .wish-reward-history > div { grid-template-columns: 1fr auto; } .wish-reward-history small { grid-column: 1 / -1; } }
 @keyframes wish-card-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 620px) { .wish-result-card { flex-basis: 126px; height: 245px; padding-inline: 9px; } .wish-item-monogram { font-size: 2rem; } }
 

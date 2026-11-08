@@ -17,6 +17,9 @@ from database.wishes import (
     list_wish_events, list_wish_items, list_wish_winners, restart_wish_event,
     set_wish_allowance, set_wish_banner_active,
 )
+from database.wish_rewards import (
+    list_wish_reward_grants, list_wish_reward_rules, update_wish_reward_rule,
+)
 from services.games import slugify_game_name
 from services.validation import MAX_NAME_LENGTH, MAX_TEXT_LENGTH
 from web.auth import (
@@ -937,6 +940,8 @@ def _wishes_admin_context(session, error=None, banner_id=None):
         'event': event, 'banners': banners, 'selected_banner': selected,
         'items': list_wish_items(selected['id']), 'stats': get_wish_participant_stats(event['id']),
         'winners': list_wish_winners(event['id']), 'events': list_wish_events(),
+        'reward_rules': list_wish_reward_rules(),
+        'reward_grants': list_wish_reward_grants(event['id']),
         'csrf_token': session['csrf'], 'active_page': 'admin_wishes', 'error': error,
     }
 
@@ -968,6 +973,30 @@ async def wish_allowance_action(
             raise ValueError('Лимит должен быть положительным и кратным 10')
         event = get_or_create_current_wish_event()
         set_wish_allowance(session['tg_id'], event['id'], allowance)
+    except ValueError as exc:
+        return _wishes_admin_error(request, session, exc)
+    return RedirectResponse('/admin/wishes', status_code=303)
+
+
+@router.post('/wishes/rewards/{code}', name='admin_update_wish_reward')
+async def wish_reward_rule_action(
+    request: Request,
+    code: str,
+    reward: int = Form(...),
+    threshold: int = Form(...),
+    daily_limit: str = Form(''),
+    monthly_limit: str = Form(''),
+    is_active: bool = Form(False),
+    session=Depends(require_admin),
+    _=Depends(csrf_protect),
+):
+    try:
+        update_wish_reward_rule(
+            session['tg_id'], code, reward, threshold,
+            int(daily_limit) if daily_limit.strip() else None,
+            int(monthly_limit) if monthly_limit.strip() else None,
+            is_active,
+        )
     except ValueError as exc:
         return _wishes_admin_error(request, session, exc)
     return RedirectResponse('/admin/wishes', status_code=303)

@@ -7,6 +7,9 @@ from database.wishes import (
     get_or_create_current_wish_event, get_participant, get_recent_drops,
     get_wish_participant_stats, list_wish_banners, list_wish_winners, perform_wishes,
 )
+from database.wish_rewards import (
+    get_wish_reward_progress, get_wish_reward_summary, list_wish_reward_grants,
+)
 from web.auth import (
     SESSION_COOKIE, create_admin_session, csrf_protect, read_admin_session, require_user,
     verify_telegram_login,
@@ -32,6 +35,9 @@ def _wish_page_context(session, banner_id=None):
         'participant': participant, 'stats': get_wish_participant_stats(event['id']),
         'recent_drops': get_recent_drops(event['id'], user['id']),
         'winners': list_wish_winners(event['id']), 'csrf_token': session['csrf'],
+        'reward_rules': get_wish_reward_progress(event['id'], user['id']),
+        'reward_summary': get_wish_reward_summary(event['id'], user['id']),
+        'reward_grants': list_wish_reward_grants(event['id'], user['id'], limit=10),
         'user': user, 'is_admin': is_admin,
         'active_page': 'admin_wishes' if is_admin else 'wishes',
     }
@@ -108,6 +114,9 @@ async def wishes_pull(
     return {
         'drops': result['drops'],
         'remaining': result['remaining'],
+        'rewards': result['rewards'],
         'participant': get_participant(event_id, user['id']),
         'stats': get_wish_participant_stats(event_id),
+        'reward_rules': get_wish_reward_progress(event_id, user['id']),
+        'reward_summary': get_wish_reward_summary(event_id, user['id']),
     }

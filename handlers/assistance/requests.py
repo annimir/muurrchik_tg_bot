@@ -15,6 +15,7 @@ from database.assistance import (
     save_request_message_id, schedule_help_request, set_helper_dm_available,
 )
 from database.queries import ensure_user, get_user_by_tg_id, get_user_language
+from database.wish_rewards import record_wish_activity
 from message.keys import (
     assist_all_declined, assist_already_exists, assist_button_accept, assist_button_cancel,
     assist_button_complete, assist_button_confirm, assist_button_custom, assist_button_decline,
@@ -359,6 +360,11 @@ async def assist_request_callback(update: Update, context: ContextTypes.DEFAULT_
         request = complete_help_request(request_id, user['id'])
         if request:
             text = message(lang, assist_completed, 'assist', request_id)
+            reward = record_wish_activity(
+                'help_completed', request['assigned_helper_id'], 'help_request', request_id,
+            )
+            if reward:
+                text = f'{text}\nПомогатору начислено +{reward["amount"]} молитв.'
             await _edit_group_request(context, request, text)
             if request['helper_tg_id'] and request['helper_tg_id'] != query.from_user.id:
                 await context.bot.send_message(request['helper_tg_id'], text)

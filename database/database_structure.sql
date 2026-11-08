@@ -448,3 +448,46 @@ CREATE TABLE IF NOT EXISTS wish_winners (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (event_id, kind)
 );
+
+ALTER TABLE wish_participants ADD COLUMN IF NOT EXISTS bonus_earned INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS wish_reward_rules (
+    code            TEXT PRIMARY KEY,
+    title           TEXT NOT NULL,
+    description     TEXT NOT NULL,
+    reward          INTEGER NOT NULL CHECK (reward > 0),
+    threshold       INTEGER NOT NULL DEFAULT 1 CHECK (threshold > 0),
+    daily_limit     INTEGER CHECK (daily_limit > 0),
+    monthly_limit   INTEGER CHECK (monthly_limit > 0),
+    is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order      INTEGER NOT NULL DEFAULT 0
+);
+
+INSERT INTO wish_reward_rules (
+    code, title, description, reward, threshold, daily_limit, monthly_limit, sort_order
+) VALUES
+    ('daily_message', 'Первое сообщение дня', 'Написать сообщение в Telegram-чате.', 1, 1, 1, NULL, 10),
+    ('paimon_praise', 'Похвалить Паймон', 'Написать Паймон что-нибудь приятное в чате.', 1, 1, 1, NULL, 20),
+    ('five_daily_photos', 'Архивист дня', 'Опубликовать пять уникальных изображений с тегами за день.', 10, 5, 1, NULL, 30),
+    ('new_tag', 'Новый тег', 'Создать новый тег и использовать его в публикации.', 10, 1, 1, NULL, 40),
+    ('help_completed', 'Помощь игроку', 'Успешно завершить заявку на помощь.', 81, 1, 1, 3, 50),
+    ('first_ten_five_star', 'Звёздный старт', 'Получить 5★ в своей первой молитве ×10 за ивент.', 50, 1, NULL, 1, 60)
+ON CONFLICT (code) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS wish_reward_activities (
+    id              BIGSERIAL PRIMARY KEY,
+    event_id        INTEGER NOT NULL REFERENCES wish_events(id) ON DELETE CASCADE,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    rule_code       TEXT NOT NULL REFERENCES wish_reward_rules(code),
+    source_type     TEXT NOT NULL,
+    source_id       TEXT NOT NULL,
+    activity_date   DATE NOT NULL,
+    amount          INTEGER NOT NULL DEFAULT 0 CHECK (amount >= 0),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (event_id, user_id, rule_code, source_type, source_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_wish_reward_activities_progress
+    ON wish_reward_activities (event_id, user_id, rule_code, activity_date);
+CREATE INDEX IF NOT EXISTS idx_wish_reward_activities_grants
+    ON wish_reward_activities (event_id, user_id, created_at DESC) WHERE amount > 0;

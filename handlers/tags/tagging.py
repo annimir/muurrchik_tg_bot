@@ -5,9 +5,11 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 
 from database.queries import (
-    get_tag_by_name, get_tag_subscribers, create_tag, touch_tag_last_used,
+    ensure_user, get_tag_by_name, get_tag_subscribers, create_tag, touch_tag_last_used,
     find_any_tag_or_alias_owner, log_tag_usage, get_user_language,
 )
+from database.wish_rewards import record_new_tag_activity, record_wish_activity_for_tg
+from handlers.wishes.activity import format_reward_message
 from services.tag_storage import tag_storage
 from services.mentions import mention_users
 from services.validation import MAX_NAME_LENGTH, name_is_too_long
@@ -23,6 +25,10 @@ logger = logging.getLogger(__name__)
 
 def _log_tag_message_usage(update: Update, tag_id: int, user_id: int, media_type: str):
     message_obj = update.effective_message
+    tg_user = getattr(update, 'effective_user', None)
+    username = getattr(tg_user, 'username', None)
+    full_name = getattr(tg_user, 'full_name', None)
+    ensure_user(user_id, username or full_name or str(user_id))
     metadata = {
         'chat_id': update.effective_chat.id,
         'message_thread_id': message_obj.message_thread_id,
@@ -41,6 +47,17 @@ def _log_tag_message_usage(update: Update, tag_id: int, user_id: int, media_type
     log_tag_usage(
         tag_id, message_obj.message_id, user_id, media_type, **metadata,
     )
+    rewards = []
+    if media_type == 'photo':
+        reward = record_wish_activity_for_tg(
+            'five_daily_photos', user_id, 'photo', metadata['media_file_unique_id'],
+        )
+        if reward:
+            rewards.append(reward)
+    reward = record_new_tag_activity(user_id, tag_id)
+    if reward:
+        rewards.append(reward)
+    return rewards
 
 
 def create_subscribe_markup(tag_id: int):
@@ -181,6 +198,7 @@ async def _process_tagged_media(update, context, updates):
     user_id = update.effective_user.id
     all_subscribers = []
     tag_ids = []
+    rewards = []
     for tag_name in tags:
         subscribers = await resolve_tag_subscribers(update, context, tag_name)
         if subscribers:
@@ -198,13 +216,18 @@ async def _process_tagged_media(update, context, updates):
         message_obj = media_update.effective_message
         media_type = _media_type(message_obj)
         for tag_id in tag_ids:
-            _log_tag_message_usage(media_update, tag_id, user_id, media_type)
+            rewards.extend(_log_tag_message_usage(media_update, tag_id, user_id, media_type))
 
     unique_subscribers = list({row['tg_id']: row for row in all_subscribers}.values())
     if unique_subscribers:
         await mention_users(
             context, update.effective_chat.id, unique_subscribers,
             update.effective_message.message_thread_id,
+        )
+    if rewards:
+        await update.effective_message.reply_text(
+            format_reward_message(rewards),
+            message_thread_id=update.effective_message.message_thread_id,
         )
 
 
