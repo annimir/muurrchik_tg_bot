@@ -16,7 +16,15 @@ class TagStorage:
 
     @staticmethod
     def _normalize_equivalent_letters(text: str) -> str:
-        return text.replace('ё', 'е').replace('й', 'и')
+        return text.translate(str.maketrans({
+            'ё': 'е', 'э': 'е',
+            'ю': 'у',
+            'ч': 'т',
+            'ш': 'с', 'щ': 'с',
+            'я': 'а',
+            'й': 'и',
+            'ь': '', 'ъ': '',
+        }))
 
     @staticmethod
     def _collapse_repeated_letters(text: str) -> str:
@@ -25,6 +33,10 @@ class TagStorage:
             if not result or result[-1] != char:
                 result.append(char)
         return ''.join(result)
+
+    def comparison_key(self, text: str) -> str:
+        normalized = self._normalize_equivalent_letters(self.normalize(text))
+        return self._collapse_repeated_letters(normalized)
 
     def load_from(self, existing_tags: list[str]):
         for tag in existing_tags:
@@ -67,11 +79,11 @@ class TagStorage:
         if not self.tags:
             return {"status": "created", "tag": tag}
 
-        collapsed = self._collapse_repeated_letters(self._normalize_equivalent_letters(norm))
+        collapsed = self.comparison_key(norm)
         collapsed_matches = {
             self.normalize(main_name): main_name
             for key, main_name in self.tags.items()
-            if self._collapse_repeated_letters(self._normalize_equivalent_letters(key)) == collapsed
+            if self.comparison_key(key) == collapsed
         }
         if collapsed_matches:
             matched_name = min(

@@ -40,6 +40,26 @@ class TagStorageTests(unittest.TestCase):
         self.assertEqual(storage.find('филел'), {'status': 'suggest', 'tag': 'Филёл', 'score': 100.0})
         self.assertEqual(storage.find('филёл'), {'status': 'found', 'tag': 'Филёл'})
 
+    def test_required_spelling_variants_match_existing_tag(self):
+        variants = {
+            'Райден': ['Райдэн', 'Раайдээн'],
+            'Фурина': ['Фюрина'],
+            'Тарталья': ['Чарталья'],
+            'Синь': ['Шинь', 'Щинь', 'Син'],
+            'Аято': ['Яято'],
+            'Съезд': ['Сезд'],
+        }
+        for canonical, spellings in variants.items():
+            for spelling in spellings:
+                with self.subTest(canonical=canonical, spelling=spelling):
+                    storage = TagStorage()
+                    storage.add_to_cache(canonical)
+
+                    self.assertEqual(
+                        storage.find(spelling),
+                        {'status': 'suggest', 'tag': canonical, 'score': 100.0},
+                    )
+
     def test_unrelated_short_name_is_created_without_suggestion(self):
         storage = TagStorage()
         storage.load_from(['еимия', 'ЯэМико'])
