@@ -1,6 +1,6 @@
 import json
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 
 from config.config import config
@@ -121,12 +121,33 @@ async def tierlists_login_telegram(request: Request):
 
 
 @router.get('/tierlists', name='tierlists_page')
-async def tierlists_page(request: Request):
+async def tierlists_page(request: Request, player: list[int] = Query(default=[])):
+    all_tier_lists = list_public_tier_lists()
+    players_by_id = {
+        tier_list['owner_id']: {
+            'id': tier_list['owner_id'], 'tag': tier_list['owner_tag'],
+        }
+        for tier_list in all_tier_lists
+    }
+    selected_player_ids = sorted(set(player) & set(players_by_id))
+    selected_players = set(selected_player_ids)
+    tier_lists = [
+        tier_list for tier_list in all_tier_lists
+        if not selected_players or tier_list['owner_id'] in selected_players
+    ]
+    player_filter_label = ', '.join(
+        players_by_id[player_id]['tag'] or 'Игрок' for player_id in selected_player_ids
+    ) or 'Все игроки'
     return templates.TemplateResponse(
         request=request,
         name='tierlists.html',
         context={
-            'tier_lists': attach_tier_list_previews(list_public_tier_lists()),
+            'tier_lists': attach_tier_list_previews(tier_lists),
+            'players': sorted(
+                players_by_id.values(), key=lambda player: (player['tag'] or '').lower(),
+            ),
+            'selected_player_ids': selected_player_ids,
+            'player_filter_label': player_filter_label,
             'public_view': True,
             'active_page': 'tierlists',
         },

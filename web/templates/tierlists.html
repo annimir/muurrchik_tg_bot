@@ -3,9 +3,20 @@
 {% block title %}{{ 'Тирлисты игроков' if public_view else 'Мои тирлисты' }}{% endblock %}
 {% block content %}
 {% if public_view %}
-<section class="page-heading tierlist-heading"><div><div class="eyebrow">Публичные рейтинги</div><h1>Тирлисты игроков</h1><p>Все таблицы можно смотреть без входа. Для создания и редактирования своих рейтингов потребуется Telegram.</p></div><a class="button" href="/tierlists/mine">Мои тирлисты</a></section>
+<section class="page-heading tierlist-heading"><div><div class="eyebrow">Публичные рейтинги</div><h1>Тирлисты игроков</h1></div><a class="button" href="/tierlists/mine">Мои тирлисты</a></section>
+<form class="tierlist-filter" method="get" action="/tierlists">
+    <div class="filter-dropdown" data-filter-dropdown data-choice-filter data-default-label="Все игроки" data-default-value="">
+        <button class="button button-secondary filter-dropdown-toggle" type="button" data-filter-toggle aria-expanded="false">{{ player_filter_label }}</button>
+        <div class="filter-popup" hidden>
+            <div class="filter-options">{% for player in players %}<label class="filter-option"><input type="checkbox" name="player" value="{{ player.id }}" {{ 'checked' if player.id in selected_player_ids else '' }}><span>{{ player.tag or 'Игрок' }}</span></label>{% endfor %}</div>
+            <div class="filter-popup-actions"><button type="button" data-filter-close>Готово</button></div>
+        </div>
+    </div>
+    <button class="button" type="submit">Применить</button>
+    {% if selected_player_ids %}<a class="button button-quiet" href="/tierlists">Сбросить</a>{% endif %}
+</form>
 {% else %}
 <section class="page-heading tierlist-heading"><div><div class="eyebrow">Личные рейтинги</div><h1>Мои тирлисты</h1><p>Создавайте разные рейтинги персонажей. Все они появятся в <a class="text-link" href="/users/{{ user.id }}">вашем публичном профиле</a>.</p></div><a class="button" href="/tierlists/new">Новый тирлист</a></section>
 {% endif %}
-{% if tier_lists %}<div class="tierlist-grid">{% for tier_list in tier_lists %}{{ tierlist_card(tier_list, public_view) }}{% endfor %}</div>{% else %}<div class="empty-state"><h2>{{ 'Публичных тирлистов пока нет' if public_view else 'Тирлистов пока нет' }}</h2>{% if not public_view %}<p>Создайте первый рейтинг — все персонажи выбранной игры появятся в области «Без тира».</p><a class="button" href="/tierlists/new">Создать тирлист</a>{% endif %}</div>{% endif %}
+{% if tier_lists %}<div class="tierlist-grid">{% for tier_list in tier_lists %}{{ tierlist_card(tier_list, public_view) }}{% endfor %}</div>{% else %}<div class="empty-state"><h2>{{ 'Тирлисты не найдены' if selected_player_ids else ('Публичных тирлистов пока нет' if public_view else 'Тирлистов пока нет') }}</h2>{% if not public_view %}<p>Создайте первый рейтинг — все персонажи выбранной игры появятся в области «Без тира».</p><a class="button" href="/tierlists/new">Создать тирлист</a>{% endif %}</div>{% endif %}
 {% endblock %}

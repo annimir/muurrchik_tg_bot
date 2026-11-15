@@ -127,7 +127,8 @@ class TierListWebIntegrationTests(PostgresTestCase):
         self.assertIn('Обновлённый рейтинг', gallery.text)
         self.assertIn('class="tierlist-preview"', gallery.text)
         self.assertIn('/static/tierlists/characters/furina.webp', gallery.text)
-        self.assertIn('Автор: @player', gallery.text)
+        self.assertIn('Автор: player', gallery.text)
+        self.assertNotIn('Автор: @player', gallery.text)
         self.assertIn(f'2/{len(list_tierlist_characters(["genshin"]))}', gallery.text)
         self.assertIn('class="tierlist-card-footer"', gallery.text)
         mine_redirect = self.client.get('/tierlists/mine', follow_redirects=False)
@@ -164,6 +165,28 @@ class TierListWebIntegrationTests(PostgresTestCase):
         self.client.cookies.clear()
         self.assertEqual(self.client.get(f'/tierlists/{tier_list_id}').status_code, 404)
         self.assertEqual(self.client.get(f'/tierlists/{second_id}').status_code, 200)
+
+    def test_public_tierlists_filter_by_multiple_players(self):
+        from database.tierlists import create_tier_list
+
+        first = queries.ensure_user(200, 'alpha')
+        second = queries.ensure_user(300, 'beta')
+        third = queries.ensure_user(400, 'gamma')
+        create_tier_list(first['id'], 'Альфа-лист', ['genshin'])
+        create_tier_list(second['id'], 'Бета-лист', ['genshin'])
+        create_tier_list(third['id'], 'Гамма-лист', ['genshin'])
+
+        response = self.client.get(f'/tierlists?player={first["id"]}&player={second["id"]}')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Альфа-лист', response.text)
+        self.assertIn('Бета-лист', response.text)
+        self.assertNotIn('Гамма-лист', response.text)
+        self.assertEqual(response.text.count('name="player"'), 3)
+        self.assertIn(f'value="{first["id"]}" checked', response.text)
+        self.assertIn(f'value="{second["id"]}" checked', response.text)
+        self.assertIn('alpha, beta', response.text)
+        self.assertNotIn('Автор: @', response.text)
 
     def test_foreign_list_is_not_editable_and_validation_is_applied(self):
         other = queries.ensure_user(200, 'other')
