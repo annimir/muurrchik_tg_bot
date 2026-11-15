@@ -489,6 +489,59 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertIn(f'href="/media?tag={direct_tag["id"]}">Фокалорс</a>', character_page.text)
         self.assertIn(f'href="/media?tag={alias_tag["id"]}">Фурина</a>', character_page.text)
 
+    def test_character_page_shows_four_latest_single_tag_media(self):
+        user = queries.ensure_user(100, 'player')
+        character = queries.create_character_row(
+            user['id'], 'Фурина', None, None, 'Character history', True,
+        )
+        tag = queries.create_tag('Фурина')
+        second_tag = queries.create_tag('Арлекино')
+        for index in range(1, 6):
+            file_id = f'photo-{index}'
+            queries.log_tag_usage(
+                tag['id'], index, 100, 'photo', chat_id=200,
+                media_file_id=file_id, media_file_unique_id=f'unique-{index}', caption=f'Media {index}',
+            )
+            queries.db(
+                'UPDATE tag_usage SET used_at = %s WHERE media_file_id = %s',
+                (f'2026-01-0{index}', file_id),
+            ).close()
+        for current_tag in (tag, second_tag):
+            queries.log_tag_usage(
+                current_tag['id'], 6, 100, 'photo', chat_id=200,
+                media_file_id='multi-photo', media_file_unique_id='multi-unique', caption='Multi-tag media',
+            )
+        queries.log_tag_usage(
+            tag['id'], 7, 100, 'photo', chat_id=200,
+            media_file_id='hidden-photo', media_file_unique_id='hidden-unique', caption='Hidden media',
+        )
+        queries.db("UPDATE tag_usage SET is_public = FALSE WHERE media_file_id = 'hidden-photo'").close()
+        unrelated_tag = queries.create_tag('Невиллет')
+        queries.log_tag_usage(
+            unrelated_tag['id'], 8, 100, 'photo', chat_id=200,
+            media_file_id='other-photo', media_file_unique_id='other-unique', caption='Other media',
+        )
+
+        response = self.client.get(f'/characters/{character["id"]}')
+        all_media = self.client.get(f'/media?tag={tag["id"]}&exclusive=1')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.text.count('class="media-card '), 4)
+        for index in range(2, 6):
+            self.assertIn(f'Media {index}', response.text)
+        self.assertNotIn('Media 1', response.text)
+        self.assertNotIn('Multi-tag media', response.text)
+        self.assertNotIn('Hidden media', response.text)
+        self.assertNotIn('Other media', response.text)
+        self.assertLess(response.text.index('Media 5'), response.text.index('Media 4'))
+        self.assertIn('Все 5 материалов', response.text)
+        self.assertIn(f'/media?tag={tag["id"]}&amp;sort=newest&amp;exclusive=1', response.text)
+        self.assertIn('Media 1', all_media.text)
+        self.assertNotIn('Multi-tag media', all_media.text)
+        self.assertIn('href="/users/', response.text)
+        self.assertNotIn('Основной персонаж', response.text)
+        self.assertNotIn('<dt>Добавлен</dt>', response.text)
+
     def test_admin_player_validation_is_atomic(self):
         csrf = self.admin_session()
         user = queries.ensure_user(100, 'player')
@@ -558,15 +611,22 @@ class WebIntegrationTests(PostgresTestCase):
             ):
                 response = self.client.post(f"/admin/characters/{character['id']}/edit", data={
                     'name': 'Hero', 'birth_date': '', 'description': 'Description',
-                    'wiki_url': 'https://wiki.example/hero', 'version': 1, 'csrf_token': csrf,
+                    'wiki_url': 'https://wiki.example/hero', 'photo_position_x': 20,
+                    'photo_position_y': 80, 'version': 1, 'csrf_token': csrf,
                 }, files={'photo': ('hero.png', image, 'image/png')}, follow_redirects=False)
                 self.assertEqual(response.status_code, 303)
                 updated = queries.get_character_by_id(character['id'])
                 self.assertTrue(updated['photo_file_id'].startswith('local:'))
                 self.assertEqual(updated['wiki_url'], 'https://wiki.example/hero')
+                self.assertEqual((updated['photo_position_x'], updated['photo_position_y']), (20, 80))
                 photo_response = self.client.get(f"/media/characters/{character['id']}")
                 self.assertEqual(photo_response.status_code, 200)
                 self.assertEqual(photo_response.content, image)
+                public_page = self.client.get(f"/characters/{character['id']}")
+                self.assertIn('object-position: 20% 80%', public_page.text)
+                self.assertIn('name="photo_position_x"', self.client.get(
+                    f"/admin/characters/{character['id']}/edit",
+                ).text)
 
                 response = self.client.post(f"/admin/characters/{character['id']}/edit", data={
                     'name': 'Hero', 'birth_date': '', 'description': 'Description',

@@ -750,6 +750,8 @@ async def update_character_action(
     wiki_url: str = Form(''),
     position_id: str = Form(''),
     version: int = Form(...),
+    photo_position_x: int = Form(50),
+    photo_position_y: int = Form(50),
     photo: UploadFile | None = File(None),
     remove_photo: bool = Form(False),
     session=Depends(require_admin),
@@ -770,16 +772,21 @@ async def update_character_action(
             raise ValueError(f'Описание не должно превышать {MAX_TEXT_LENGTH} символов')
         if wiki_url and (urlparse(wiki_url).scheme not in {'http', 'https'} or len(wiki_url) > 2048):
             raise ValueError('Укажите корректную ссылку HTTP или HTTPS')
+        if not 0 <= photo_position_x <= 100 or not 0 <= photo_position_y <= 100:
+            raise ValueError('Положение миниатюры должно быть в диапазоне от 0 до 100')
         parsed_position_id = _optional_position_id(position_id)
         new_photo = character['photo_file_id']
         if remove_photo:
             new_photo = None
+            photo_position_x = 50
+            photo_position_y = 50
         elif photo and photo.filename:
             saved_photo = await get_media_store().save_upload(photo)
             new_photo = saved_photo
         update_character(
             session['tg_id'], character_id, name, _parse_character_birthday(birth_date),
             description or None, wiki_url or None, parsed_position_id, version, new_photo,
+            photo_position_x, photo_position_y,
         )
         if new_photo != character['photo_file_id']:
             get_media_store().delete_local(character['photo_file_id'])
@@ -790,6 +797,7 @@ async def update_character_action(
         submitted_character = {
             **current_character, 'name': name, 'description': description,
             'wiki_url': wiki_url, 'position_id': parsed_position_id,
+            'photo_position_x': photo_position_x, 'photo_position_y': photo_position_y,
         }
         return templates.TemplateResponse(
             request=request, name='admin/character_edit.html',

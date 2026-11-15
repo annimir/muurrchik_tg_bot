@@ -34,7 +34,7 @@ def media_caption(value):
     return '\n'.join(line for line in lines if line)
 
 
-def media_url(tag_ids=(), kind='', sort='newest', date_from='', date_to='', page=None):
+def media_url(tag_ids=(), kind='', sort='newest', date_from='', date_to='', page=None, exclusive=False):
     kind_values = [kind] if isinstance(kind, str) else kind
     sort_values = [sort] if isinstance(sort, str) else sort
     params = [('tag', tag_id) for tag_id in tag_ids]
@@ -43,6 +43,8 @@ def media_url(tag_ids=(), kind='', sort='newest', date_from='', date_to='', page
     params.extend(
         (key, value) for key, value in (('date_from', date_from), ('date_to', date_to)) if value
     )
+    if exclusive:
+        params.append(('exclusive', '1'))
     if page is not None:
         params.append(('page', page))
     return f'/media?{urlencode(params)}'

@@ -5,7 +5,7 @@
 {% if characters %}<div class="card-grid">
 {% for character in characters %}
 <a class="character-card" href="/characters/{{ character.id }}">
-    <div class="character-portrait">{% if character.photo_file_id %}<img src="/media/characters/{{ character.id }}" alt="{{ character.name }}" loading="lazy">{% else %}<span>{{ character.name[0]|upper }}</span>{% endif %}</div>
+    <div class="character-portrait">{% if character.photo_file_id %}<img src="/media/characters/{{ character.id }}" alt="{{ character.name }}" loading="lazy" style="object-position: {{ character.photo_position_x }}% {{ character.photo_position_y }}%">{% else %}<span>{{ character.name[0]|upper }}</span>{% endif %}</div>
     <div class="character-info"><strong>{{ character.name }}</strong><small>Игрок: {{ character.owner_tag or 'Путешественник' }}</small><span>{{ character.position_name or character.affiliation_name or 'Свободный путь' }}</span>{% if character.is_primary %}<span class="badge">Основной</span>{% endif %}</div>
 </a>
 {% endfor %}

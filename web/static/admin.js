@@ -229,3 +229,75 @@ document.addEventListener('submit', async (event) => {
 });
 
 configureAdminPanels();
+
+
+function configureCharacterCrop() {
+    document.querySelectorAll('[data-character-crop]').forEach((editor) => {
+        if (editor.dataset.configured === 'true') {
+            return;
+        }
+        editor.dataset.configured = 'true';
+        const form = editor.closest('form');
+        const preview = editor.querySelector('[data-character-crop-preview]');
+        const image = editor.querySelector('[data-character-crop-image]');
+        const inputX = editor.querySelector('[data-crop-x]');
+        const inputY = editor.querySelector('[data-crop-y]');
+        const photoInput = form.querySelector('[data-character-photo-input]');
+        const removeInput = form.querySelector('[data-character-photo-remove]');
+        const updatePosition = () => {
+            image.style.objectPosition = `${inputX.value}% ${inputY.value}%`;
+        };
+        inputX.addEventListener('input', updatePosition);
+        inputY.addEventListener('input', updatePosition);
+        editor.querySelector('[data-crop-reset]').addEventListener('click', () => {
+            inputX.value = 50;
+            inputY.value = 50;
+            updatePosition();
+        });
+        photoInput.addEventListener('change', () => {
+            const [file] = photoInput.files;
+            if (!file) {
+                return;
+            }
+            const reader = new FileReader();
+            reader.addEventListener('load', () => {
+                image.src = reader.result;
+                editor.hidden = false;
+                if (removeInput) {
+                    removeInput.checked = false;
+                }
+            });
+            reader.readAsDataURL(file);
+        });
+        removeInput?.addEventListener('change', () => {
+            editor.hidden = removeInput.checked;
+        });
+        let drag = null;
+        preview.addEventListener('pointerdown', (event) => {
+            drag = {
+                x: event.clientX, y: event.clientY,
+                positionX: Number(inputX.value), positionY: Number(inputY.value),
+            };
+            preview.setPointerCapture(event.pointerId);
+            preview.classList.add('is-dragging');
+        });
+        preview.addEventListener('pointermove', (event) => {
+            if (!drag) {
+                return;
+            }
+            const deltaX = (event.clientX - drag.x) / preview.clientWidth * 100;
+            const deltaY = (event.clientY - drag.y) / preview.clientHeight * 100;
+            inputX.value = Math.max(0, Math.min(100, Math.round(drag.positionX - deltaX)));
+            inputY.value = Math.max(0, Math.min(100, Math.round(drag.positionY - deltaY)));
+            updatePosition();
+        });
+        const stopDragging = () => {
+            drag = null;
+            preview.classList.remove('is-dragging');
+        };
+        preview.addEventListener('pointerup', stopDragging);
+        preview.addEventListener('pointercancel', stopDragging);
+    });
+}
+
+configureCharacterCrop();

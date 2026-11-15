@@ -98,6 +98,7 @@ async def media_catalog(
     sort: list[str] = Query(default=['newest']),
     date_from: str = '',
     date_to: str = '',
+    exclusive: bool = False,
     page: int = Query(1, ge=1),
 ):
     try:
@@ -113,11 +114,11 @@ async def media_catalog(
         items = list_media(
             tag_ids=selected_tag_ids, kinds=selected_kinds, sort=selected_sorts,
             date_from=selected_date_from, date_to=selected_date_to,
-            limit=PAGE_SIZE, offset=(page - 1) * PAGE_SIZE,
+            limit=PAGE_SIZE, offset=(page - 1) * PAGE_SIZE, single_tag_only=exclusive,
         )
         total = count_media(
             tag_ids=selected_tag_ids, kinds=selected_kinds,
-            date_from=selected_date_from, date_to=selected_date_to,
+            date_from=selected_date_from, date_to=selected_date_to, single_tag_only=exclusive,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -136,6 +137,7 @@ async def media_catalog(
             'selected_kinds': selected_kinds, 'selected_sorts': selected_sorts,
             'date_from': selected_date_from.isoformat() if selected_date_from else '',
             'date_to': selected_date_to.isoformat() if selected_date_to else '',
+            'exclusive_tags': exclusive,
             'pagination': _pagination(page, total), 'active_page': 'media',
         },
     )
@@ -226,12 +228,16 @@ async def character_detail(request: Request, character_id: int):
     character = get_public_character(character_id)
     if not character:
         raise HTTPException(status_code=404, detail='Персонаж не найден')
+    tags = get_public_character_tags(character_id)
+    tag_ids = [tag['id'] for tag in tags]
     return templates.TemplateResponse(
         request=request,
         name='character_detail.html',
         context={
-            'character': character, 'tags': get_public_character_tags(character_id),
-            'active_page': 'characters',
+            'character': character, 'tags': tags,
+            'media_items': list_media(tag_ids=tag_ids, limit=4, single_tag_only=True) if tag_ids else [],
+            'media_total': count_media(tag_ids=tag_ids, single_tag_only=True) if tag_ids else 0,
+            'exclusive_tags': True, 'active_page': 'characters',
         },
     )
 

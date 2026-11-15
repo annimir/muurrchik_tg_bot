@@ -13,9 +13,20 @@
         <label>Должность<select name="position_id"><option value="">Не назначена</option>{% for position in positions %}<option value="{{ position.id }}" {{ 'selected' if position.id == character.position_id else '' }}>{{ position.name }}</option>{% endfor %}</select></label>
         <label>Ссылка на Wiki<input type="url" name="wiki_url" value="{{ character.wiki_url or '' }}" placeholder="https://..."></label>
         <label class="form-wide">Описание<textarea name="description" rows="6" maxlength="5000">{{ character.description or '' }}</textarea></label>
-        {% if character.photo_file_id %}<div class="form-wide"><img class="admin-photo-preview" src="/media/characters/{{ character.id }}" alt="Текущее фото {{ character.name }}"></div>{% endif %}
-        <label>Загрузить новое фото<input type="file" name="photo" accept="image/png,image/jpeg,image/webp"></label>
-        {% if character.photo_file_id %}<label class="checkbox"><input type="checkbox" name="remove_photo" value="true"> Удалить текущее фото</label>{% endif %}
+        <div class="form-wide character-crop-editor" data-character-crop {{ 'hidden' if not character.photo_file_id else '' }}>
+            <span class="character-crop-title">Область миниатюры</span>
+            <div class="character-crop-layout">
+                <div class="character-crop-preview" data-character-crop-preview><img src="{{ '/media/characters/' ~ character.id if character.photo_file_id else '' }}" alt="Предпросмотр миниатюры {{ character.name }}" style="object-position: {{ character.photo_position_x }}% {{ character.photo_position_y }}%" data-character-crop-image></div>
+                <div class="character-crop-controls">
+                    <label>По горизонтали<input type="range" name="photo_position_x" min="0" max="100" value="{{ character.photo_position_x }}" data-crop-x></label>
+                    <label>По вертикали<input type="range" name="photo_position_y" min="0" max="100" value="{{ character.photo_position_y }}" data-crop-y></label>
+                    <button class="button button-small button-quiet" type="button" data-crop-reset>По центру</button>
+                </div>
+            </div>
+            <p>Перетащите изображение или используйте ползунки, чтобы выбрать видимую область.</p>
+        </div>
+        <label>Загрузить новое фото<input type="file" name="photo" accept="image/png,image/jpeg,image/webp" data-character-photo-input></label>
+        {% if character.photo_file_id %}<label class="checkbox"><input type="checkbox" name="remove_photo" value="true" data-character-photo-remove> Удалить текущее фото</label>{% endif %}
         <button class="button" type="submit">Сохранить</button>
         <a class="button button-quiet" href="/admin/characters">Отмена</a>
     </form>
