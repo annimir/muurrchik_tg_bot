@@ -131,6 +131,15 @@ class TierListWebIntegrationTests(PostgresTestCase):
         self.assertNotIn('Автор: @player', gallery.text)
         self.assertIn(f'2/{len(list_tierlist_characters(["genshin"]))}', gallery.text)
         self.assertIn('class="tierlist-card-footer"', gallery.text)
+        self.assertNotIn('Создать тирлист', gallery.text)
+        self.login()
+        account_gallery = self.client.get('/tierlists')
+        self.assertIn('Создать тирлист', account_gallery.text)
+        self.assertLess(
+            account_gallery.text.index('Создать тирлист'),
+            account_gallery.text.index('Мои тирлисты</a>'),
+        )
+        self.client.cookies.clear()
         mine_redirect = self.client.get('/tierlists/mine', follow_redirects=False)
         self.assertEqual(mine_redirect.status_code, 303)
         self.assertEqual(mine_redirect.headers['location'], '/tierlists/login')

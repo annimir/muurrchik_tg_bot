@@ -780,7 +780,9 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
     .tier-filters label { flex-basis: calc(50% - 6px); }
 }
 
-.tierlist-filter { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: -12px 0 28px; }
+.tierlist-catalog-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: -12px 0 28px; }
+.tierlist-catalog-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 10px; }
+.tierlist-filter { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
 .tierlist-card { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 400px; padding: 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); transition: border-color .16s ease, transform .16s ease; }
 .tierlist-card:hover { border-color: var(--gold); transform: translateY(-2px); }
 .tierlist-games { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -798,7 +800,13 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
 .tierlist-card-footer { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 13px; border-top: 1px solid rgba(184,194,207,.14); }
 .tierlist-card-footer small { color: var(--muted); font-size: .75rem; }
 .tierlist-card-footer > span { flex: 0 0 auto; color: var(--gold-light); font-size: .85rem; font-weight: 700; }
+@media (max-width: 900px) {
+    .tierlist-catalog-toolbar { align-items: stretch; flex-direction: column; }
+    .tierlist-catalog-actions { justify-content: flex-start; }
+}
 @media (max-width: 620px) {
     .tierlist-filter { align-items: stretch; flex-direction: column; }
     .tierlist-filter .filter-dropdown, .tierlist-filter .filter-dropdown-toggle { width: 100%; max-width: none; }
+    .tierlist-catalog-actions { flex-direction: column; }
+    .tierlist-catalog-actions .button { width: 100%; }
 }
