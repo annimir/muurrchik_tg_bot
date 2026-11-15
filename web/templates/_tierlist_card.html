@@ -15,9 +15,9 @@
 <article class="tierlist-card">
     <div class="eyebrow tierlist-games" title="{{ tier_list.game_names|join(', ') }}">{{ tier_list.game_names|join(', ') }}</div>
     <h2 class="tierlist-card-title" title="{{ tier_list.title }}"><a href="/tierlists/{{ tier_list.id }}">{{ tier_list.title|truncate(56, true, '…') }}</a></h2>
-    <a class="tierlist-owner text-link" href="/users/{{ tier_list.owner_id }}">Автор: @{{ tier_list.owner_tag or 'Игрок' }}</a>
+    <a class="tierlist-owner text-link" href="/users/{{ tier_list.owner_id }}">Автор: {{ tier_list.owner_tag or 'Игрок' }}</a>
     {{ tierlist_preview(tier_list) }}
-    <div class="tierlist-card-actions"><a class="button button-small button-secondary tierlist-watch" href="/tierlists/{{ tier_list.id }}">Смотреть</a>{% if not public_view %}<a class="button button-small button-quiet tierlist-watch" href="/tierlists/{{ tier_list.id }}/edit">Изменить</a>{% endif %}</div>
+    {% if not public_view %}<a class="tierlist-edit text-link" href="/tierlists/{{ tier_list.id }}/edit">Изменить</a>{% endif %}
     <footer class="tierlist-card-footer"><small>Обновлён <time datetime="{{ tier_list.updated_at.isoformat() }}">{{ tier_list.updated_at|date_ru }}</time></small><span title="Персонажей расставлено по тирам / всего">{{ tier_list.ranked_count }}/{{ tier_list.total_count }}</span></footer>
 </article>
 {% endmacro %}

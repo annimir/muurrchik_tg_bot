@@ -713,6 +713,11 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
 
 .tierlist-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
 .tierlist-heading h1 { overflow-wrap: anywhere; }
+.tierlist-export { display: grid; flex: 0 0 auto; justify-items: end; gap: 8px; }
+.tierlist-export small { color: var(--muted); }
+@media (max-width: 620px) {
+    .tierlist-export { justify-items: start; }
+}
 .tierlist-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .tierlist-create-form { align-items: start; }
 .tierlist-create-form fieldset, .tierlist-settings fieldset { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; border: 0; }
@@ -775,20 +780,25 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
     .tier-filters label { flex-basis: calc(50% - 6px); }
 }
 
-.tierlist-card { display: flex; flex-direction: column; min-width: 0; min-height: 440px; padding: 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); transition: border-color .16s ease, transform .16s ease; }
+.tierlist-filter { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: -12px 0 28px; }
+.tierlist-card { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 400px; padding: 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); transition: border-color .16s ease, transform .16s ease; }
 .tierlist-card:hover { border-color: var(--gold); transform: translateY(-2px); }
 .tierlist-games { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tierlist-card-title { display: -webkit-box; min-height: 2.6em; margin: 14px 0 8px; overflow: hidden; color: var(--gold-light); font-size: 1.35rem; line-height: 1.3; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .tierlist-card-title a { color: inherit; }
-.tierlist-owner { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .87rem; }
+.tierlist-card-title a::after { content: ''; position: absolute; inset: 0; cursor: pointer; }
+.tierlist-owner { position: relative; z-index: 1; display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .87rem; }
 .tierlist-preview { display: grid; align-content: center; gap: 6px; width: 100%; height: 140px; margin: 18px 0; padding: 12px; overflow: hidden; border: 1px solid rgba(184,194,207,.16); border-radius: 7px; background: rgba(7,17,30,.4); pointer-events: none; }
 .tierlist-preview-empty { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: .82rem; text-align: center; }
 .tierlist-preview-row { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: center; gap: 8px; height: 32px; }
 .tierlist-preview-row b { color: var(--gold); font: 400 .9rem Georgia, serif; }
 .tierlist-preview-row span { display: flex; min-width: 0; gap: 4px; overflow: hidden; }
 .tierlist-preview-row img { flex: 0 0 32px; width: 32px; height: 32px; object-fit: cover; border: 1px solid var(--line); border-radius: 4px; background: var(--panel-solid); }
-.tierlist-card-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
-.tierlist-watch { min-width: 116px; border-radius: 999px; text-align: center; }
+.tierlist-edit { position: relative; z-index: 1; align-self: center; margin: -4px 0 18px; }
 .tierlist-card-footer { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 13px; border-top: 1px solid rgba(184,194,207,.14); }
 .tierlist-card-footer small { color: var(--muted); font-size: .75rem; }
 .tierlist-card-footer > span { flex: 0 0 auto; color: var(--gold-light); font-size: .85rem; font-weight: 700; }
+@media (max-width: 620px) {
+    .tierlist-filter { align-items: stretch; flex-direction: column; }
+    .tierlist-filter .filter-dropdown, .tierlist-filter .filter-dropdown-toggle { width: 100%; max-width: none; }
+}
