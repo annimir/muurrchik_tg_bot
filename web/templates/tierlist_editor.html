@@ -3,7 +3,7 @@
 {% block title %}Редактор · {{ tier_list.title }}{% endblock %}
 {% block scripts %}<script src="/static/tierlists.js" defer></script>{% endblock %}
 {% block content %}
-<section class="page-heading tierlist-heading"><div><div class="eyebrow">Редактор тирлиста</div><h1>{{ tier_list.title }}</h1><p><a class="text-link" href="/tierlists/{{ tier_list.id }}">Публичная страница</a> · Перетащите карточку или выберите её и нажмите нужный тир.</p></div><a class="button button-quiet" href="/tierlists">Мои тирлисты</a></section>
+<section class="page-heading tierlist-heading"><div><div class="eyebrow">Редактор тирлиста</div><h1>{{ tier_list.title }}</h1><p><a class="text-link" href="/tierlists/{{ tier_list.id }}">Публичная страница</a> · Перетащите карточку или выберите её и нажмите нужный тир.</p></div><a class="button button-quiet" href="/tierlists/mine">Мои тирлисты</a></section>
 <form id="tierlist-editor" data-save-url="/tierlists/{{ tier_list.id }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <input type="hidden" name="version" value="{{ tier_list.lock_version }}">

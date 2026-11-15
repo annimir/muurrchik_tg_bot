@@ -733,3 +733,15 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
     .tier-move-panel { position: static; }
     .tier-filters label { flex-basis: calc(50% - 6px); }
 }
+
+.tierlist-card { position: relative; }
+.tierlist-card > .eyebrow, .tierlist-card > h2, .tierlist-card > p, .tierlist-card > strong, .tierlist-card > small, .tierlist-owner { max-width: 58%; }
+.tierlist-owner { display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tierlist-preview { position: absolute; z-index: 0; top: 12px; right: 12px; display: grid; gap: 3px; width: 40%; max-height: 85px; overflow: hidden; pointer-events: none; }
+.tierlist-preview-row { display: grid; grid-template-columns: 13px minmax(0, 1fr); align-items: center; gap: 3px; height: 25px; }
+.tierlist-preview-row b { color: var(--gold); font: 400 .75rem Georgia, serif; }
+.tierlist-preview-row span { display: flex; min-width: 0; overflow: hidden; }
+.tierlist-preview-row img { flex: 0 0 24px; width: 24px; height: 24px; object-fit: cover; border: 1px solid var(--line); border-radius: 4px; background: var(--panel-solid); }
+@media (max-width: 620px) {
+    .tierlist-preview { width: 42%; }
+}

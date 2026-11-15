@@ -7,9 +7,11 @@ from config.config import config
 from database.queries import ensure_user, get_user_by_tg_id
 from database.tierlists import (
     TierListConflictError,
+    attach_tier_list_previews,
     create_tier_list,
     delete_tier_list,
     get_tier_list,
+    list_public_tier_lists,
     list_user_tier_lists,
     update_tier_list,
 )
@@ -85,7 +87,7 @@ def _editor_context(tier_list, csrf_token):
 @router.get('/tierlists/login', name='tierlists_login')
 async def tierlists_login(request: Request):
     if read_admin_session(request):
-        return RedirectResponse('/tierlists', status_code=303)
+        return RedirectResponse('/tierlists/mine', status_code=303)
     return templates.TemplateResponse(
         request=request,
         name='tierlist_login.html',
@@ -110,7 +112,7 @@ async def tierlists_login_telegram(request: Request):
         tag = request.query_params.get('username') or full_name or str(tg_id)
         ensure_user(tg_id, tag)
     token, _ = create_admin_session(tg_id)
-    response = RedirectResponse('/tierlists', status_code=303)
+    response = RedirectResponse('/tierlists/mine', status_code=303)
     response.set_cookie(
         SESSION_COOKIE, token, max_age=config.web_session_ttl_seconds,
         httponly=True, secure=config.web_secure_cookies, samesite='lax', path='/',
@@ -119,14 +121,28 @@ async def tierlists_login_telegram(request: Request):
 
 
 @router.get('/tierlists', name='tierlists_page')
-async def tierlists_page(request: Request, session=Depends(_require_tierlist_user)):
+async def tierlists_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name='tierlists.html',
+        context={
+            'tier_lists': attach_tier_list_previews(list_public_tier_lists()),
+            'public_view': True,
+            'active_page': 'tierlists',
+        },
+    )
+
+
+@router.get('/tierlists/mine', name='tierlists_mine')
+async def tierlists_mine(request: Request, session=Depends(_require_tierlist_user)):
     user = _session_user(session)
     return templates.TemplateResponse(
         request=request,
         name='tierlists.html',
         context={
-            'tier_lists': list_user_tier_lists(user['id']),
+            'tier_lists': attach_tier_list_previews(list_user_tier_lists(user['id'])),
             'user': user,
+            'public_view': False,
             'active_page': 'tierlists',
         },
     )
@@ -219,7 +235,7 @@ async def tierlist_delete(
     user = _session_user(session)
     if not delete_tier_list(user['id'], tier_list_id):
         raise HTTPException(status_code=404, detail='Тирлист не найден')
-    return RedirectResponse('/tierlists', status_code=303)
+    return RedirectResponse('/tierlists/mine', status_code=303)
 
 
 @router.get('/tierlists/{tier_list_id}', name='tierlist_detail')
