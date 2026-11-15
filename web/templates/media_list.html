@@ -8,6 +8,7 @@
     <p>Находите нужные моменты по тегам, типу публикации и дате.</p>
 </section>
 <form class="filters is-mobile-collapsed" method="get" action="/media" data-mobile-filters>
+    {% if exclusive_tags %}<input type="hidden" name="exclusive" value="1">{% endif %}
     <button class="button button-quiet filters-toggle" type="button" data-filters-toggle aria-expanded="false">Показать фильтры</button>
     <div class="filter-dropdown" data-filter-dropdown data-tag-filter>
         <button class="button button-secondary filter-dropdown-toggle" type="button" data-filter-toggle aria-expanded="false">{{ tag_filter_label }}</button>
@@ -63,9 +64,9 @@
 {% endif %}
 {% if pagination.pages > 1 %}
 <nav class="pagination" aria-label="Страницы">
-    {% if pagination.previous %}<a href="{{ media_url(tag_ids=selected_tag_ids, kind=selected_kinds, sort=selected_sorts, date_from=date_from, date_to=date_to, page=pagination.previous) }}">Назад</a>{% endif %}
+    {% if pagination.previous %}<a href="{{ media_url(tag_ids=selected_tag_ids, kind=selected_kinds, sort=selected_sorts, date_from=date_from, date_to=date_to, exclusive=exclusive_tags, page=pagination.previous) }}">Назад</a>{% endif %}
     <span>Страница {{ pagination.page }} из {{ pagination.pages }}</span>
-    {% if pagination.next %}<a href="{{ media_url(tag_ids=selected_tag_ids, kind=selected_kinds, sort=selected_sorts, date_from=date_from, date_to=date_to, page=pagination.next) }}">Далее</a>{% endif %}
+    {% if pagination.next %}<a href="{{ media_url(tag_ids=selected_tag_ids, kind=selected_kinds, sort=selected_sorts, date_from=date_from, date_to=date_to, exclusive=exclusive_tags, page=pagination.next) }}">Далее</a>{% endif %}
 </nav>
 {% endif %}
 {% endblock %}

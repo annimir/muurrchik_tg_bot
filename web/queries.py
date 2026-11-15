@@ -63,7 +63,10 @@ def search_active_tags(prefix):
     ).all()
 
 
-def _media_filter(tag_ids=None, kinds=None, public_only=True, date_from=None, date_to=None):
+def _media_filter(
+    tag_ids=None, kinds=None, public_only=True, date_from=None, date_to=None,
+    single_tag_only=False,
+):
     where = ['(tu.media_file_id IS NOT NULL OR tu.media_url IS NOT NULL)']
     params = []
     if public_only:
@@ -82,14 +85,26 @@ def _media_filter(tag_ids=None, kinds=None, public_only=True, date_from=None, da
     if date_to:
         where.append('tu.used_at < %s::date + 1')
         params.append(date_to)
+    if single_tag_only:
+        where.append('''NOT EXISTS (
+            SELECT 1 FROM tag_usage other_tu
+            JOIN tag other_t ON other_t.id = other_tu.tag_id
+            WHERE COALESCE(other_tu.media_file_unique_id, other_tu.media_file_id, other_tu.media_url, other_tu.id::text)
+                = COALESCE(tu.media_file_unique_id, tu.media_file_id, tu.media_url, tu.id::text)
+                AND other_tu.tag_id <> tu.tag_id
+                AND other_tu.is_public = TRUE AND other_t.status = 'ACTIVE'
+                AND (other_tu.media_file_id IS NOT NULL OR other_tu.media_url IS NOT NULL)
+        )''')
     return ' AND '.join(where), params
 
 
 def list_media(
     tag_ids=None, kinds=None, sort=None, limit=24, offset=0,
-    public_only=True, date_from=None, date_to=None,
+    public_only=True, date_from=None, date_to=None, single_tag_only=False,
 ):
-    where, params = _media_filter(tag_ids, kinds, public_only, date_from, date_to)
+    where, params = _media_filter(
+        tag_ids, kinds, public_only, date_from, date_to, single_tag_only,
+    )
     sort_keys = [sort] if isinstance(sort, str) else list(sort or ['newest'])
     if not sort_keys:
         sort_keys = ['newest']
@@ -135,8 +150,13 @@ def list_media(
     return db(query, (*params, limit, offset)).all()
 
 
-def count_media(tag_ids=None, kinds=None, public_only=True, date_from=None, date_to=None):
-    where, params = _media_filter(tag_ids, kinds, public_only, date_from, date_to)
+def count_media(
+    tag_ids=None, kinds=None, public_only=True, date_from=None, date_to=None,
+    single_tag_only=False,
+):
+    where, params = _media_filter(
+        tag_ids, kinds, public_only, date_from, date_to, single_tag_only,
+    )
     query = f'''
         SELECT COUNT(*) AS cnt FROM (
             SELECT DISTINCT COALESCE(tu.media_file_unique_id, tu.media_file_id, tu.media_url, tu.id::text)
@@ -177,7 +197,7 @@ def list_users(limit=30, offset=0, search=None):
             COALESCE((
                 SELECT json_agg(character_item)
                 FROM (
-                    SELECT c.id, c.name, c.photo_file_id
+                    SELECT c.id, c.name, c.photo_file_id, c.photo_position_x, c.photo_position_y
                     FROM character c
                     WHERE c.owner_user_id = u.id
                     ORDER BY c.is_primary DESC, c.name
@@ -261,7 +281,7 @@ def get_public_user_games(user_id):
 def get_public_user_characters(user_id):
     return db(
         '''
-        SELECT c.id, c.name, c.description, c.photo_file_id, c.is_primary,
+        SELECT c.id, c.name, c.description, c.photo_file_id, c.photo_position_x, c.photo_position_y, c.is_primary,
             c.birth_date, p.name AS position_name, (SELECT STRING_AGG(DISTINCT aff.name, ', ' ORDER BY aff.name)
              FROM affiliations aff
              WHERE aff.id = c.affiliation_id OR EXISTS (
@@ -280,7 +300,7 @@ def get_public_user_characters(user_id):
 def list_characters(limit=30, offset=0):
     return db(
         '''
-        SELECT c.id, c.name, c.description, c.photo_file_id, c.is_primary,
+        SELECT c.id, c.name, c.description, c.photo_file_id, c.photo_position_x, c.photo_position_y, c.is_primary,
             c.birth_date, u.id AS owner_id, u.tag AS owner_tag,
             p.name AS position_name, (SELECT STRING_AGG(DISTINCT aff.name, ', ' ORDER BY aff.name)
              FROM affiliations aff
@@ -1029,6 +1049,7 @@ def get_admin_character(character_id):
 def update_character(
     admin_tg_id, character_id, name, birth_date=None, description=None, wiki_url=None,
     position_id=None, version=None, photo_file_id=_UNSET,
+    photo_position_x=50, photo_position_y=50,
 ):
     with db.transaction() as tx:
         current = tx(
@@ -1047,7 +1068,10 @@ def update_character(
             raise ValueError('Персонаж с таким именем уже существует')
         _validate_character_position(tx, position_id, character_id)
         photo_assignment = '' if photo_file_id is _UNSET else ', photo_file_id = %s'
-        params = [name, birth_date, description, wiki_url, position_id]
+        params = [
+            name, birth_date, description, wiki_url, position_id,
+            photo_position_x, photo_position_y,
+        ]
         if photo_file_id is not _UNSET:
             params.append(photo_file_id)
         params.append(character_id)
@@ -1055,6 +1079,7 @@ def update_character(
             f'''
             UPDATE character
             SET name = %s, birth_date = %s, description = %s, wiki_url = %s, position_id = %s,
+                photo_position_x = %s, photo_position_y = %s,
                 lock_version = lock_version + 1{photo_assignment}
             WHERE id = %s
             ''',

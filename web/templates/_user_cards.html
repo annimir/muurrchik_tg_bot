@@ -11,7 +11,7 @@
         <span class="profile-section-label">Основные персонажи</span>
         {% if user.characters %}<div class="profile-character-list">
             {% for character in user.characters %}<a class="profile-character" href="/characters/{{ character.id }}">
-                <span class="profile-character-portrait">{% if character.photo_file_id %}<img src="/media/characters/{{ character.id }}" alt="" loading="lazy">{% else %}{{ character.name[0]|upper }}{% endif %}</span>
+                <span class="profile-character-portrait">{% if character.photo_file_id %}<img src="/media/characters/{{ character.id }}" alt="" loading="lazy" style="object-position: {{ character.photo_position_x }}% {{ character.photo_position_y }}%">{% else %}{{ character.name[0]|upper }}{% endif %}</span>
                 <span>{{ character.name }}</span>
             </a>{% endfor %}
         </div>{% else %}<span class="profile-characters-empty">Персонажи не добавлены</span>{% endif %}
