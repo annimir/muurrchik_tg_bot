@@ -78,6 +78,54 @@ def list_user_tier_lists(user_id):
     ).all()
 
 
+def list_public_tier_lists():
+    return db(
+        '''
+        SELECT tl.id, tl.title, tl.updated_at, u.id AS owner_id, u.tag AS owner_tag,
+            COALESCE((SELECT array_agg(g.name ORDER BY g.name)
+                FROM tier_list_game tlg JOIN games g ON g.code = tlg.game_code
+                WHERE tlg.tier_list_id = tl.id), ARRAY[]::text[]) AS game_names,
+            (SELECT COUNT(*) FROM tier_list_entry tle
+                WHERE tle.tier_list_id = tl.id AND tle.tier <> 'UNRANKED') AS ranked_count
+        FROM tier_list tl
+        JOIN users u ON u.id = tl.user_id AND u.left_at IS NULL
+        ORDER BY tl.updated_at DESC, tl.id DESC
+        '''
+    ).all()
+
+
+def attach_tier_list_previews(tier_lists, per_tier=6):
+    if not tier_lists:
+        return tier_lists
+    ids = [tier_list['id'] for tier_list in tier_lists]
+    entries = db(
+        '''
+        SELECT tier_list_id, character_id, tier FROM tier_list_entry
+        WHERE tier_list_id = ANY(%s) AND tier <> 'UNRANKED'
+        ORDER BY tier_list_id, tier, position, character_id
+        ''',
+        (ids,),
+    ).all()
+    characters = {character['id']: character for character in list_tierlist_characters()}
+    previews = {
+        tier_list_id: {tier: [] for tier in RANKED_TIER_CODES}
+        for tier_list_id in ids
+    }
+    for entry in entries:
+        row = previews[entry['tier_list_id']][entry['tier']]
+        character = characters.get(entry['character_id'])
+        if character and len(row) < per_tier:
+            row.append(character)
+    for tier_list in tier_lists:
+        previews_for_list = previews[tier_list['id']]
+        tier_list['preview_rows'] = [
+            {'code': tier, 'characters': previews_for_list[tier]}
+            for tier in RANKED_TIER_CODES
+            if previews_for_list[tier]
+        ]
+    return tier_lists
+
+
 def get_tier_list(tier_list_id, owner_user_id=None):
     visibility = 'AND u.left_at IS NULL' if owner_user_id is None else ''
     tier_list = db(

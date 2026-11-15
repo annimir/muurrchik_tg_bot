@@ -10,6 +10,49 @@ if (tierlistForm) {
     let draggedCard = null;
     let selectedCard = null;
     let dirty = false;
+    let dragPointerY = 0;
+    let dragScrollFrame = null;
+
+    const stopDragScroll = () => {
+        if (dragScrollFrame !== null) {
+            cancelAnimationFrame(dragScrollFrame);
+            dragScrollFrame = null;
+        }
+    };
+
+    const animateDragScroll = () => {
+        if (!draggedCard) {
+            stopDragScroll();
+            return;
+        }
+        const edgeSize = 120;
+        let offset = 0;
+        if (dragPointerY < edgeSize) {
+            offset = -Math.max(4, Math.ceil((edgeSize - dragPointerY) / 8));
+        } else if (dragPointerY > window.innerHeight - edgeSize) {
+            offset = Math.max(4, Math.ceil((dragPointerY - window.innerHeight + edgeSize) / 8));
+        }
+        if (offset) {
+            window.scrollBy(0, offset);
+        }
+        dragScrollFrame = requestAnimationFrame(animateDragScroll);
+    };
+
+    document.addEventListener('dragover', (event) => {
+        if (draggedCard) {
+            dragPointerY = event.clientY;
+            if (dragScrollFrame === null) {
+                dragScrollFrame = requestAnimationFrame(animateDragScroll);
+            }
+        }
+    });
+
+    window.addEventListener('wheel', (event) => {
+        if (draggedCard) {
+            event.preventDefault();
+            window.scrollBy(0, event.deltaY);
+        }
+    }, {passive: false});
 
     const setStatus = (text, isError = false) => {
         status.textContent = text;
@@ -88,6 +131,7 @@ if (tierlistForm) {
         });
         card.addEventListener('dragstart', (event) => {
             draggedCard = card;
+            dragPointerY = event.clientY;
             card.classList.add('is-dragging');
             event.dataTransfer.effectAllowed = 'move';
             event.dataTransfer.setData('text/plain', card.dataset.characterId);
@@ -96,6 +140,7 @@ if (tierlistForm) {
             card.classList.remove('is-dragging');
             zones.forEach((zone) => zone.classList.remove('is-drag-over'));
             draggedCard = null;
+            stopDragScroll();
         });
     });
 

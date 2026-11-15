@@ -4,7 +4,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from database.queries import get_user_titles
-from database.tierlists import list_user_tier_lists
+from database.tierlists import attach_tier_list_previews, list_user_tier_lists
 from web.chat_insights import get_chat_insights
 from web.commands import get_paimon_command_count, get_paimon_command_groups
 from web.lore import get_lore
@@ -198,7 +198,7 @@ async def user_detail(request: Request, user_id: int):
         context={
             'user': user, 'games': get_public_user_games(user_id),
             'titles': get_user_titles(user_id),
-            'tier_lists': list_user_tier_lists(user_id),
+            'tier_lists': attach_tier_list_previews(list_user_tier_lists(user_id)),
             'characters': get_public_user_characters(user_id),
             'subscriptions': get_public_user_subscriptions(user_id),
             'helper_profile': get_helper_public_summary(user_id),

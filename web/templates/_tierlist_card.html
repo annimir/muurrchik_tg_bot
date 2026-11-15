@@ -6,3 +6,7 @@
     <span class="tier-character-rarity">{{ character.rarity }}★</span>
 </article>
 {% endmacro %}
+
+{% macro tierlist_preview(tier_list) %}
+{% if tier_list.preview_rows %}<div class="tierlist-preview" aria-hidden="true">{% for row in tier_list.preview_rows %}<div class="tierlist-preview-row"><b>{{ row.code }}</b><span>{% for character in row.characters %}<img src="{{ character.image }}" alt="" loading="lazy" width="24" height="24">{% endfor %}</span></div>{% endfor %}</div>{% endif %}
+{% endmacro %}
