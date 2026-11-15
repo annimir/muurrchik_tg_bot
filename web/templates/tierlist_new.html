@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Новый тирлист{% endblock %}
+{% block content %}
+<section class="login-card">
+    <div class="eyebrow">Новый рейтинг</div><h1>Создать тирлист</h1>
+    <p>Игры из вашего профиля выбраны автоматически. Сейчас доступен каталог Genshin Impact.</p>
+    <form class="admin-form tierlist-create-form" method="post" action="/tierlists">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>Название<input type="text" name="title" maxlength="100" required autofocus placeholder="Мои любимые персонажи"></label>
+        <fieldset><legend>Игры</legend>{% for game in games %}<label class="checkbox"><input type="checkbox" name="games" value="{{ game.code }}" {{ 'checked' if game.code in selected_games or selected_games|length == 0 else '' }}> {{ game.name }}</label>{% endfor %}</fieldset>
+        <button class="button" type="submit">Создать и расставить тиры</button>
+        <a class="button button-quiet" href="/tierlists">Отмена</a>
+    </form>
+</section>
+{% endblock %}

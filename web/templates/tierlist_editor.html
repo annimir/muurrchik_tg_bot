@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% from '_tierlist_card.html' import character_card %}
+{% block title %}Редактор · {{ tier_list.title }}{% endblock %}
+{% block scripts %}<script src="/static/tierlists.js" defer></script>{% endblock %}
+{% block content %}
+<section class="page-heading tierlist-heading"><div><div class="eyebrow">Редактор тирлиста</div><h1>{{ tier_list.title }}</h1><p><a class="text-link" href="/tierlists/{{ tier_list.id }}">Публичная страница</a> · Перетащите карточку или выберите её и нажмите нужный тир.</p></div><a class="button button-quiet" href="/tierlists">Мои тирлисты</a></section>
+<form id="tierlist-editor" data-save-url="/tierlists/{{ tier_list.id }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="version" value="{{ tier_list.lock_version }}">
+    <section class="panel tierlist-settings">
+        <label>Название<input type="text" name="title" value="{{ tier_list.title }}" maxlength="100" required></label>
+        <fieldset><legend>Игры</legend>{% for game in games %}<label class="checkbox"><input type="checkbox" name="games" value="{{ game.code }}" {{ 'checked' if game.code in tier_list.game_codes else '' }}> {{ game.name }}</label>{% endfor %}</fieldset>
+        <div class="tierlist-save-actions"><button class="button" type="submit">Сохранить</button><span class="tierlist-status" role="status" aria-live="polite" data-save-status>Все изменения сохранены</span></div>
+    </section>
+    <section class="panel tier-move-panel" aria-label="Перемещение выбранного персонажа">
+        <span>Выбрано: <strong data-selected-character>никто</strong></span>
+        <div class="tier-move-controls">{% for tier in tiers %}<button class="button button-small button-secondary" type="button" data-move-tier="{{ tier }}">В {{ tier }}</button>{% endfor %}<button class="button button-small button-quiet" type="button" data-move-tier="UNRANKED">Без тира</button></div>
+    </section>
+    <div class="tier-board">
+    {% for tier in tiers %}<section class="tier-row tier-{{ tier|lower }}" data-tier-row="{{ tier }}"><header><h2>{{ tier_labels[tier] }}</h2><span data-tier-count>{{ rows[tier]|length }}</span></header><div class="tier-dropzone" data-tier-dropzone="{{ tier }}">{% for character in rows[tier] %}{{ character_card(character, editor=true) }}{% endfor %}<p class="tier-empty" data-tier-empty>Перетащите персонажа сюда</p></div></section>{% endfor %}
+    </div>
+    <section class="panel tier-pool" data-tier-row="UNRANKED">
+        <div class="section-heading"><div><div class="eyebrow">Каталог выбранных игр</div><h2>Без тира <span data-tier-count>{{ rows['UNRANKED']|length }}</span></h2></div><span class="muted" data-filter-count></span></div>
+        <div class="tier-filters">
+            <label>Поиск<input type="search" data-filter="name" placeholder="Имя персонажа"></label>
+            <label>Игра<select data-filter="game"><option value="">Все игры</option>{% for game in games %}<option value="{{ game.code }}">{{ game.name }}</option>{% endfor %}</select></label>
+            {% for key, label in [('region', 'Регион'), ('element', 'Стихия'), ('gender', 'Пол')] %}<label>{{ label }}<select data-filter="{{ key }}"><option value="">Все</option>{% for option in filter_options[key] %}<option value="{{ option.id }}">{{ option.name }}</option>{% endfor %}</select></label>{% endfor %}
+            <label>Редкость<select data-filter="rarity"><option value="">Все</option><option value="5">5★</option><option value="4">4★</option></select></label>
+            <button class="button button-small button-quiet" type="button" data-filter-reset>Сбросить</button>
+        </div>
+        <div class="tier-dropzone tier-pool-grid" data-tier-dropzone="UNRANKED">{% for character in rows['UNRANKED'] %}{{ character_card(character, editor=true) }}{% endfor %}<p class="tier-empty" data-tier-empty>Здесь появятся снятые с рейтинга персонажи</p></div>
+        <p class="empty-state tier-filter-empty" data-filter-empty hidden>По выбранным фильтрам никого не найдено.</p>
+    </section>
+</form>
+<details class="panel collapsible-panel tierlist-danger"><summary>Удалить тирлист</summary><p>Публичная страница и раскладка будут удалены без возможности восстановления.</p><form method="post" action="/tierlists/{{ tier_list.id }}/delete"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button button-quiet" type="submit">Удалить «{{ tier_list.title }}»</button></form></details>
+{% endblock %}
