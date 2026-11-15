@@ -64,13 +64,16 @@ def create_tier_list(user_id, title, game_codes):
 def list_user_tier_lists(user_id):
     return db(
         '''
-        SELECT tl.id, tl.title, tl.updated_at,
+        SELECT tl.id, tl.title, tl.updated_at, u.id AS owner_id, u.tag AS owner_tag,
             COALESCE((SELECT array_agg(g.name ORDER BY g.name)
                 FROM tier_list_game tlg JOIN games g ON g.code = tlg.game_code
                 WHERE tlg.tier_list_id = tl.id), ARRAY[]::text[]) AS game_names,
             (SELECT COUNT(*) FROM tier_list_entry tle
-                WHERE tle.tier_list_id = tl.id AND tle.tier <> 'UNRANKED') AS ranked_count
+                WHERE tle.tier_list_id = tl.id AND tle.tier <> 'UNRANKED') AS ranked_count,
+            (SELECT COUNT(*) FROM tier_list_entry tle
+                WHERE tle.tier_list_id = tl.id) AS total_count
         FROM tier_list tl
+        JOIN users u ON u.id = tl.user_id
         WHERE tl.user_id = %s
         ORDER BY tl.updated_at DESC, tl.id DESC
         ''',
@@ -86,7 +89,9 @@ def list_public_tier_lists():
                 FROM tier_list_game tlg JOIN games g ON g.code = tlg.game_code
                 WHERE tlg.tier_list_id = tl.id), ARRAY[]::text[]) AS game_names,
             (SELECT COUNT(*) FROM tier_list_entry tle
-                WHERE tle.tier_list_id = tl.id AND tle.tier <> 'UNRANKED') AS ranked_count
+                WHERE tle.tier_list_id = tl.id AND tle.tier <> 'UNRANKED') AS ranked_count,
+            (SELECT COUNT(*) FROM tier_list_entry tle
+                WHERE tle.tier_list_id = tl.id) AS total_count
         FROM tier_list tl
         JOIN users u ON u.id = tl.user_id AND u.left_at IS NULL
         ORDER BY tl.updated_at DESC, tl.id DESC
