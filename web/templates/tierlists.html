@@ -3,18 +3,21 @@
 {% block title %}{{ 'Тирлисты игроков' if public_view else 'Мои тирлисты' }}{% endblock %}
 {% block content %}
 {% if public_view %}
-<section class="page-heading tierlist-heading"><div><div class="eyebrow">Публичные рейтинги</div><h1>Тирлисты игроков</h1></div><a class="button" href="/tierlists/mine">Мои тирлисты</a></section>
-<form class="tierlist-filter" method="get" action="/tierlists">
-    <div class="filter-dropdown" data-filter-dropdown data-choice-filter data-default-label="Все игроки" data-default-value="">
-        <button class="button button-secondary filter-dropdown-toggle" type="button" data-filter-toggle aria-expanded="false">{{ player_filter_label }}</button>
-        <div class="filter-popup" hidden>
-            <div class="filter-options">{% for player in players %}<label class="filter-option"><input type="checkbox" name="player" value="{{ player.id }}" {{ 'checked' if player.id in selected_player_ids else '' }}><span>{{ player.tag or 'Игрок' }}</span></label>{% endfor %}</div>
-            <div class="filter-popup-actions"><button type="button" data-filter-close>Готово</button></div>
+<section class="page-heading tierlist-heading"><div><div class="eyebrow">Публичные рейтинги</div><h1>Тирлисты игроков</h1></div></section>
+<div class="tierlist-catalog-toolbar">
+    <form class="tierlist-filter" method="get" action="/tierlists">
+        <div class="filter-dropdown" data-filter-dropdown data-choice-filter data-default-label="Все игроки" data-default-value="">
+            <button class="button button-secondary filter-dropdown-toggle" type="button" data-filter-toggle aria-expanded="false">{{ player_filter_label }}</button>
+            <div class="filter-popup" hidden>
+                <div class="filter-options">{% for player in players %}<label class="filter-option"><input type="checkbox" name="player" value="{{ player.id }}" {{ 'checked' if player.id in selected_player_ids else '' }}><span>{{ player.tag or 'Игрок' }}</span></label>{% endfor %}</div>
+                <div class="filter-popup-actions"><button type="button" data-filter-close>Готово</button></div>
+            </div>
         </div>
-    </div>
-    <button class="button" type="submit">Применить</button>
-    {% if selected_player_ids %}<a class="button button-quiet" href="/tierlists">Сбросить</a>{% endif %}
-</form>
+        <button class="button" type="submit">Применить</button>
+        {% if selected_player_ids %}<a class="button button-quiet" href="/tierlists">Сбросить</a>{% endif %}
+    </form>
+    <div class="tierlist-catalog-actions">{% if is_authenticated %}<a class="button button-secondary" href="/tierlists/new">Создать тирлист</a>{% endif %}<a class="button" href="/tierlists/mine">Мои тирлисты</a></div>
+</div>
 {% else %}
 <section class="page-heading tierlist-heading"><div><div class="eyebrow">Личные рейтинги</div><h1>Мои тирлисты</h1><p>Создавайте разные рейтинги персонажей. Все они появятся в <a class="text-link" href="/users/{{ user.id }}">вашем публичном профиле</a>.</p></div><a class="button" href="/tierlists/new">Новый тирлист</a></section>
 {% endif %}

@@ -148,6 +148,7 @@ async def tierlists_page(request: Request, player: list[int] = Query(default=[])
             ),
             'selected_player_ids': selected_player_ids,
             'player_filter_label': player_filter_label,
+            'is_authenticated': read_admin_session(request) is not None,
             'public_view': True,
             'active_page': 'tierlists',
         },
