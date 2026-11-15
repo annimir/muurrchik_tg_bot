@@ -194,6 +194,33 @@ BEGIN
     END IF;
 END $$;
 
+CREATE TABLE IF NOT EXISTS tier_list (
+    id           SERIAL PRIMARY KEY,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title        VARCHAR(100) NOT NULL CHECK (length(btrim(title)) > 0),
+    lock_version INTEGER NOT NULL DEFAULT 1,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_tier_list_user_updated
+    ON tier_list (user_id, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS tier_list_game (
+    tier_list_id INTEGER NOT NULL REFERENCES tier_list(id) ON DELETE CASCADE,
+    game_code    TEXT NOT NULL REFERENCES games(code) ON DELETE CASCADE,
+    PRIMARY KEY (tier_list_id, game_code)
+);
+
+CREATE TABLE IF NOT EXISTS tier_list_entry (
+    tier_list_id INTEGER NOT NULL REFERENCES tier_list(id) ON DELETE CASCADE,
+    character_id TEXT NOT NULL,
+    tier         TEXT NOT NULL CHECK (tier IN ('S', 'A', 'B', 'C', 'D', 'UNRANKED')),
+    position     INTEGER NOT NULL CHECK (position >= 0),
+    PRIMARY KEY (tier_list_id, character_id),
+    UNIQUE (tier_list_id, tier, position)
+);
+
 CREATE TABLE IF NOT EXISTS positions (
     id   SERIAL PRIMARY KEY,
     name TEXT NOT NULL UNIQUE

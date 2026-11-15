@@ -1,0 +1,2582 @@
+[
+  {
+    "id": "barbara",
+    "name": "Барбара",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/barbara.webp"
+  },
+  {
+    "id": "bennett",
+    "name": "Беннет",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/bennett.webp"
+  },
+  {
+    "id": "beidou",
+    "name": "Бэй Доу",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/beidou.webp"
+  },
+  {
+    "id": "venti",
+    "name": "Венти",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/venti.webp"
+  },
+  {
+    "id": "jean",
+    "name": "Джинн",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/jean.webp"
+  },
+  {
+    "id": "diluc",
+    "name": "Дилюк",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/diluc.webp"
+  },
+  {
+    "id": "klee",
+    "name": "Кли",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/klee.webp"
+  },
+  {
+    "id": "keqing",
+    "name": "Кэ Цин",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/keqing.webp"
+  },
+  {
+    "id": "kaeya",
+    "name": "Кэйа",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/kaeya.webp"
+  },
+  {
+    "id": "lisa",
+    "name": "Лиза",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/lisa.webp"
+  },
+  {
+    "id": "mona",
+    "name": "Мона",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/mona.webp"
+  },
+  {
+    "id": "ningguang",
+    "name": "Нин Гуан",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/ningguang.webp"
+  },
+  {
+    "id": "noelle",
+    "name": "Ноэлль",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/noelle.webp"
+  },
+  {
+    "id": "traveler_anemo",
+    "name": "Путешественница (Анемо)",
+    "game": "genshin",
+    "region": {
+      "id": "teyvat",
+      "name": "Тейват"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "any",
+      "name": "на выбор"
+    },
+    "rarity": 5,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/traveler_anemo.webp"
+  },
+  {
+    "id": "traveler_geo",
+    "name": "Путешественница (Гео)",
+    "game": "genshin",
+    "region": {
+      "id": "teyvat",
+      "name": "Тейват"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "any",
+      "name": "на выбор"
+    },
+    "rarity": 5,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/traveler_geo.webp"
+  },
+  {
+    "id": "razor",
+    "name": "Рэйзор",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/razor.webp"
+  },
+  {
+    "id": "sucrose",
+    "name": "Сахароза",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/sucrose.webp"
+  },
+  {
+    "id": "xingqiu",
+    "name": "Син Цю",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/xingqiu.webp"
+  },
+  {
+    "id": "xiangling",
+    "name": "Сян Лин",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/xiangling.webp"
+  },
+  {
+    "id": "fischl",
+    "name": "Фишль",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/fischl.webp"
+  },
+  {
+    "id": "qiqi",
+    "name": "Ци Ци",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/qiqi.webp"
+  },
+  {
+    "id": "chongyun",
+    "name": "Чун Юнь",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/chongyun.webp"
+  },
+  {
+    "id": "amber",
+    "name": "Эмбер",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1601244000,
+    "image": "/static/tierlists/characters/amber.webp"
+  },
+  {
+    "id": "diona",
+    "name": "Диона",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1605060000,
+    "image": "/static/tierlists/characters/diona.webp"
+  },
+  {
+    "id": "tartaglia",
+    "name": "Тарталья",
+    "game": "genshin",
+    "region": {
+      "id": "fatui",
+      "name": "Фатуи"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1605060000,
+    "image": "/static/tierlists/characters/tartaglia.webp"
+  },
+  {
+    "id": "xinyan",
+    "name": "Синь Янь",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1606874400,
+    "image": "/static/tierlists/characters/xinyan.webp"
+  },
+  {
+    "id": "zhongli",
+    "name": "Чжун Ли",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1606874400,
+    "image": "/static/tierlists/characters/zhongli.webp"
+  },
+  {
+    "id": "albedo",
+    "name": "Альбедо",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1608588000,
+    "image": "/static/tierlists/characters/albedo.webp"
+  },
+  {
+    "id": "ganyu",
+    "name": "Гань Юй",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1610467200,
+    "image": "/static/tierlists/characters/ganyu.webp"
+  },
+  {
+    "id": "xiao",
+    "name": "Сяо",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1612216800,
+    "image": "/static/tierlists/characters/xiao.webp"
+  },
+  {
+    "id": "hu_tao",
+    "name": "Ху Тао",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1614700800,
+    "image": "/static/tierlists/characters/hu_tao.webp"
+  },
+  {
+    "id": "rosaria",
+    "name": "Розария",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1617721200,
+    "image": "/static/tierlists/characters/rosaria.webp"
+  },
+  {
+    "id": "yanfei",
+    "name": "Янь Фэй",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1619470800,
+    "image": "/static/tierlists/characters/yanfei.webp"
+  },
+  {
+    "id": "eula",
+    "name": "Эола",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1621350000,
+    "image": "/static/tierlists/characters/eula.webp"
+  },
+  {
+    "id": "kaedehara_kazuha",
+    "name": "Кадзуха",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1624978800,
+    "image": "/static/tierlists/characters/kaedehara_kazuha.webp"
+  },
+  {
+    "id": "kamisato_ayaka",
+    "name": "Аяка",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1626814800,
+    "image": "/static/tierlists/characters/kamisato_ayaka.webp"
+  },
+  {
+    "id": "traveler_electro",
+    "name": "Путешественница (Электро)",
+    "game": "genshin",
+    "region": {
+      "id": "teyvat",
+      "name": "Тейват"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "any",
+      "name": "на выбор"
+    },
+    "rarity": 5,
+    "release": 1626814800,
+    "image": "/static/tierlists/characters/traveler_electro.webp"
+  },
+  {
+    "id": "yoimiya",
+    "name": "Ёимия",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1628607600,
+    "image": "/static/tierlists/characters/yoimiya.webp"
+  },
+  {
+    "id": "sayu",
+    "name": "Саю",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1628607600,
+    "image": "/static/tierlists/characters/sayu.webp"
+  },
+  {
+    "id": "raiden_shogun",
+    "name": "Райдэн",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1630443600,
+    "image": "/static/tierlists/characters/raiden_shogun.webp"
+  },
+  {
+    "id": "kujou_sara",
+    "name": "Сара",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1630443600,
+    "image": "/static/tierlists/characters/kujou_sara.webp"
+  },
+  {
+    "id": "aloy",
+    "name": "Элой",
+    "game": "genshin",
+    "region": {
+      "id": "other_world",
+      "name": "Другой мир"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1630443600,
+    "image": "/static/tierlists/characters/aloy.webp"
+  },
+  {
+    "id": "sangonomiya_kokomi",
+    "name": "Кокоми",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1632236400,
+    "image": "/static/tierlists/characters/sangonomiya_kokomi.webp"
+  },
+  {
+    "id": "thoma",
+    "name": "Тома",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1635868800,
+    "image": "/static/tierlists/characters/thoma.webp"
+  },
+  {
+    "id": "gorou",
+    "name": "Горо",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1639497600,
+    "image": "/static/tierlists/characters/gorou.webp"
+  },
+  {
+    "id": "arataki_itto",
+    "name": "Итто",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1639497600,
+    "image": "/static/tierlists/characters/arataki_itto.webp"
+  },
+  {
+    "id": "shenhe",
+    "name": "Шэнь Хэ",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1641333600,
+    "image": "/static/tierlists/characters/shenhe.webp"
+  },
+  {
+    "id": "yun_jin",
+    "name": "Юнь Цзинь",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1641333600,
+    "image": "/static/tierlists/characters/yun_jin.webp"
+  },
+  {
+    "id": "yae_miko",
+    "name": "Яэ Мико",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1644962400,
+    "image": "/static/tierlists/characters/yae_miko.webp"
+  },
+  {
+    "id": "kamisato_ayato",
+    "name": "Аято",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1648587600,
+    "image": "/static/tierlists/characters/kamisato_ayato.webp"
+  },
+  {
+    "id": "yelan",
+    "name": "Е Лань",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1653944400,
+    "image": "/static/tierlists/characters/yelan.webp"
+  },
+  {
+    "id": "kuki_shinobu",
+    "name": "Синобу",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1655823600,
+    "image": "/static/tierlists/characters/kuki_shinobu.webp"
+  },
+  {
+    "id": "traveler_dendro",
+    "name": "Путешественница (Дендро)",
+    "game": "genshin",
+    "region": {
+      "id": "teyvat",
+      "name": "Тейват"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "any",
+      "name": "на выбор"
+    },
+    "rarity": 5,
+    "release": 1657659600,
+    "image": "/static/tierlists/characters/traveler_dendro.webp"
+  },
+  {
+    "id": "shikanoin_heizou",
+    "name": "Хэйдзо",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1657659600,
+    "image": "/static/tierlists/characters/shikanoin_heizou.webp"
+  },
+  {
+    "id": "collei",
+    "name": "Коллеи",
+    "game": "genshin",
+    "region": {
+      "id": "sumeru",
+      "name": "Сумеру"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1661288400,
+    "image": "/static/tierlists/characters/collei.webp"
+  },
+  {
+    "id": "tighnari",
+    "name": "Тигнари",
+    "game": "genshin",
+    "region": {
+      "id": "sumeru",
+      "name": "Сумеру"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1661288400,
+    "image": "/static/tierlists/characters/tighnari.webp"
+  },
+  {
+    "id": "dori",
+    "name": "Дори",
+    "game": "genshin",
+    "region": {
+      "id": "sumeru",
+      "name": "Сумеру"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1662735600,
+    "image": "/static/tierlists/characters/dori.webp"
+  },
+  {
+    "id": "candace",
+    "name": "Кандакия",
+    "game": "genshin",
+    "region": {
+      "id": "sumeru",
+      "name": "Сумеру"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1664226000,
+    "image": "/static/tierlists/characters/candace.webp"
+  },
+  {
+    "id": "cyno",
+    "name": "Сайно",
+    "game": "genshin",
+    "region": {
+      "id": "sumeru",
+      "name": "Сумеру"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1664226000,
+    "image": "/static/tierlists/characters/cyno.webp"
+  },
+  {
+    "id": "nilou",
+    "name": "Нилу",
+    "game": "genshin",
+    "region": {
+      "id": "sumeru",
+      "name": "Сумеру"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1665759600,
+    "image": "/static/tierlists/characters/nilou.webp"
+  },
+  {
+    "id": "nahida",
+    "name": "Нахида",
+    "game": "genshin",
+    "region": {
+      "id": "sumeru",
+      "name": "Сумеру"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1667253600,
+    "image": "/static/tierlists/characters/nahida.webp"
+  },
+  {
+    "id": "layla",
+    "name": "Лайла",
+    "game": "genshin",
+    "region": {
+      "id": "sumeru",
+      "name": "Сумеру"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1668787200,
+    "image": "/static/tierlists/characters/layla.webp"
+  },
+  {
+    "id": "wanderer",
+    "name": "Странник",
+    "game": "genshin",
+    "region": {
+      "id": "sumeru",
+      "name": "Сумеру"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1670277600,
+    "image": "/static/tierlists/characters/wanderer.webp"
+  },
+  {
+    "id": "faruzan",
+    "name": "Фарузан",
+    "game": "genshin",
+    "region": {
+      "id": "sumeru",
+      "name": "Сумеру"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1670277600,
+    "image": "/static/tierlists/characters/faruzan.webp"
+  },
+  {
+    "id": "alhaitham",
+    "name": "Аль-Хайтам",
+    "game": "genshin",
+    "region": {
+      "id": "sumeru",
+      "name": "Сумеру"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1673906400,
+    "image": "/static/tierlists/characters/alhaitham.webp"
+  },
+  {
+    "id": "yaoyao",
+    "name": "Яо Яо",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1673906400,
+    "image": "/static/tierlists/characters/yaoyao.webp"
+  },
+  {
+    "id": "dehya",
+    "name": "Дэхья",
+    "game": "genshin",
+    "region": {
+      "id": "sumeru",
+      "name": "Сумеру"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1677535200,
+    "image": "/static/tierlists/characters/dehya.webp"
+  },
+  {
+    "id": "mika",
+    "name": "Мика",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1679414400,
+    "image": "/static/tierlists/characters/mika.webp"
+  },
+  {
+    "id": "baizhu",
+    "name": "Бай Чжу",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1683039600,
+    "image": "/static/tierlists/characters/baizhu.webp"
+  },
+  {
+    "id": "kaveh",
+    "name": "Кавех",
+    "game": "genshin",
+    "region": {
+      "id": "sumeru",
+      "name": "Сумеру"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1683039600,
+    "image": "/static/tierlists/characters/kaveh.webp"
+  },
+  {
+    "id": "kirara",
+    "name": "Кирара",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1684789200,
+    "image": "/static/tierlists/characters/kirara.webp"
+  },
+  {
+    "id": "traveler_hydro",
+    "name": "Путешественница (Гидро)",
+    "game": "genshin",
+    "region": {
+      "id": "teyvat",
+      "name": "Тейват"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "any",
+      "name": "на выбор"
+    },
+    "rarity": 5,
+    "release": 1690146000,
+    "image": "/static/tierlists/characters/traveler_hydro.webp"
+  },
+  {
+    "id": "lynette",
+    "name": "Линетт",
+    "game": "genshin",
+    "region": {
+      "id": "fontaine",
+      "name": "Фонтейн"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1692046800,
+    "image": "/static/tierlists/characters/lynette.webp"
+  },
+  {
+    "id": "lyney",
+    "name": "Лини",
+    "game": "genshin",
+    "region": {
+      "id": "fontaine",
+      "name": "Фонтейн"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1692046800,
+    "image": "/static/tierlists/characters/lyney.webp"
+  },
+  {
+    "id": "freminet",
+    "name": "Фремине",
+    "game": "genshin",
+    "region": {
+      "id": "fontaine",
+      "name": "Фонтейн"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1693926000,
+    "image": "/static/tierlists/characters/freminet.webp"
+  },
+  {
+    "id": "neuvillette",
+    "name": "Нёвиллет",
+    "game": "genshin",
+    "region": {
+      "id": "fontaine",
+      "name": "Фонтейн"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1695675600,
+    "image": "/static/tierlists/characters/neuvillette.webp"
+  },
+  {
+    "id": "wriothesley",
+    "name": "Ризли",
+    "game": "genshin",
+    "region": {
+      "id": "fontaine",
+      "name": "Фонтейн"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1697554800,
+    "image": "/static/tierlists/characters/wriothesley.webp"
+  },
+  {
+    "id": "furina",
+    "name": "Фурина",
+    "game": "genshin",
+    "region": {
+      "id": "fontaine",
+      "name": "Фонтейн"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1699308000,
+    "image": "/static/tierlists/characters/furina.webp"
+  },
+  {
+    "id": "charlotte",
+    "name": "Шарлотта",
+    "game": "genshin",
+    "region": {
+      "id": "fontaine",
+      "name": "Фонтейн"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1699308000,
+    "image": "/static/tierlists/characters/charlotte.webp"
+  },
+  {
+    "id": "navia",
+    "name": "Навия",
+    "game": "genshin",
+    "region": {
+      "id": "fontaine",
+      "name": "Фонтейн"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1702936800,
+    "image": "/static/tierlists/characters/navia.webp"
+  },
+  {
+    "id": "chevreuse",
+    "name": "Шеврёз",
+    "game": "genshin",
+    "region": {
+      "id": "fontaine",
+      "name": "Фонтейн"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1704816000,
+    "image": "/static/tierlists/characters/chevreuse.webp"
+  },
+  {
+    "id": "gaming",
+    "name": "Ка Мин",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1706565600,
+    "image": "/static/tierlists/characters/gaming.webp"
+  },
+  {
+    "id": "xianyun",
+    "name": "Сянь Юнь",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1706565600,
+    "image": "/static/tierlists/characters/xianyun.webp"
+  },
+  {
+    "id": "chiori",
+    "name": "Тиори",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1710194400,
+    "image": "/static/tierlists/characters/chiori.webp"
+  },
+  {
+    "id": "arlecchino",
+    "name": "Арлекино",
+    "game": "genshin",
+    "region": {
+      "id": "fatui",
+      "name": "Фатуи"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1713819600,
+    "image": "/static/tierlists/characters/arlecchino.webp"
+  },
+  {
+    "id": "clorinde",
+    "name": "Клоринда",
+    "game": "genshin",
+    "region": {
+      "id": "fontaine",
+      "name": "Фонтейн"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1717448400,
+    "image": "/static/tierlists/characters/clorinde.webp"
+  },
+  {
+    "id": "sethos",
+    "name": "Сетос",
+    "game": "genshin",
+    "region": {
+      "id": "sumeru",
+      "name": "Сумеру"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1717448400,
+    "image": "/static/tierlists/characters/sethos.webp"
+  },
+  {
+    "id": "sigewinne",
+    "name": "Сиджвин",
+    "game": "genshin",
+    "region": {
+      "id": "fontaine",
+      "name": "Фонтейн"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1719414000,
+    "image": "/static/tierlists/characters/sigewinne.webp"
+  },
+  {
+    "id": "emilie",
+    "name": "Эмилия",
+    "game": "genshin",
+    "region": {
+      "id": "fontaine",
+      "name": "Фонтейн"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1722956400,
+    "image": "/static/tierlists/characters/emilie.webp"
+  },
+  {
+    "id": "kachina",
+    "name": "Качина",
+    "game": "genshin",
+    "region": {
+      "id": "natlan",
+      "name": "Натлан"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1724706000,
+    "image": "/static/tierlists/characters/kachina.webp"
+  },
+  {
+    "id": "mualani",
+    "name": "Муалани",
+    "game": "genshin",
+    "region": {
+      "id": "natlan",
+      "name": "Натлан"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1724706000,
+    "image": "/static/tierlists/characters/mualani.webp"
+  },
+  {
+    "id": "kinich",
+    "name": "Кинич",
+    "game": "genshin",
+    "region": {
+      "id": "natlan",
+      "name": "Натлан"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1726585200,
+    "image": "/static/tierlists/characters/kinich.webp"
+  },
+  {
+    "id": "xilonen",
+    "name": "Шилонен",
+    "game": "genshin",
+    "region": {
+      "id": "natlan",
+      "name": "Натлан"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1728334800,
+    "image": "/static/tierlists/characters/xilonen.webp"
+  },
+  {
+    "id": "ororon",
+    "name": "Оророн",
+    "game": "genshin",
+    "region": {
+      "id": "natlan",
+      "name": "Натлан"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1731967200,
+    "image": "/static/tierlists/characters/ororon.webp"
+  },
+  {
+    "id": "chasca",
+    "name": "Часка",
+    "game": "genshin",
+    "region": {
+      "id": "natlan",
+      "name": "Натлан"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1731967200,
+    "image": "/static/tierlists/characters/chasca.webp"
+  },
+  {
+    "id": "mavuika",
+    "name": "Мавуика",
+    "game": "genshin",
+    "region": {
+      "id": "natlan",
+      "name": "Натлан"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1735596000,
+    "image": "/static/tierlists/characters/mavuika.webp"
+  },
+  {
+    "id": "citlali",
+    "name": "Ситлали",
+    "game": "genshin",
+    "region": {
+      "id": "natlan",
+      "name": "Натлан"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1735596000,
+    "image": "/static/tierlists/characters/citlali.webp"
+  },
+  {
+    "id": "traveler_pyro",
+    "name": "Путешественница (Пиро)",
+    "game": "genshin",
+    "region": {
+      "id": "teyvat",
+      "name": "Тейват"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "any",
+      "name": "на выбор"
+    },
+    "rarity": 5,
+    "release": 1735758000,
+    "image": "/static/tierlists/characters/traveler_pyro.webp"
+  },
+  {
+    "id": "lan_yan",
+    "name": "Лань Янь",
+    "game": "genshin",
+    "region": {
+      "id": "liyue",
+      "name": "Ли Юэ"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1737475200,
+    "image": "/static/tierlists/characters/lan_yan.webp"
+  },
+  {
+    "id": "yumemizuki_mizuki",
+    "name": "Мидзуки",
+    "game": "genshin",
+    "region": {
+      "id": "inazuma",
+      "name": "Инадзума"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1739224800,
+    "image": "/static/tierlists/characters/yumemizuki_mizuki.webp"
+  },
+  {
+    "id": "varesa",
+    "name": "Вареса",
+    "game": "genshin",
+    "region": {
+      "id": "natlan",
+      "name": "Натлан"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1742853600,
+    "image": "/static/tierlists/characters/varesa.webp"
+  },
+  {
+    "id": "iansan",
+    "name": "Иансан",
+    "game": "genshin",
+    "region": {
+      "id": "natlan",
+      "name": "Натлан"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1742853600,
+    "image": "/static/tierlists/characters/iansan.webp"
+  },
+  {
+    "id": "ifa",
+    "name": "Ифа",
+    "game": "genshin",
+    "region": {
+      "id": "natlan",
+      "name": "Натлан"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1746478800,
+    "image": "/static/tierlists/characters/ifa.webp"
+  },
+  {
+    "id": "escoffier",
+    "name": "Эскофье",
+    "game": "genshin",
+    "region": {
+      "id": "fontaine",
+      "name": "Фонтейн"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1746478800,
+    "image": "/static/tierlists/characters/escoffier.webp"
+  },
+  {
+    "id": "dahlia",
+    "name": "Далия",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1750107600,
+    "image": "/static/tierlists/characters/dahlia.webp"
+  },
+  {
+    "id": "skirk",
+    "name": "Скирк",
+    "game": "genshin",
+    "region": {
+      "id": "abyss",
+      "name": "Бездна"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1750107600,
+    "image": "/static/tierlists/characters/skirk.webp"
+  },
+  {
+    "id": "ineffa",
+    "name": "Инеффа",
+    "game": "genshin",
+    "region": {
+      "id": "nodkrai",
+      "name": "Нод-Край"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1753736400,
+    "image": "/static/tierlists/characters/ineffa.webp"
+  },
+  {
+    "id": "aino",
+    "name": "Айно",
+    "game": "genshin",
+    "region": {
+      "id": "nodkrai",
+      "name": "Нод-Край"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1757365200,
+    "image": "/static/tierlists/characters/aino.webp"
+  },
+  {
+    "id": "lauma",
+    "name": "Лаума",
+    "game": "genshin",
+    "region": {
+      "id": "nodkrai",
+      "name": "Нод-Край"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1757365200,
+    "image": "/static/tierlists/characters/lauma.webp"
+  },
+  {
+    "id": "flins",
+    "name": "Флинс",
+    "game": "genshin",
+    "region": {
+      "id": "nodkrai",
+      "name": "Нод-Край"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1759244400,
+    "image": "/static/tierlists/characters/flins.webp"
+  },
+  {
+    "id": "nefer",
+    "name": "Нефер",
+    "game": "genshin",
+    "region": {
+      "id": "nodkrai",
+      "name": "Нод-Край"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1760994000,
+    "image": "/static/tierlists/characters/nefer.webp"
+  },
+  {
+    "id": "durin",
+    "name": "Дурин",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1764626400,
+    "image": "/static/tierlists/characters/durin.webp"
+  },
+  {
+    "id": "jahoda",
+    "name": "Ягода",
+    "game": "genshin",
+    "region": {
+      "id": "nodkrai",
+      "name": "Нод-Край"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1764626400,
+    "image": "/static/tierlists/characters/jahoda.webp"
+  },
+  {
+    "id": "columbina",
+    "name": "Коломбина",
+    "game": "genshin",
+    "region": {
+      "id": "nodkrai",
+      "name": "Нод-Край"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1768255200,
+    "image": "/static/tierlists/characters/columbina.webp"
+  },
+  {
+    "id": "illuga",
+    "name": "Иллуги",
+    "game": "genshin",
+    "region": {
+      "id": "nodkrai",
+      "name": "Нод-Край"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1770134400,
+    "image": "/static/tierlists/characters/illuga.webp"
+  },
+  {
+    "id": "zibai",
+    "name": "Цзы Бай",
+    "game": "genshin",
+    "region": {
+      "id": "nodkrai",
+      "name": "Нод-Край"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1770134400,
+    "image": "/static/tierlists/characters/zibai.webp"
+  },
+  {
+    "id": "varka",
+    "name": "Варка",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1771884000,
+    "image": "/static/tierlists/characters/varka.webp"
+  },
+  {
+    "id": "linnea",
+    "name": "Линнея",
+    "game": "genshin",
+    "region": {
+      "id": "nodkrai",
+      "name": "Нод-Край"
+    },
+    "element": {
+      "id": "geo",
+      "name": "Гео"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1775509200,
+    "image": "/static/tierlists/characters/linnea.webp"
+  },
+  {
+    "id": "nicole",
+    "name": "Николь",
+    "game": "genshin",
+    "region": {
+      "id": "other",
+      "name": "Другое"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1779138000,
+    "image": "/static/tierlists/characters/nicole.webp"
+  },
+  {
+    "id": "prune",
+    "name": "Прюн",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 4,
+    "release": 1779138000,
+    "image": "/static/tierlists/characters/prune.webp"
+  },
+  {
+    "id": "lohen",
+    "name": "Лоэн",
+    "game": "genshin",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1781017200,
+    "image": "/static/tierlists/characters/lohen.webp"
+  },
+  {
+    "id": "sandrone",
+    "name": "Сандроне",
+    "game": "genshin",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1782766800,
+    "image": "/static/tierlists/characters/sandrone.webp"
+  },
+  {
+    "id": "alyosha",
+    "name": "Алёша",
+    "game": "genshin",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1786395600,
+    "image": "/static/tierlists/characters/alyosha.webp"
+  },
+  {
+    "id": "odette",
+    "name": "Одетта",
+    "game": "genshin",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1786395600,
+    "image": "/static/tierlists/characters/odette.webp"
+  },
+  {
+    "id": "traveler_cryo",
+    "name": "Путешественница (Крио)",
+    "game": "genshin",
+    "region": {
+      "id": "teyvat",
+      "name": "Тейват"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "any",
+      "name": "на выбор"
+    },
+    "rarity": 5,
+    "release": 1786561200,
+    "image": "/static/tierlists/characters/traveler_cryo.webp"
+  },
+  {
+    "id": "vesna",
+    "name": "Весна",
+    "game": "genshin",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "anemo",
+      "name": "Анемо"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1790024400,
+    "image": "/static/tierlists/characters/vesna.webp"
+  },
+  {
+    "id": "vodyanitsa",
+    "name": "Водяница",
+    "game": "genshin",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": 1790024400,
+    "image": "/static/tierlists/characters/vodyanitsa.webp"
+  },
+  {
+    "id": "valeriy",
+    "name": "Валерий",
+    "game": "genshin",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 4,
+    "release": 1793656800,
+    "image": "/static/tierlists/characters/valeriy.webp"
+  },
+  {
+    "id": "mitya",
+    "name": "Митя",
+    "game": "genshin",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": 5,
+    "release": 1793656800,
+    "image": "/static/tierlists/characters/mitya.webp"
+  }
+]
