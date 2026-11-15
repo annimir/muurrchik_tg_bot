@@ -214,12 +214,29 @@ input:focus, select:focus, textarea:focus { border-color: var(--teal); }
 .lore-source { font-size: .82rem; }
 
 .card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-.profile-card, .character-card { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; min-width: 0; padding: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.character-card { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; min-width: 0; padding: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.profile-card { display: flex; flex-direction: column; min-width: 0; min-height: 250px; padding: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; transition: border-color .16s ease, transform .16s ease; }
 .profile-card:hover, .character-card:hover { border-color: var(--gold); }
+.profile-card:hover { transform: translateY(-2px); }
+.profile-card-header { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .profile-initial { flex: 0 0 auto; width: 54px; height: 54px; display: grid; place-items: center; border: 1px solid var(--gold); border-radius: 50%; color: var(--gold-light); background: rgba(216,188,114,.08); font: 400 25px Georgia, serif; }
-.profile-content { display: grid; flex: 1 1 0; min-width: 0; gap: 3px; }
+.profile-card .profile-initial { width: 66px; height: 66px; font-size: 28px; }
+.profile-content { display: grid; flex: 1 1 0; min-width: 0; justify-items: start; gap: 7px; }
 .profile-content strong { font: 400 1.3rem Georgia, serif; color: var(--gold-light); overflow-wrap: anywhere; }
 .profile-content small, .profile-detail { color: var(--muted); }
+.profile-role { max-width: 100%; padding: 3px 9px; border: 1px solid rgba(184, 194, 207, .35); border-radius: 3px; color: var(--muted); font-size: .67rem; line-height: 1.35; letter-spacing: .08em; text-transform: uppercase; overflow-wrap: anywhere; }
+.profile-role-accent { border-color: var(--gold); color: var(--night); background: var(--gold); }
+.profile-characters { margin: 24px 0 20px; }
+.profile-section-label { display: block; margin-bottom: 12px; color: var(--muted); font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; }
+.profile-character-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.profile-character { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; gap: 7px; padding: 4px 11px 4px 4px; border: 1px solid rgba(184, 194, 207, .2); border-radius: 24px; background: rgba(7, 17, 30, .28); font-size: .8rem; }
+.profile-character:hover { border-color: var(--gold); }
+.profile-character > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-character-portrait { display: grid; flex: 0 0 auto; place-items: center; width: 28px; height: 28px; overflow: hidden; border-radius: 50%; color: var(--gold-light); background: rgba(216, 188, 114, .12); font: 400 13px Georgia, serif; }
+.profile-character-portrait img { width: 100%; height: 100%; object-fit: cover; }
+.profile-characters-empty { color: var(--muted); font-size: .85rem; }
+.profile-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 15px; border-top: 1px solid rgba(184, 194, 207, .14); color: var(--muted); font-size: .83rem; }
+.profile-link { flex: 0 0 auto; color: var(--gold); }
 .profile-detail { width: 100%; padding-left: 70px; font-size: .88rem; }
 .profile-hero, .character-hero { display: flex; align-items: center; gap: 28px; margin-bottom: 36px; }
 .profile-initial-large { width: 110px; height: 110px; font-size: 48px; }
@@ -515,11 +532,9 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
 .scroll-sentinel { min-height: 54px; padding: 18px; text-align: center; color: var(--muted); cursor: pointer; }
 .scroll-sentinel.is-complete { cursor: default; }
 .media-expand, .media-dialog-close { display: grid; place-items: center; padding: 0; line-height: 1; }
-[data-users-grid] { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-[data-users-grid] .profile-card { padding: 18px; gap: 12px; }
-[data-users-grid] .profile-facts { padding-left: 0; margin-top: 4px; }
+[data-users-grid] { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 @media (min-width: 901px) and (max-width: 1100px) {
-    [data-users-grid] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    [data-users-grid] { gap: 14px; }
 }
 @media (max-width: 900px) {
     [data-users-grid] { grid-template-columns: repeat(2, minmax(0, 1fr)); }

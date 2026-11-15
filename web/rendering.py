@@ -52,6 +52,16 @@ def number_ru(value):
     return f'{value:,}'.replace(',', ' ')
 
 
+def materials_ru(value):
+    if value % 100 in range(11, 15) or value % 10 not in range(1, 5):
+        word = 'материалов'
+    elif value % 10 == 1:
+        word = 'материал'
+    else:
+        word = 'материала'
+    return f'{number_ru(value)} {word}'
+
+
 def status_ru(value):
     return {'ACTIVE': 'Активен', 'DELETED': 'Удалён', 'BLOCKED': 'Заблокирован'}.get(value, value)
 
@@ -62,6 +72,7 @@ templates.env.filters['birthday_ru'] = birthday_ru
 templates.env.filters['media_kind'] = media_kind
 templates.env.filters['media_caption'] = media_caption
 templates.env.filters['number_ru'] = number_ru
+templates.env.filters['materials_ru'] = materials_ru
 templates.env.filters['status_ru'] = status_ru
 templates.env.filters['video_embed'] = get_video_embed
 templates.env.globals['media_url'] = media_url

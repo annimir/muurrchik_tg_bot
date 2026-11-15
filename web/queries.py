@@ -173,13 +173,25 @@ def list_users(limit=30, offset=0, search=None):
     where, params = _user_search(search)
     return db(
         f'''
-        SELECT u.id, u.tag, u.chat_position, uc.bio,
-            c.id AS character_id, c.name AS character_name,
-            (SELECT COUNT(*) FROM character WHERE owner_user_id = u.id) AS character_count,
-            (SELECT COUNT(*) FROM subscription WHERE user_id = u.id AND active = TRUE) AS subscription_count
+        SELECT u.id, u.tag, u.chat_position,
+            COALESCE((
+                SELECT json_agg(character_item)
+                FROM (
+                    SELECT c.id, c.name, c.photo_file_id
+                    FROM character c
+                    WHERE c.owner_user_id = u.id
+                    ORDER BY c.is_primary DESC, c.name
+                    LIMIT 3
+                ) character_item
+            ), '[]'::json) AS characters,
+            (SELECT COUNT(DISTINCT COALESCE(
+                tu.media_file_unique_id, tu.media_file_id, tu.media_url, tu.id::text
+            ))
+             FROM tag_usage tu
+             JOIN tag t ON t.id = tu.tag_id
+             WHERE tu.author_tg_id = u.tg_id AND tu.is_public = TRUE AND t.status = 'ACTIVE'
+                AND (tu.media_file_id IS NOT NULL OR tu.media_url IS NOT NULL)) AS media_count
         FROM users u
-        LEFT JOIN user_card uc ON uc.user_id = u.id
-        LEFT JOIN character c ON c.owner_user_id = u.id AND c.is_primary = TRUE
         WHERE {where}
         ORDER BY u.tag NULLS LAST, u.id
         LIMIT %s OFFSET %s

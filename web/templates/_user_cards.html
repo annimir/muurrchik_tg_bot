@@ -1,10 +1,24 @@
 {% for user in users %}
-<a class="profile-card" href="/users/{{ user.id }}">
-    <span class="profile-initial">{{ (user.tag or '?')[0]|upper }}<img src="/media/users/{{ user.id }}/avatar" alt="" loading="lazy" data-avatar-image></span>
-    <span class="profile-content"><strong>{{ user.tag or 'Путешественник' }}</strong></span>
-    <span class="profile-facts">
-        <span>Персонажи: {% if user.character_name %}{{ user.character_name }}{% else %}{{ user.character_count }}{% endif %}</span>
-        <span>Подписки: {{ user.subscription_count }}</span>
-    </span>
-</a>
+<article class="profile-card">
+    <a class="profile-card-header" href="/users/{{ user.id }}" aria-label="Открыть профиль {{ user.tag or 'Путешественник' }}">
+        <span class="profile-initial">{{ (user.tag or '?')[0]|upper }}<img src="/media/users/{{ user.id }}/avatar" alt="" loading="lazy" data-avatar-image></span>
+        <span class="profile-content">
+            <strong>{{ user.tag or 'Путешественник' }}</strong>
+            <span class="profile-role {{ 'profile-role-accent' if user.chat_position else '' }}">{{ user.chat_position or 'Путник' }}</span>
+        </span>
+    </a>
+    <div class="profile-characters">
+        <span class="profile-section-label">Основные персонажи</span>
+        {% if user.characters %}<div class="profile-character-list">
+            {% for character in user.characters %}<a class="profile-character" href="/characters/{{ character.id }}">
+                <span class="profile-character-portrait">{% if character.photo_file_id %}<img src="/media/characters/{{ character.id }}" alt="" loading="lazy">{% else %}{{ character.name[0]|upper }}{% endif %}</span>
+                <span>{{ character.name }}</span>
+            </a>{% endfor %}
+        </div>{% else %}<span class="profile-characters-empty">Персонажи не добавлены</span>{% endif %}
+    </div>
+    <div class="profile-card-footer">
+        <span>{{ user.media_count|materials_ru }}</span>
+        <a class="profile-link" href="/users/{{ user.id }}">Профиль <span aria-hidden="true">→</span></a>
+    </div>
+</article>
 {% endfor %}

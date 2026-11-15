@@ -965,6 +965,38 @@ class WebIntegrationTests(PostgresTestCase):
         self.assertIn('needle', search.text)
         self.assertNotIn('player-00', search.text)
 
+    def test_user_cards_show_roles_characters_and_materials(self):
+        user = queries.ensure_user(100, 'player')
+        queries.db("UPDATE users SET chat_position = 'Хранитель архива' WHERE id = %s", (user['id'],)).close()
+        character = queries.create_character_row(
+            user['id'], 'Фурина', None, 'character-photo', 'Description', True,
+        )
+        tag = queries.create_tag('adventure')
+        queries.log_tag_usage(
+            tag['id'], 10, 100, 'photo', chat_id=200,
+            media_file_id='photo-file', media_file_unique_id='photo-unique',
+        )
+        second_tag = queries.create_tag('forest')
+        queries.log_tag_usage(
+            second_tag['id'], 10, 100, 'photo', chat_id=200,
+            media_file_id='photo-file', media_file_unique_id='photo-unique',
+        )
+        queries.log_tag_usage(
+            tag['id'], 11, 100, 'photo', chat_id=200,
+            media_file_id='hidden-file', media_file_unique_id='hidden-unique',
+        )
+        queries.db("UPDATE tag_usage SET is_public = FALSE WHERE media_file_id = 'hidden-file'").close()
+
+        response = self.client.get('/users')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Хранитель архива', response.text)
+        self.assertIn('profile-role profile-role-accent', response.text)
+        self.assertIn(f'href="/characters/{character["id"]}"', response.text)
+        self.assertIn(f'/media/characters/{character["id"]}', response.text)
+        self.assertIn('1 материал', response.text)
+        self.assertNotIn('Подписки:', response.text)
+
     def test_user_avatar_is_cached(self):
         user = queries.ensure_user(100, 'player')
         store = SimpleNamespace(
