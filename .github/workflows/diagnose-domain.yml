@@ -10,6 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
+      - name: Check the domain from a GitHub runner
+        run: |
+          printf "Domain HTTPS:\n"
+          curl -sS -I --max-time 15 https://murrlestia.ru/ || true
+          printf "\nDomain HTTP:\n"
+          curl -sS -I --max-time 15 http://murrlestia.ru/ || true
+          printf "\nIP HTTPS:\n"
+          curl -sS -k -I --max-time 15 https://87.199.209.239/ || true
       - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
