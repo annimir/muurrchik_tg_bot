@@ -60,10 +60,10 @@ if (tierlistExportButton) {
         tierlistExportButton.textContent = 'Готовим PNG…';
         status.textContent = '';
         try {
-            const rows = [...board.querySelectorAll('.tier-row')].map((row) => ({
+            const rows = [...board.querySelectorAll('.tier-row:not([hidden])')].map((row) => ({
                 code: row.querySelector('header h2').textContent.trim(),
                 color: getComputedStyle(row.querySelector('header')).backgroundColor,
-                characters: [...row.querySelectorAll('.tier-character')].map((character) => ({
+                characters: [...row.querySelectorAll('.tier-character:not([hidden])')].map((character) => ({
                     name: character.querySelector('strong').textContent.trim(),
                     source: new URL(character.querySelector('img').getAttribute('src'), document.baseURI).href,
                 })),

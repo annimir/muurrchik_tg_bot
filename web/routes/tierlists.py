@@ -273,6 +273,8 @@ async def tierlist_detail(request: Request, tier_list_id: int):
             'rows': _rows(tier_list, ranked_only=True),
             'tiers': RANKED_TIER_CODES,
             'tier_labels': TIER_LABELS,
+            'filter_options': get_tierlist_filter_options(tier_list['game_codes']),
+            'games': _available_games(),
             'active_page': 'tierlists',
         },
     )

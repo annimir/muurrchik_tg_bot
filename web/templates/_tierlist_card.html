@@ -1,10 +1,23 @@
 {% macro character_card(character, editor=false) %}
-<article class="tier-character"{% if editor %} data-character-id="{{ character.id }}" data-game="{{ character.game }}" data-region="{{ character.region.id }}" data-element="{{ character.element.id }}" data-gender="{{ character.gender.id }}" data-rarity="{{ character.rarity }}" data-name="{{ character.name|lower }}" draggable="true" tabindex="0" role="button" aria-label="Выбрать {{ character.name }}"{% endif %}>
+<article class="tier-character" data-character-id="{{ character.id }}" data-game="{{ character.game }}" data-region="{{ character.region.id }}" data-element="{{ character.element.id }}" data-gender="{{ character.gender.id }}" data-affiliation="{{ character.get('affiliations', [])|map(attribute='id')|join(' ') }}" data-rarity="{{ character.rarity }}" data-name="{{ character.name|lower }}"{% if editor %} draggable="true" tabindex="0" role="button" aria-label="Выбрать {{ character.name }}"{% endif %}>
     <img src="{{ character.image }}" alt="" loading="lazy" width="96" height="96">
     <strong>{{ character.name }}</strong>
     <small>{{ character.element.name }} · {{ character.region.name }}</small>
     <span class="tier-character-rarity">{{ character.rarity }}★</span>
 </article>
+{% endmacro %}
+
+{% macro character_filters(filter_options, games) %}
+<section class="panel tier-filter-panel" aria-label="Фильтры персонажей">
+    <div class="section-heading"><div><div class="eyebrow">Карточки во всех тирах</div><h2>Фильтры персонажей</h2></div><span class="muted" data-filter-count></span></div>
+    <div class="tier-filters">
+        <label>Поиск<input type="search" data-filter="name" placeholder="Имя персонажа"></label>
+        <label>Игра<select data-filter="game"><option value="">Все игры</option>{% for game in games %}<option value="{{ game.code }}">{{ game.name }}</option>{% endfor %}</select></label>
+        {% for key, label in [('region', 'Регион'), ('element', 'Стихия'), ('gender', 'Пол'), ('affiliation', 'Фракция')] %}<label>{{ label }}<select data-filter="{{ key }}"><option value="">Все</option>{% for option in filter_options[key] %}<option value="{{ option.id }}">{{ option.name }}</option>{% endfor %}</select></label>{% endfor %}
+        <label>Редкость<select data-filter="rarity"><option value="">Все</option><option value="5">5★</option><option value="4">4★</option></select></label>
+        <button class="button button-small button-quiet" type="button" data-filter-reset>Сбросить</button>
+    </div>
+</section>
 {% endmacro %}
 
 {% macro tierlist_preview(tier_list) %}

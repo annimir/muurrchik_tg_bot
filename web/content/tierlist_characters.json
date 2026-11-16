@@ -484,9 +484,15 @@
     "name": "Тарталья",
     "game": "genshin",
     "region": {
-      "id": "fatui",
-      "name": "Фатуи"
+      "id": "snezhnaya",
+      "name": "Снежная"
     },
+    "affiliations": [
+      {
+        "id": "fatui",
+        "name": "Фатуи"
+      }
+    ],
     "element": {
       "id": "hydro",
       "name": "Гидро"
@@ -1447,6 +1453,16 @@
       "id": "fontaine",
       "name": "Фонтейн"
     },
+    "affiliations": [
+      {
+        "id": "fatui",
+        "name": "Фатуи"
+      },
+      {
+        "id": "house_of_the_hearth",
+        "name": "Дом очага"
+      }
+    ],
     "element": {
       "id": "anemo",
       "name": "Анемо"
@@ -1467,6 +1483,16 @@
       "id": "fontaine",
       "name": "Фонтейн"
     },
+    "affiliations": [
+      {
+        "id": "fatui",
+        "name": "Фатуи"
+      },
+      {
+        "id": "house_of_the_hearth",
+        "name": "Дом очага"
+      }
+    ],
     "element": {
       "id": "pyro",
       "name": "Пиро"
@@ -1487,6 +1513,16 @@
       "id": "fontaine",
       "name": "Фонтейн"
     },
+    "affiliations": [
+      {
+        "id": "fatui",
+        "name": "Фатуи"
+      },
+      {
+        "id": "house_of_the_hearth",
+        "name": "Дом очага"
+      }
+    ],
     "element": {
       "id": "cryo",
       "name": "Крио"
@@ -1684,9 +1720,19 @@
     "name": "Арлекино",
     "game": "genshin",
     "region": {
-      "id": "fatui",
-      "name": "Фатуи"
+      "id": "fontaine",
+      "name": "Фонтейн"
     },
+    "affiliations": [
+      {
+        "id": "fatui",
+        "name": "Фатуи"
+      },
+      {
+        "id": "house_of_the_hearth",
+        "name": "Дом очага"
+      }
+    ],
     "element": {
       "id": "pyro",
       "name": "Пиро"
@@ -2267,6 +2313,12 @@
       "id": "nodkrai",
       "name": "Нод-Край"
     },
+    "affiliations": [
+      {
+        "id": "fatui",
+        "name": "Фатуи"
+      }
+    ],
     "element": {
       "id": "hydro",
       "name": "Гидро"
@@ -2427,6 +2479,12 @@
       "id": "snezhnaya",
       "name": "Снежная"
     },
+    "affiliations": [
+      {
+        "id": "fatui",
+        "name": "Фатуи"
+      }
+    ],
     "element": {
       "id": "cryo",
       "name": "Крио"

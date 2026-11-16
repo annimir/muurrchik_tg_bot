@@ -1,10 +1,67 @@
+const applyCharacterFilters = (root) => {
+    const controls = [...root.querySelectorAll('[data-filter]')];
+    const values = Object.fromEntries(controls.map((control) => [
+        control.dataset.filter,
+        control.value.trim().toLocaleLowerCase(),
+    ]));
+    const hasActiveFilters = Object.values(values).some(Boolean);
+    let visible = 0;
+
+    root.querySelectorAll('[data-character-id]').forEach((card) => {
+        const matches = Object.entries(values).every(([key, value]) => {
+            if (!value) {
+                return true;
+            }
+            const cardValue = (card.dataset[key] || '').toLocaleLowerCase();
+            return key === 'name'
+                ? cardValue.includes(value)
+                : cardValue.split(' ').includes(value);
+        });
+        card.hidden = !matches;
+        if (matches) {
+            visible += 1;
+        }
+    });
+
+    root.querySelectorAll('[data-tier-row]').forEach((row) => {
+        const cards = [...row.querySelectorAll('[data-character-id]')];
+        const rowVisible = cards.filter((card) => !card.hidden).length;
+        const count = row.querySelector('[data-tier-count]');
+        if (count) {
+            count.textContent = hasActiveFilters ? `${rowVisible}/${cards.length}` : cards.length;
+        }
+        row.hidden = hasActiveFilters && rowVisible === 0;
+    });
+
+    const countLabel = root.querySelector('[data-filter-count]');
+    if (countLabel) {
+        countLabel.textContent = hasActiveFilters ? `Показано: ${visible}` : '';
+    }
+    const empty = root.querySelector('[data-filter-empty]');
+    if (empty) {
+        empty.hidden = !hasActiveFilters || visible > 0;
+    }
+};
+
+document.querySelectorAll('[data-tierlist-filters]').forEach((root) => {
+    root.querySelectorAll('[data-filter]').forEach((control) => {
+        control.addEventListener('input', () => applyCharacterFilters(root));
+    });
+    root.querySelector('[data-filter-reset]')?.addEventListener('click', () => {
+        root.querySelectorAll('[data-filter]').forEach((control) => {
+            control.value = '';
+        });
+        applyCharacterFilters(root);
+    });
+    applyCharacterFilters(root);
+});
+
 const tierlistForm = document.querySelector('#tierlist-editor');
 
 if (tierlistForm) {
     const status = tierlistForm.querySelector('[data-save-status]');
     const saveButton = tierlistForm.querySelector('button[type="submit"]');
     const selectedLabel = tierlistForm.querySelector('[data-selected-character]');
-    const filterControls = [...tierlistForm.querySelectorAll('[data-filter]')];
     const zones = [...tierlistForm.querySelectorAll('[data-tier-dropzone]')];
     const cards = [...tierlistForm.querySelectorAll('[data-character-id]')];
     let draggedCard = null;
@@ -73,28 +130,6 @@ if (tierlistForm) {
         });
     };
 
-    const applyFilters = () => {
-        const values = Object.fromEntries(filterControls.map((control) => [
-            control.dataset.filter,
-            control.value.trim().toLocaleLowerCase(),
-        ]));
-        let visible = 0;
-        tierlistForm.querySelectorAll('[data-tier-dropzone="UNRANKED"] [data-character-id]').forEach((card) => {
-            const matches = Object.entries(values).every(([key, value]) => (
-                !value || card.dataset[key].toLocaleLowerCase().includes(value)
-            ));
-            card.hidden = !matches;
-            if (matches) {
-                visible += 1;
-            }
-        });
-        const countLabel = tierlistForm.querySelector('[data-filter-count]');
-        countLabel.textContent = values && Object.values(values).some(Boolean)
-            ? `Показано: ${visible}`
-            : '';
-        tierlistForm.querySelector('[data-filter-empty]').hidden = visible > 0;
-    };
-
     const selectCard = (card) => {
         selectedCard?.classList.remove('is-selected');
         selectedCard = card;
@@ -117,7 +152,7 @@ if (tierlistForm) {
         }
         card.hidden = false;
         updateCounts();
-        applyFilters();
+        applyCharacterFilters(tierlistForm);
         markDirty();
     };
 
@@ -180,14 +215,6 @@ if (tierlistForm) {
         button.addEventListener('click', () => moveCard(selectedCard, button.dataset.moveTier));
     });
 
-    filterControls.forEach((control) => control.addEventListener('input', applyFilters));
-    tierlistForm.querySelector('[data-filter-reset]').addEventListener('click', () => {
-        filterControls.forEach((control) => {
-            control.value = '';
-        });
-        applyFilters();
-    });
-
     tierlistForm.querySelectorAll('input[name="title"], input[name="games"]').forEach((input) => {
         input.addEventListener('change', markDirty);
     });
@@ -231,5 +258,5 @@ if (tierlistForm) {
     });
 
     updateCounts();
-    applyFilters();
+    applyCharacterFilters(tierlistForm);
 }
