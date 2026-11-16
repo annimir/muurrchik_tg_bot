@@ -18,6 +18,8 @@ jobs:
           curl -sS -I --max-time 15 http://murrlestia.ru/ || true
           printf "\nIP HTTPS:\n"
           curl -sS -k -I --max-time 15 https://87.199.209.239/ || true
+          printf "\nTelegram login widget configuration:\n"
+          curl -sS --max-time 15 https://murrlestia.ru/tierlists/login | grep -E "data-telegram-login|data-auth-url" || true
       - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
