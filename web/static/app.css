@@ -748,6 +748,8 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
 .tier-character strong { min-height: 2.4em; font-size: .75rem; line-height: 1.2; overflow-wrap: anywhere; }
 .tier-character small { display: none; }
 .tier-character-rarity { position: absolute; top: 9px; right: 9px; padding: 0 4px; border-radius: 3px; color: var(--gold-light); background: rgba(7, 17, 30, .8); font-size: .68rem; }
+.tier-character-availability { position: absolute; top: 9px; left: 9px; padding: 1px 4px; border-radius: 3px; color: var(--gold-light); background: rgba(7, 17, 30, .85); font-size: .6rem; font-weight: 700; }
+.tier-availability-upcoming { color: var(--teal); }
 .tier-character.is-selected { border-color: var(--teal); box-shadow: 0 0 0 2px var(--teal); }
 .tier-character.is-dragging { opacity: .35; }
 .tier-character[hidden] { display: none; }
@@ -778,6 +780,7 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
     .tier-character { flex-basis: 68px; width: 68px; padding: 4px; }
     .tier-character strong { font-size: .64rem; }
     .tier-character-rarity { top: 6px; right: 6px; font-size: .58rem; }
+    .tier-character-availability { top: 6px; left: 6px; font-size: .52rem; }
     .tier-move-panel { position: static; }
     .tier-filters label { flex-basis: calc(50% - 6px); }
 }

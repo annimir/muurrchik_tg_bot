@@ -16,7 +16,9 @@ class TierListCatalogTests(unittest.TestCase):
         for character in characters:
             with self.subTest(character=character['id']):
                 self.assertEqual(character['game'], 'genshin')
-                self.assertIn(character['rarity'], {4, 5})
+                self.assertIn(character.get('availability', 'playable'), {'playable', 'upcoming', 'npc'})
+                if character['rarity'] is not None:
+                    self.assertIn(character['rarity'], {4, 5})
                 for key in ('name', 'region', 'element', 'gender'):
                     self.assertTrue(character[key], key)
                     if key != 'name':
@@ -47,9 +49,56 @@ class TierListCatalogTests(unittest.TestCase):
                 self.assertTrue(affiliation['name'])
 
         options = get_tierlist_filter_options(['genshin'])['affiliation']
+        option_values = [(option['id'], option['name']) for option in options]
+        self.assertEqual(option_values, sorted(option_values, key=lambda item: item[1].casefold()))
+        self.assertTrue({
+            ('house_of_the_hearth', 'Дом очага'),
+            ('fatui', 'Фатуи'),
+            ('hexenzirkel', 'Ведьмин шабаш'),
+            ('five_sinners', 'Пять грешников'),
+            ('four_shades', 'Четыре тени'),
+            ('moon_goddesses', 'Богини Луны'),
+        } <= set(option_values))
+
+    def test_npc_and_upcoming_characters_have_explicit_availability(self):
+        characters = {character['id']: character for character in list_tierlist_characters()}
+        upcoming = {'anastasya', 'danica'}
+        npc = {
+            'noy', 'alice', 'dainsleif', 'pantalone', 'pierro', 'dottore',
+            'barbeloth', 'rhinedottir', 'naberius', 'ronova', 'astaroth',
+            'asmoday', 'capitano', 'pulcinella', 'signora', 'aria', 'canon',
+            'sonnet', 'rerir',
+        }
         self.assertEqual(
-            [(option['id'], option['name']) for option in options],
-            [('house_of_the_hearth', 'Дом очага'), ('fatui', 'Фатуи')],
+            {character['id'] for character in characters.values()
+             if character.get('availability') == 'upcoming'},
+            upcoming,
+        )
+        self.assertEqual(
+            {character['id'] for character in characters.values()
+             if character.get('availability') == 'npc'},
+            npc,
+        )
+        self.assertIn('astaroth', characters)
+        self.assertNotIn('istaroth', characters)
+        self.assertNotEqual(characters['rhinedottir'], characters['naberius'])
+        for character_id in npc:
+            self.assertIsNone(characters[character_id]['rarity'])
+        expected_elements = {
+            'anastasya': 'cryo', 'danica': 'electro', 'noy': 'dendro',
+            'alice': 'pyro', 'dainsleif': 'pyro', 'pantalone': 'dendro',
+            'pierro': 'electro', 'barbeloth': 'hydro', 'capitano': 'cryo',
+            'pulcinella': 'hydro', 'signora': 'pyro',
+        }
+        for character_id, element_id in expected_elements.items():
+            self.assertEqual(characters[character_id]['element']['id'], element_id)
+        for character_id in ('aria', 'canon', 'sonnet'):
+            self.assertEqual(
+                characters[character_id]['affiliations'][0]['id'], 'moon_goddesses',
+            )
+        self.assertIn(
+            'five_sinners',
+            {affiliation['id'] for affiliation in characters['rerir']['affiliations']},
         )
 
 
@@ -114,6 +163,11 @@ class TierListWebIntegrationTests(PostgresTestCase):
         self.assertIn('data-filter="element"', editor.text)
         self.assertIn('data-filter="gender"', editor.text)
         self.assertIn('data-filter="affiliation"', editor.text)
+        self.assertIn('data-filter="availability"', editor.text)
+        self.assertIn('data-availability="npc"', editor.text)
+        self.assertIn('>NPC</span>', editor.text)
+        self.assertIn('>Скоро</span>', editor.text)
+        self.assertNotIn('None★', editor.text)
         self.assertIn('<option value="fatui">Фатуи</option>', editor.text)
         self.assertIn('data-region="snezhnaya" data-element="hydro"', editor.text)
         self.assertIn('data-affiliation="fatui house_of_the_hearth"', editor.text)

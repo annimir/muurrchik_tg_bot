@@ -2636,5 +2636,562 @@
     "rarity": 5,
     "release": 1793656800,
     "image": "/static/tierlists/characters/mitya.webp"
+  },
+  {
+    "id": "anastasya",
+    "name": "Анастасия (Царица)",
+    "game": "genshin",
+    "availability": "upcoming",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "affiliations": [
+      {
+        "id": "fatui",
+        "name": "Фатуи"
+      }
+    ],
+    "rarity": 5,
+    "release": null,
+    "image": "/static/tierlists/characters/anastasya.webp"
+  },
+  {
+    "id": "danica",
+    "name": "Даника",
+    "game": "genshin",
+    "availability": "upcoming",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "rarity": 5,
+    "release": null,
+    "image": "/static/tierlists/characters/danica.webp"
+  },
+  {
+    "id": "noy",
+    "name": "Ной",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/noy.webp"
+  },
+  {
+    "id": "alice",
+    "name": "Алиса",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "affiliations": [
+      {
+        "id": "hexenzirkel",
+        "name": "Ведьмин шабаш"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/alice.webp"
+  },
+  {
+    "id": "dainsleif",
+    "name": "Дайнслейф",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "khaenriah",
+      "name": "Каэнри'ах"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/dainsleif.webp"
+  },
+  {
+    "id": "pantalone",
+    "name": "Панталоне",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "dendro",
+      "name": "Дендро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "affiliations": [
+      {
+        "id": "fatui",
+        "name": "Фатуи"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/pantalone.webp"
+  },
+  {
+    "id": "pierro",
+    "name": "Пьеро",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "electro",
+      "name": "Электро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "affiliations": [
+      {
+        "id": "fatui",
+        "name": "Фатуи"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/pierro.webp"
+  },
+  {
+    "id": "dottore",
+    "name": "Дотторе",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "unknown",
+      "name": "Неизвестно"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "affiliations": [
+      {
+        "id": "fatui",
+        "name": "Фатуи"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/dottore.webp"
+  },
+  {
+    "id": "barbeloth",
+    "name": "Барбелот",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "mondstadt",
+      "name": "Мондштадт"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "affiliations": [
+      {
+        "id": "hexenzirkel",
+        "name": "Ведьмин шабаш"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/barbeloth.webp"
+  },
+  {
+    "id": "rhinedottir",
+    "name": "Рейндоттир",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "khaenriah",
+      "name": "Каэнри'ах"
+    },
+    "element": {
+      "id": "unknown",
+      "name": "Неизвестно"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "affiliations": [
+      {
+        "id": "hexenzirkel",
+        "name": "Ведьмин шабаш"
+      },
+      {
+        "id": "five_sinners",
+        "name": "Пять грешников"
+      },
+      {
+        "id": "four_shades",
+        "name": "Четыре тени"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/rhinedottir.webp"
+  },
+  {
+    "id": "naberius",
+    "name": "Набериус",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "celestia",
+      "name": "Селестия"
+    },
+    "element": {
+      "id": "unknown",
+      "name": "Неизвестно"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "affiliations": [
+      {
+        "id": "four_shades",
+        "name": "Четыре тени"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/naberius.webp"
+  },
+  {
+    "id": "ronova",
+    "name": "Ронова",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "celestia",
+      "name": "Селестия"
+    },
+    "element": {
+      "id": "unknown",
+      "name": "Неизвестно"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "affiliations": [
+      {
+        "id": "four_shades",
+        "name": "Четыре тени"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/ronova.webp"
+  },
+  {
+    "id": "astaroth",
+    "name": "Астарот",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "celestia",
+      "name": "Селестия"
+    },
+    "element": {
+      "id": "unknown",
+      "name": "Неизвестно"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "affiliations": [
+      {
+        "id": "four_shades",
+        "name": "Четыре тени"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/astaroth.webp"
+  },
+  {
+    "id": "asmoday",
+    "name": "Асмодей",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "celestia",
+      "name": "Селестия"
+    },
+    "element": {
+      "id": "unknown",
+      "name": "Неизвестно"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "affiliations": [
+      {
+        "id": "four_shades",
+        "name": "Четыре тени"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/asmoday.webp"
+  },
+  {
+    "id": "capitano",
+    "name": "Капитано",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "cryo",
+      "name": "Крио"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "affiliations": [
+      {
+        "id": "fatui",
+        "name": "Фатуи"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/capitano.webp"
+  },
+  {
+    "id": "pulcinella",
+    "name": "Пульчинелла",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "hydro",
+      "name": "Гидро"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "affiliations": [
+      {
+        "id": "fatui",
+        "name": "Фатуи"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/pulcinella.webp"
+  },
+  {
+    "id": "signora",
+    "name": "Синьора",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "snezhnaya",
+      "name": "Снежная"
+    },
+    "element": {
+      "id": "pyro",
+      "name": "Пиро"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "affiliations": [
+      {
+        "id": "fatui",
+        "name": "Фатуи"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/signora.webp"
+  },
+  {
+    "id": "aria",
+    "name": "Ария",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "other",
+      "name": "Другое"
+    },
+    "element": {
+      "id": "unknown",
+      "name": "Неизвестно"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "affiliations": [
+      {
+        "id": "moon_goddesses",
+        "name": "Богини Луны"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/aria.webp"
+  },
+  {
+    "id": "canon",
+    "name": "Канон",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "other",
+      "name": "Другое"
+    },
+    "element": {
+      "id": "unknown",
+      "name": "Неизвестно"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "affiliations": [
+      {
+        "id": "moon_goddesses",
+        "name": "Богини Луны"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/canon.webp"
+  },
+  {
+    "id": "sonnet",
+    "name": "Сонет",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "other",
+      "name": "Другое"
+    },
+    "element": {
+      "id": "unknown",
+      "name": "Неизвестно"
+    },
+    "gender": {
+      "id": "female",
+      "name": "женский"
+    },
+    "affiliations": [
+      {
+        "id": "moon_goddesses",
+        "name": "Богини Луны"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/sonnet.webp"
+  },
+  {
+    "id": "rerir",
+    "name": "Рерир (Рери)",
+    "game": "genshin",
+    "availability": "npc",
+    "region": {
+      "id": "khaenriah",
+      "name": "Каэнри'ах"
+    },
+    "element": {
+      "id": "unknown",
+      "name": "Неизвестно"
+    },
+    "gender": {
+      "id": "male",
+      "name": "мужчина"
+    },
+    "affiliations": [
+      {
+        "id": "five_sinners",
+        "name": "Пять грешников"
+      }
+    ],
+    "rarity": null,
+    "release": null,
+    "image": "/static/tierlists/characters/rerir.webp"
   }
 ]

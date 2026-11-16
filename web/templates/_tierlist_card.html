@@ -1,9 +1,10 @@
 {% macro character_card(character, editor=false) %}
-<article class="tier-character" data-character-id="{{ character.id }}" data-game="{{ character.game }}" data-region="{{ character.region.id }}" data-element="{{ character.element.id }}" data-gender="{{ character.gender.id }}" data-affiliation="{{ character.get('affiliations', [])|map(attribute='id')|join(' ') }}" data-rarity="{{ character.rarity }}" data-name="{{ character.name|lower }}"{% if editor %} draggable="true" tabindex="0" role="button" aria-label="Выбрать {{ character.name }}"{% endif %}>
+<article class="tier-character" data-character-id="{{ character.id }}" data-game="{{ character.game }}" data-availability="{{ character.get('availability', 'playable') }}" data-region="{{ character.region.id }}" data-element="{{ character.element.id }}" data-gender="{{ character.gender.id }}" data-affiliation="{{ character.get('affiliations', [])|map(attribute='id')|join(' ') }}" data-rarity="{{ character.rarity if character.rarity is not none else '' }}" data-name="{{ character.name|lower }}"{% if editor %} draggable="true" tabindex="0" role="button" aria-label="Выбрать {{ character.name }}"{% endif %}>
     <img src="{{ character.image }}" alt="" loading="lazy" width="96" height="96">
     <strong>{{ character.name }}</strong>
     <small>{{ character.element.name }} · {{ character.region.name }}</small>
-    <span class="tier-character-rarity">{{ character.rarity }}★</span>
+    {% if character.get('availability') %}<span class="tier-character-availability tier-availability-{{ character.availability }}">{{ 'Скоро' if character.availability == 'upcoming' else 'NPC' }}</span>{% endif %}
+    {% if character.rarity is not none %}<span class="tier-character-rarity">{{ character.rarity }}★</span>{% endif %}
 </article>
 {% endmacro %}
 
@@ -14,6 +15,7 @@
         <label>Поиск<input type="search" data-filter="name" placeholder="Имя персонажа"></label>
         <label>Игра<select data-filter="game"><option value="">Все игры</option>{% for game in games %}<option value="{{ game.code }}">{{ game.name }}</option>{% endfor %}</select></label>
         {% for key, label in [('region', 'Регион'), ('element', 'Стихия'), ('gender', 'Пол'), ('affiliation', 'Фракция')] %}<label>{{ label }}<select data-filter="{{ key }}"><option value="">Все</option>{% for option in filter_options[key] %}<option value="{{ option.id }}">{{ option.name }}</option>{% endfor %}</select></label>{% endfor %}
+        <label>Тип<select data-filter="availability"><option value="">Все</option><option value="playable">Игровые</option><option value="upcoming">Скоро</option><option value="npc">NPC</option></select></label>
         <label>Редкость<select data-filter="rarity"><option value="">Все</option><option value="5">5★</option><option value="4">4★</option></select></label>
         <button class="button button-small button-quiet" type="button" data-filter-reset>Сбросить</button>
     </div>
