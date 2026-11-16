@@ -4,7 +4,7 @@ import unittest
 
 from fastapi.testclient import TestClient
 
-from services.tierlist_catalog import list_tierlist_characters
+from services.tierlist_catalog import get_tierlist_filter_options, list_tierlist_characters
 from tests.postgres_support import TEST_POSTGRES_DSN, PostgresTestCase, queries
 
 
@@ -26,6 +26,31 @@ class TierListCatalogTests(unittest.TestCase):
                 image = Path('web', character['image'].removeprefix('/'))
                 self.assertTrue(image.is_file(), image)
                 self.assertGreater(image.stat().st_size, 1000)
+
+    def test_affiliations_are_separate_from_regions_and_have_filter_options(self):
+        characters = list_tierlist_characters()
+        fatui = {
+            character['id']
+            for character in characters
+            if 'fatui' in {
+                affiliation['id'] for affiliation in character.get('affiliations', [])
+            }
+        }
+        self.assertTrue({
+            'tartaglia', 'lynette', 'lyney', 'freminet', 'arlecchino',
+            'columbina', 'sandrone',
+        } <= fatui)
+        self.assertNotIn('fatui', {character['region']['id'] for character in characters})
+        for character in characters:
+            for affiliation in character.get('affiliations', []):
+                self.assertTrue(affiliation['id'])
+                self.assertTrue(affiliation['name'])
+
+        options = get_tierlist_filter_options(['genshin'])['affiliation']
+        self.assertEqual(
+            [(option['id'], option['name']) for option in options],
+            [('house_of_the_hearth', 'Дом очага'), ('fatui', 'Фатуи')],
+        )
 
 
 @unittest.skipUnless(TEST_POSTGRES_DSN, 'Требуется TEST_POSTGRES_DSN')
@@ -88,6 +113,10 @@ class TierListWebIntegrationTests(PostgresTestCase):
         self.assertIn('data-filter="region"', editor.text)
         self.assertIn('data-filter="element"', editor.text)
         self.assertIn('data-filter="gender"', editor.text)
+        self.assertIn('data-filter="affiliation"', editor.text)
+        self.assertIn('<option value="fatui">Фатуи</option>', editor.text)
+        self.assertIn('data-region="snezhnaya" data-element="hydro"', editor.text)
+        self.assertIn('data-affiliation="fatui house_of_the_hearth"', editor.text)
         self.assertIn('data-move-tier="S"', editor.text)
 
         response = self.client.post(
@@ -149,6 +178,13 @@ class TierListWebIntegrationTests(PostgresTestCase):
         self.assertIn('Обновлённый рейтинг', public.text)
         self.assertIn('Фурина', public.text)
         self.assertIn('Райдэн', public.text)
+        self.assertIn('data-tierlist-filters', public.text)
+        self.assertIn('data-filter="region"', public.text)
+        self.assertIn('data-filter="element"', public.text)
+        self.assertIn('data-filter="gender"', public.text)
+        self.assertIn('data-filter="affiliation"', public.text)
+        self.assertIn('data-character-id="furina"', public.text)
+        self.assertIn('data-region="fontaine"', public.text)
         self.assertNotIn('Барбара', public.text)
         self.assertNotIn('Без тира', public.text)
 

@@ -1,10 +1,14 @@
 {% extends 'base.html' %}
-{% from '_tierlist_card.html' import character_card %}
+{% from '_tierlist_card.html' import character_card, character_filters %}
 {% block title %}{{ tier_list.title }}{% endblock %}
-{% block scripts %}<script src="/static/tierlist_export.js" defer></script>{% endblock %}
+{% block scripts %}<script src="/static/tierlists.js" defer></script><script src="/static/tierlist_export.js" defer></script>{% endblock %}
 {% block content %}
 <section class="page-heading tierlist-heading"><div><div class="eyebrow">Тирлист · {{ tier_list.game_names|join(', ') }}</div><h1>{{ tier_list.title }}</h1><p>Автор: <a class="text-link" href="/users/{{ tier_list.user_id }}">{{ tier_list.owner_tag or 'Игрок' }}</a> · Обновлён {{ tier_list.updated_at|datetime_ru }}</p></div><div class="tierlist-export"><button class="button button-secondary" type="button" data-export-tierlist>Экспортировать в PNG</button><small data-export-status aria-live="polite"></small></div></section>
-<div class="tier-board tier-board-public" data-tierlist-board data-title="{{ tier_list.title }}" data-author="{{ tier_list.owner_tag or 'Игрок' }}" data-games="{{ tier_list.game_names|join(', ') }}">
-{% for tier in tiers %}{% if rows[tier] %}<section class="tier-row tier-{{ tier|lower }}"><header><h2>{{ tier_labels[tier] }}</h2><span>{{ rows[tier]|length }}</span></header><div class="tier-dropzone">{% for character in rows[tier] %}{{ character_card(character) }}{% endfor %}</div></section>{% endif %}{% else %}<div class="empty-state"><h2>Пока никто не расставлен</h2><p>Автор ещё не переместил персонажей из области «Без тира».</p></div>{% endfor %}
+<div data-tierlist-filters>
+    {{ character_filters(filter_options, games) }}
+    <p class="empty-state tier-filter-empty" data-filter-empty hidden>По выбранным фильтрам никого не найдено.</p>
+    <div class="tier-board tier-board-public" data-tierlist-board data-title="{{ tier_list.title }}" data-author="{{ tier_list.owner_tag or 'Игрок' }}" data-games="{{ tier_list.game_names|join(', ') }}">
+    {% for tier in tiers %}{% if rows[tier] %}<section class="tier-row tier-{{ tier|lower }}" data-tier-row="{{ tier }}"><header><h2>{{ tier_labels[tier] }}</h2><span data-tier-count>{{ rows[tier]|length }}</span></header><div class="tier-dropzone">{% for character in rows[tier] %}{{ character_card(character) }}{% endfor %}</div></section>{% endif %}{% else %}<div class="empty-state"><h2>Пока никто не расставлен</h2><p>Автор ещё не переместил персонажей из области «Без тира».</p></div>{% endfor %}
+    </div>
 </div>
 {% endblock %}
