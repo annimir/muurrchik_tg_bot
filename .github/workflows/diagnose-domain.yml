@@ -1,0 +1,43 @@
+name: Diagnose domain connectivity
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+      - name: Inspect Nginx without changing the server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" '
+            set -eu
+            printf "Nginx active: "; systemctl is-active nginx
+            printf "Nginx enabled: "; systemctl is-enabled nginx
+            printf "\nEnabled sites:\n"
+            ls -la /etc/nginx/sites-enabled
+            printf "\nRelevant configuration:\n"
+            for config in /etc/nginx/nginx.conf /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf; do
+              if [ -f "$config" ]; then
+                printf "\n--- %s ---\n" "$config"
+                grep -n -E "server_name|listen|return|ssl_certificate|include|allow|deny|proxy_pass|map |geo " "$config" || true
+              fi
+            done
+            printf "\nNginx config test:\n"
+            nginx -t 2>&1 || true
+            printf "\nLocal HTTP check:\n"
+            curl -sS -I --max-time 10 -H "Host: murrlestia.ru" http://127.0.0.1/ || true
+            printf "\nLocal HTTPS check:\n"
+            curl -sS -k -I --max-time 10 --resolve murrlestia.ru:443:127.0.0.1 https://murrlestia.ru/ || true
+          '
