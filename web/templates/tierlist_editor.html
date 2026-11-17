@@ -16,7 +16,7 @@
         <span>Выбрано: <strong data-selected-character>никто</strong></span>
         <div class="tier-move-controls">{% for tier in tiers %}<button class="button button-small button-secondary" type="button" data-move-tier="{{ tier }}">В {{ tier }}</button>{% endfor %}<button class="button button-small button-quiet" type="button" data-move-tier="UNRANKED">Без тира</button></div>
     </section>
-    {{ character_filters(filter_options, games) }}
+    {{ character_filters(filter_options, games, editor=true) }}
     <p class="empty-state tier-filter-empty" data-filter-empty hidden>По выбранным фильтрам никого не найдено.</p>
     <div class="tier-board">
     {% for tier in tiers %}<section class="tier-row tier-{{ tier|lower }}" data-tier-row="{{ tier }}"><header><h2>{{ tier_labels[tier] }}</h2><span data-tier-count>{{ rows[tier]|length }}</span></header><div class="tier-row-content"><label class="tier-description"><span>Что означает {{ tier }}:</span><input type="text" maxlength="300" data-tier-description="{{ tier }}" value="{{ tier_list.tier_descriptions.get(tier, '') }}" placeholder="Например: лучшие из лучших"></label><div class="tier-dropzone" data-tier-dropzone="{{ tier }}">{% for character in rows[tier] %}{{ character_card(character, editor=true) }}{% endfor %}<p class="tier-empty" data-tier-empty>Перетащите персонажа сюда</p></div></div></section>{% endfor %}
