@@ -167,21 +167,55 @@ def get_tier_list(tier_list_id, owner_user_id=None):
         ''',
         (tier_list_id,),
     ).all()
+    tier_list['tier_descriptions'] = {
+        row['tier']: row['description']
+        for row in db(
+            'SELECT tier, description FROM tier_list_tier_description WHERE tier_list_id = %s',
+            (tier_list_id,),
+        ).all()
+    }
     return tier_list
 
 
-def update_tier_list(user_id, tier_list_id, title, game_codes, entries, version):
+def _tier_descriptions(descriptions):
+    if descriptions is None:
+        return {}
+    if not isinstance(descriptions, dict) or not set(descriptions) <= set(RANKED_TIER_CODES):
+        raise ValueError('Некорректные описания тиров')
+    normalized = {}
+    for tier, value in descriptions.items():
+        if not isinstance(value, str):
+            raise ValueError('Некорректные описания тиров')
+        description = value.strip()
+        if len(description) > 300:
+            raise ValueError('Описание тира должно содержать не более 300 символов')
+        if description:
+            normalized[tier] = description
+    return normalized
+
+
+def update_tier_list(
+    user_id, tier_list_id, title, game_codes, entries, version, tier_descriptions=None,
+):
     title = _title(title)
     games = _games(game_codes)
-    characters = {character['id'] for character in list_tierlist_characters(games)}
-    if len(entries) != len(characters):
-        raise ValueError('Раскладка не содержит всех персонажей выбранных игр')
+    catalog = list_tierlist_characters(games)
+    characters = {character['id'] for character in catalog}
     character_ids = [entry.get('character_id') for entry in entries]
-    if len(set(character_ids)) != len(character_ids) or set(character_ids) != characters:
+    if len(set(character_ids)) != len(character_ids) or not set(character_ids) <= characters:
         raise ValueError('Персонажи раскладки не соответствуют выбранным играм')
     if any(entry.get('tier') not in TIER_CODES for entry in entries):
         raise ValueError('Неизвестный тир')
+    descriptions = _tier_descriptions(tier_descriptions)
 
+    submitted_character_ids = set(character_ids)
+    entries = [
+        *entries,
+        *(
+            {'character_id': character['id'], 'tier': 'UNRANKED'}
+            for character in catalog if character['id'] not in submitted_character_ids
+        ),
+    ]
     positions = dict.fromkeys(TIER_CODES, 0)
     normalized_entries = []
     for entry in entries:
@@ -201,7 +235,11 @@ def update_tier_list(user_id, tier_list_id, title, game_codes, entries, version)
         updated = tx(
             '''
             UPDATE tier_list
-            SET title = %s, lock_version = lock_version + 1, updated_at = now()
+            SET title = %s, lock_version = lock_version + 1, updated_at = now(),
+                first_saved_at = CASE
+                    WHEN lock_version = 1 THEN COALESCE(first_saved_at, now())
+                    ELSE first_saved_at
+                END
             WHERE id = %s
             ''',
             (title, tier_list_id),
@@ -218,7 +256,29 @@ def update_tier_list(user_id, tier_list_id, title, game_codes, entries, version)
                 ''',
                 (tier_list_id, character_id, tier, position),
             ).close()
+        tx(
+            'DELETE FROM tier_list_tier_description WHERE tier_list_id = %s',
+            (tier_list_id,),
+        ).close()
+        for tier, description in descriptions.items():
+            tx(
+                '''
+                INSERT INTO tier_list_tier_description (tier_list_id, tier, description)
+                VALUES (%s, %s, %s)
+                ''',
+                (tier_list_id, tier, description),
+            ).close()
     return get_tier_list(tier_list_id, user_id)
+
+
+def mark_tier_list_announcement_sent(tier_list_id):
+    db(
+        '''
+        UPDATE tier_list SET announcement_sent_at = now()
+        WHERE id = %s AND announcement_sent_at IS NULL
+        ''',
+        (tier_list_id,),
+    ).close()
 
 
 def delete_tier_list(user_id, tier_list_id):

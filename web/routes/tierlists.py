@@ -57,15 +57,18 @@ def _available_games():
 
 
 def _rows(tier_list, ranked_only=False):
-    characters = {
-        character['id']: character
-        for character in list_tierlist_characters(tier_list['game_codes'])
-    }
+    catalog = list_tierlist_characters(tier_list['game_codes'])
+    characters = {character['id']: character for character in catalog}
     rows = {tier: [] for tier in (*RANKED_TIER_CODES, 'UNRANKED')}
+    listed_character_ids = set()
     for entry in tier_list['entries']:
         character = characters.get(entry['character_id'])
         if character:
             rows[entry['tier']].append(character)
+            listed_character_ids.add(character['id'])
+    rows['UNRANKED'].extend(
+        character for character in catalog if character['id'] not in listed_character_ids
+    )
     if ranked_only:
         rows.pop('UNRANKED')
     return rows
@@ -225,19 +228,29 @@ async def tierlist_update(
     title: str = Form(...),
     games: list[str] = Form(default=[]),
     entries: str = Form(...),
+    tier_descriptions: str = Form(default='{}'),
     version: int = Form(...),
     session=Depends(_require_tierlist_user),
     _=Depends(csrf_protect),
 ):
+    from services.tierlist_notifications import announce_tier_list
+
     user = _session_user(session)
-    if not get_tier_list(tier_list_id, user['id']):
+    current_tier_list = get_tier_list(tier_list_id, user['id'])
+    if not current_tier_list:
         raise HTTPException(status_code=404, detail='Тирлист не найден')
+    announcement_pending = current_tier_list['announcement_sent_at'] is None and (
+        current_tier_list['lock_version'] == 1
+        or current_tier_list['first_saved_at'] is not None
+    )
     try:
         parsed_entries = json.loads(entries)
+        parsed_descriptions = json.loads(tier_descriptions)
         if not isinstance(parsed_entries, list):
             raise ValueError('Некорректная раскладка')
         tier_list = update_tier_list(
             user['id'], tier_list_id, title, games, parsed_entries, version,
+            parsed_descriptions,
         )
     except json.JSONDecodeError as exc:
         raise HTTPException(status_code=400, detail='Некорректная раскладка') from exc
@@ -245,7 +258,10 @@ async def tierlist_update(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return {'ok': True, 'version': tier_list['lock_version']}
+    result = {'ok': True, 'version': tier_list['lock_version']}
+    if announcement_pending:
+        result['notification_sent'] = await announce_tier_list(tier_list)
+    return result
 
 
 @router.post('/tierlists/{tier_list_id}/delete', name='tierlist_delete')

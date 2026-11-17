@@ -8,7 +8,7 @@
     {{ character_filters(filter_options, games) }}
     <p class="empty-state tier-filter-empty" data-filter-empty hidden>По выбранным фильтрам никого не найдено.</p>
     <div class="tier-board tier-board-public" data-tierlist-board data-title="{{ tier_list.title }}" data-author="{{ tier_list.owner_tag or 'Игрок' }}" data-games="{{ tier_list.game_names|join(', ') }}">
-    {% for tier in tiers %}{% if rows[tier] %}<section class="tier-row tier-{{ tier|lower }}" data-tier-row="{{ tier }}"><header><h2>{{ tier_labels[tier] }}</h2><span data-tier-count>{{ rows[tier]|length }}</span></header><div class="tier-dropzone">{% for character in rows[tier] %}{{ character_card(character) }}{% endfor %}</div></section>{% endif %}{% else %}<div class="empty-state"><h2>Пока никто не расставлен</h2><p>Автор ещё не переместил персонажей из области «Без тира».</p></div>{% endfor %}
+    {% for tier in tiers %}{% if rows[tier] %}<section class="tier-row tier-{{ tier|lower }}" data-tier-row="{{ tier }}"><header><h2>{{ tier_labels[tier] }}</h2><span data-tier-count>{{ rows[tier]|length }}</span></header><div class="tier-row-content">{% if tier_list.tier_descriptions.get(tier) %}<p class="tier-description" data-tier-description-text>{{ tier_list.tier_descriptions[tier] }}</p>{% endif %}<div class="tier-dropzone">{% for character in rows[tier] %}{{ character_card(character) }}{% endfor %}</div></div></section>{% endif %}{% else %}<div class="empty-state"><h2>Пока никто не расставлен</h2><p>Автор ещё не переместил персонажей из области «Без тира».</p></div>{% endfor %}
     </div>
 </div>
 {% endblock %}

@@ -19,7 +19,7 @@
     {{ character_filters(filter_options, games) }}
     <p class="empty-state tier-filter-empty" data-filter-empty hidden>По выбранным фильтрам никого не найдено.</p>
     <div class="tier-board">
-    {% for tier in tiers %}<section class="tier-row tier-{{ tier|lower }}" data-tier-row="{{ tier }}"><header><h2>{{ tier_labels[tier] }}</h2><span data-tier-count>{{ rows[tier]|length }}</span></header><div class="tier-dropzone" data-tier-dropzone="{{ tier }}">{% for character in rows[tier] %}{{ character_card(character, editor=true) }}{% endfor %}<p class="tier-empty" data-tier-empty>Перетащите персонажа сюда</p></div></section>{% endfor %}
+    {% for tier in tiers %}<section class="tier-row tier-{{ tier|lower }}" data-tier-row="{{ tier }}"><header><h2>{{ tier_labels[tier] }}</h2><span data-tier-count>{{ rows[tier]|length }}</span></header><div class="tier-row-content"><label class="tier-description"><span>Что означает {{ tier }}:</span><input type="text" maxlength="300" data-tier-description="{{ tier }}" value="{{ tier_list.tier_descriptions.get(tier, '') }}" placeholder="Например: лучшие из лучших"></label><div class="tier-dropzone" data-tier-dropzone="{{ tier }}">{% for character in rows[tier] %}{{ character_card(character, editor=true) }}{% endfor %}<p class="tier-empty" data-tier-empty>Перетащите персонажа сюда</p></div></div></section>{% endfor %}
     </div>
     <section class="panel tier-pool" data-tier-row="UNRANKED">
         <div class="section-heading"><div><div class="eyebrow">Каталог выбранных игр</div><h2>Без тира <span data-tier-count>{{ rows['UNRANKED']|length }}</span></h2></div></div>
