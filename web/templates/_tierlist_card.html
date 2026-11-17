@@ -8,9 +8,9 @@
 </article>
 {% endmacro %}
 
-{% macro character_filters(filter_options, games) %}
+{% macro character_filters(filter_options, games, editor=false) %}
 <section class="panel tier-filter-panel" aria-label="Фильтры персонажей">
-    <div class="section-heading"><div><div class="eyebrow">Карточки во всех тирах</div><h2>Фильтры персонажей</h2></div><span class="muted" data-filter-count></span></div>
+    <div class="section-heading"><div><div class="eyebrow">{{ 'Только каталог «Без тира»' if editor else 'Карточки во всех тирах' }}</div><h2>Фильтры персонажей</h2></div><span class="muted" data-filter-count></span></div>
     <div class="tier-filters">
         <label>Поиск<input type="search" data-filter="name" placeholder="Имя персонажа"></label>
         <label>Игра<select data-filter="game"><option value="">Все игры</option>{% for game in games %}<option value="{{ game.code }}">{{ game.name }}</option>{% endfor %}</select></label>

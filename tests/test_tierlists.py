@@ -173,6 +173,8 @@ class TierListWebIntegrationTests(PostgresTestCase):
         self.assertIn('data-region="snezhnaya" data-element="hydro"', editor.text)
         self.assertIn('data-affiliation="fatui house_of_the_hearth"', editor.text)
         self.assertIn('data-move-tier="S"', editor.text)
+        self.assertIn('Только каталог «Без тира»', editor.text)
+        self.assertNotIn('Карточки во всех тирах', editor.text)
 
         response = self.client.post(
             f'/tierlists/{tier_list_id}',
@@ -245,6 +247,7 @@ class TierListWebIntegrationTests(PostgresTestCase):
         self.assertIn('data-tier-description-text>Лучшие из лучших</p>', public.text)
         self.assertIn('data-tier-description-text>Очень сильные</p>', public.text)
         self.assertIn('data-tierlist-filters', public.text)
+        self.assertIn('Карточки во всех тирах', public.text)
         self.assertIn('data-filter="region"', public.text)
         self.assertIn('data-filter="element"', public.text)
         self.assertIn('data-filter="gender"', public.text)

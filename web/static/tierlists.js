@@ -5,9 +5,13 @@ const applyCharacterFilters = (root) => {
         control.value.trim().toLocaleLowerCase(),
     ]));
     const hasActiveFilters = Object.values(values).some(Boolean);
+    const editorPool = root.id === 'tierlist-editor'
+        ? root.querySelector('[data-tier-row="UNRANKED"]')
+        : null;
+    const filterRoot = editorPool || root;
     let visible = 0;
 
-    root.querySelectorAll('[data-character-id]').forEach((card) => {
+    filterRoot.querySelectorAll('[data-character-id]').forEach((card) => {
         const matches = Object.entries(values).every(([key, value]) => {
             if (!value) {
                 return true;
@@ -23,14 +27,15 @@ const applyCharacterFilters = (root) => {
         }
     });
 
-    root.querySelectorAll('[data-tier-row]').forEach((row) => {
+    const filteredRows = editorPool ? [editorPool] : root.querySelectorAll('[data-tier-row]');
+    filteredRows.forEach((row) => {
         const cards = [...row.querySelectorAll('[data-character-id]')];
         const rowVisible = cards.filter((card) => !card.hidden).length;
         const count = row.querySelector('[data-tier-count]');
         if (count) {
             count.textContent = hasActiveFilters ? `${rowVisible}/${cards.length}` : cards.length;
         }
-        row.hidden = hasActiveFilters && rowVisible === 0;
+        row.hidden = !editorPool && hasActiveFilters && rowVisible === 0;
     });
 
     const countLabel = root.querySelector('[data-filter-count]');
