@@ -218,6 +218,9 @@ if (tierlistForm) {
     tierlistForm.querySelectorAll('input[name="title"], input[name="games"]').forEach((input) => {
         input.addEventListener('change', markDirty);
     });
+    tierlistForm.querySelectorAll('[data-tier-description]').forEach((input) => {
+        input.addEventListener('input', markDirty);
+    });
 
     tierlistForm.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -227,8 +230,15 @@ if (tierlistForm) {
                 tier: zone.dataset.tierDropzone,
             }))
         ));
+        const descriptions = Object.fromEntries(
+            [...tierlistForm.querySelectorAll('[data-tier-description]')].map((input) => [
+                input.dataset.tierDescription,
+                input.value,
+            ]),
+        );
         const data = new FormData(tierlistForm);
         data.set('entries', JSON.stringify(entries));
+        data.set('tier_descriptions', JSON.stringify(descriptions));
         saveButton.disabled = true;
         setStatus('Сохраняем…');
         try {
@@ -243,7 +253,11 @@ if (tierlistForm) {
             }
             tierlistForm.querySelector('input[name="version"]').value = payload.version;
             dirty = false;
-            setStatus('Сохранено');
+            if (payload.notification_sent === false) {
+                setStatus('Сохранено, но уведомление в чат не отправлено. Повторим при следующем сохранении.', true);
+            } else {
+                setStatus('Сохранено');
+            }
         } catch (error) {
             setStatus(error.message, true);
         } finally {

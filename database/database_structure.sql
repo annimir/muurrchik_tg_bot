@@ -221,6 +221,16 @@ CREATE TABLE IF NOT EXISTS tier_list_entry (
     UNIQUE (tier_list_id, tier, position)
 );
 
+CREATE TABLE IF NOT EXISTS tier_list_tier_description (
+    tier_list_id INTEGER NOT NULL REFERENCES tier_list(id) ON DELETE CASCADE,
+    tier         TEXT NOT NULL CHECK (tier IN ('S', 'A', 'B', 'C', 'D')),
+    description  VARCHAR(300) NOT NULL CHECK (length(btrim(description)) > 0),
+    PRIMARY KEY (tier_list_id, tier)
+);
+
+ALTER TABLE tier_list ADD COLUMN IF NOT EXISTS first_saved_at TIMESTAMPTZ;
+ALTER TABLE tier_list ADD COLUMN IF NOT EXISTS announcement_sent_at TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS positions (
     id   SERIAL PRIMARY KEY,
     name TEXT NOT NULL UNIQUE

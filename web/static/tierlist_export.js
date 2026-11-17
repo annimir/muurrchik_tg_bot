@@ -63,6 +63,7 @@ if (tierlistExportButton) {
             const rows = [...board.querySelectorAll('.tier-row:not([hidden])')].map((row) => ({
                 code: row.querySelector('header h2').textContent.trim(),
                 color: getComputedStyle(row.querySelector('header')).backgroundColor,
+                description: row.querySelector('[data-tier-description-text]')?.textContent.trim() || '',
                 characters: [...row.querySelectorAll('.tier-character:not([hidden])')].map((character) => ({
                     name: character.querySelector('strong').textContent.trim(),
                     source: new URL(character.querySelector('img').getAttribute('src'), document.baseURI).href,
@@ -80,15 +81,28 @@ if (tierlistExportButton) {
             const cellWidth = 112;
             const cellHeight = 122;
             const width = margin * 2 + tierWidth + columns * cellWidth;
-            const exportRows = rows.map((row) => ({
-                ...row,
-                height: Math.max(118, Math.ceil(row.characters.length / columns) * cellHeight + 20),
-            }));
-            const height = headerHeight + exportRows.reduce((sum, row) => sum + row.height + 10, 0) + margin;
             const canvas = document.createElement('canvas');
             canvas.width = width * 2;
-            canvas.height = height * 2;
             const context = canvas.getContext('2d');
+            context.scale(2, 2);
+            context.font = '600 15px sans-serif';
+            const exportRows = rows.map((row) => {
+                const descriptionLines = row.description
+                    ? textLines(context, row.description, width - margin * 2 - tierWidth - 24, 4)
+                    : [];
+                const descriptionHeight = descriptionLines.length * 21 + (descriptionLines.length ? 12 : 0);
+                return {
+                    ...row,
+                    descriptionLines,
+                    descriptionHeight,
+                    height: Math.max(
+                        118,
+                        descriptionHeight + Math.ceil(row.characters.length / columns) * cellHeight + 20,
+                    ),
+                };
+            });
+            const height = headerHeight + exportRows.reduce((sum, row) => sum + row.height + 10, 0) + margin;
+            canvas.height = height * 2;
             context.scale(2, 2);
             context.fillStyle = '#0c1627';
             context.fillRect(0, 0, width, height);
@@ -117,12 +131,17 @@ if (tierlistExportButton) {
                 context.textAlign = 'center';
                 context.fillText(row.code, margin + tierWidth / 2, rowY + 48);
                 context.textAlign = 'left';
+                context.fillStyle = '#f6f1e5';
+                context.font = '600 15px sans-serif';
+                row.descriptionLines.forEach((line, index) => {
+                    context.fillText(line, margin + tierWidth + 12, rowY + 23 + index * 21);
+                });
 
                 row.characters.forEach((character, index) => {
                     const column = index % columns;
                     const line = Math.floor(index / columns);
                     const x = margin + tierWidth + column * cellWidth + 12;
-                    const y = rowY + 10 + line * cellHeight;
+                    const y = rowY + row.descriptionHeight + 10 + line * cellHeight;
                     roundedImage(context, images.get(character.source), x, y, 86);
                     context.fillStyle = '#f6f1e5';
                     context.font = '12px sans-serif';

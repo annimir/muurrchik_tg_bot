@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import unittest
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -178,16 +179,25 @@ class TierListWebIntegrationTests(PostgresTestCase):
             data={
                 'title': 'Обновлённый рейтинг', 'games': 'genshin',
                 'entries': json.dumps(self.ordered_entries(tier_list)),
+                'tier_descriptions': json.dumps({
+                    'S': 'Лучшие из лучших', 'A': 'Очень сильные',
+                }),
                 'version': 1, 'csrf_token': self.csrf,
             },
         )
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(response.json(), {'ok': True, 'version': 2})
+        self.assertEqual(
+            response.json(), {'ok': True, 'version': 2, 'notification_sent': False},
+        )
         updated = get_tier_list(tier_list_id, self.user['id'])
         by_character = {entry['character_id']: entry for entry in updated['entries']}
         self.assertEqual(by_character['furina']['tier'], 'S')
         self.assertEqual(by_character['raiden_shogun']['tier'], 'A')
         self.assertEqual(by_character['furina']['position'], 0)
+        self.assertEqual(
+            updated['tier_descriptions'],
+            {'S': 'Лучшие из лучших', 'A': 'Очень сильные'},
+        )
 
         stale = self.client.post(
             f'/tierlists/{tier_list_id}',
@@ -232,6 +242,8 @@ class TierListWebIntegrationTests(PostgresTestCase):
         self.assertIn('Обновлённый рейтинг', public.text)
         self.assertIn('Фурина', public.text)
         self.assertIn('Райдэн', public.text)
+        self.assertIn('data-tier-description-text>Лучшие из лучших</p>', public.text)
+        self.assertIn('data-tier-description-text>Очень сильные</p>', public.text)
         self.assertIn('data-tierlist-filters', public.text)
         self.assertIn('data-filter="region"', public.text)
         self.assertIn('data-filter="element"', public.text)
@@ -264,6 +276,104 @@ class TierListWebIntegrationTests(PostgresTestCase):
         self.client.cookies.clear()
         self.assertEqual(self.client.get(f'/tierlists/{tier_list_id}').status_code, 404)
         self.assertEqual(self.client.get(f'/tierlists/{second_id}').status_code, 200)
+
+    def test_legacy_list_is_completed_with_new_unranked_characters(self):
+        from database.tierlists import get_tier_list
+
+        tier_list_id = self.create_list()
+        missing_ids = ['capitano', 'rerir']
+        queries.db(
+            '''
+            DELETE FROM tier_list_entry
+            WHERE tier_list_id = %s AND character_id = ANY(%s)
+            ''',
+            (tier_list_id, missing_ids),
+        ).close()
+        queries.db(
+            'UPDATE tier_list SET lock_version = 2 WHERE id = %s',
+            (tier_list_id,),
+        ).close()
+
+        editor = self.client.get(f'/tierlists/{tier_list_id}/edit')
+        self.assertEqual(editor.status_code, 200)
+        for character_id in missing_ids:
+            self.assertIn(f'data-character-id="{character_id}"', editor.text)
+
+        tier_list = get_tier_list(tier_list_id, self.user['id'])
+        entries = [
+            entry for entry in self.ordered_entries(tier_list)
+            if entry['character_id'] not in missing_ids
+        ]
+        with patch(
+            'services.tierlist_notifications.announce_tier_list', new=AsyncMock(),
+        ) as announce:
+            response = self.client.post(
+                f'/tierlists/{tier_list_id}',
+                data={
+                    'title': tier_list['title'], 'games': 'genshin',
+                    'entries': json.dumps(entries), 'version': 2,
+                    'csrf_token': self.csrf,
+                },
+            )
+        self.assertEqual(response.status_code, 200, response.text)
+        announce.assert_not_awaited()
+        updated = get_tier_list(tier_list_id, self.user['id'])
+        by_character = {entry['character_id']: entry for entry in updated['entries']}
+        self.assertEqual(len(updated['entries']), len(list_tierlist_characters(['genshin'])))
+        for character_id in missing_ids:
+            self.assertEqual(by_character[character_id]['tier'], 'UNRANKED')
+        self.assertEqual(by_character['furina']['tier'], 'S')
+        self.assertIsNone(updated['first_saved_at'])
+
+    def test_first_save_announcement_is_retried_and_sent_only_once(self):
+        from database.tierlists import get_tier_list, mark_tier_list_announcement_sent
+
+        tier_list_id = self.create_list()
+
+        announcement_results = iter((False, True))
+
+        def announcement_result(tier_list):
+            result = next(announcement_results)
+            if result:
+                mark_tier_list_announcement_sent(tier_list['id'])
+            return result
+
+        with patch(
+            'services.tierlist_notifications.announce_tier_list',
+            new=AsyncMock(side_effect=announcement_result),
+        ) as announce:
+            for expected_version, expected_notification in ((2, False), (3, True)):
+                tier_list = get_tier_list(tier_list_id, self.user['id'])
+                response = self.client.post(
+                    f'/tierlists/{tier_list_id}',
+                    data={
+                        'title': 'Новый рейтинг', 'games': 'genshin',
+                        'entries': json.dumps(self.ordered_entries(tier_list)),
+                        'version': tier_list['lock_version'], 'csrf_token': self.csrf,
+                    },
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(response.json()['version'], expected_version)
+                self.assertIs(response.json()['notification_sent'], expected_notification)
+
+            tier_list = get_tier_list(tier_list_id, self.user['id'])
+            self.assertIsNotNone(tier_list['first_saved_at'])
+            self.assertIsNotNone(tier_list['announcement_sent_at'])
+            response = self.client.post(
+                f'/tierlists/{tier_list_id}',
+                data={
+                    'title': 'Отредактированный рейтинг', 'games': 'genshin',
+                    'entries': json.dumps(self.ordered_entries(tier_list)),
+                    'version': tier_list['lock_version'], 'csrf_token': self.csrf,
+                },
+            )
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertNotIn('notification_sent', response.json())
+
+        self.assertEqual(announce.await_count, 2)
+        announced_tier_list = announce.await_args.args[0]
+        self.assertEqual(announced_tier_list['owner_tag'], 'player')
+        self.assertEqual(announced_tier_list['title'], 'Новый рейтинг')
 
     def test_public_tierlists_filter_by_multiple_players(self):
         from database.tierlists import create_tier_list
@@ -306,9 +416,55 @@ class TierListWebIntegrationTests(PostgresTestCase):
         response = self.client.post(
             f'/tierlists/{tier_list_id}',
             data={
-                'title': 'Неполная раскладка', 'games': 'genshin', 'entries': '[]',
+                'title': 'Некорректная раскладка', 'games': 'genshin',
+                'entries': json.dumps([{'character_id': 'unknown', 'tier': 'S'}]),
                 'version': current['lock_version'], 'csrf_token': self.csrf,
             },
         )
         self.assertEqual(response.status_code, 400)
-        self.assertIn('всех персонажей', response.json()['detail'])
+        self.assertIn('не соответствуют', response.json()['detail'])
+
+        response = self.client.post(
+            f'/tierlists/{tier_list_id}',
+            data={
+                'title': 'Длинное описание', 'games': 'genshin',
+                'entries': json.dumps(self.ordered_entries(current)),
+                'tier_descriptions': json.dumps({'S': 'x' * 301}),
+                'version': current['lock_version'], 'csrf_token': self.csrf,
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('не более 300 символов', response.json()['detail'])
+
+    async def test_telegram_announcement_payload_and_delivery_marker(self):
+        from database.tierlists import create_tier_list, get_tier_list
+        from services.tierlist_notifications import announce_tier_list
+
+        queries.upsert_chat(-100500, 'Основной чат')
+        tier_list = create_tier_list(self.user['id'], 'Рейтинг для чата', ['genshin'])
+        response = MagicMock()
+        response.json.return_value = {'ok': False}
+        http_client = MagicMock()
+        http_client.__aenter__ = AsyncMock(return_value=http_client)
+        http_client.__aexit__ = AsyncMock(return_value=False)
+        http_client.post = AsyncMock(return_value=response)
+
+        with patch(
+            'services.tierlist_notifications.httpx.AsyncClient', return_value=http_client,
+        ):
+            self.assertFalse(await announce_tier_list(tier_list))
+            saved = get_tier_list(tier_list['id'], self.user['id'])
+            self.assertIsNone(saved['announcement_sent_at'])
+
+            response.json.return_value = {'ok': True}
+            self.assertTrue(await announce_tier_list(tier_list))
+
+        saved = get_tier_list(tier_list['id'], self.user['id'])
+        self.assertIsNotNone(saved['announcement_sent_at'])
+        request = http_client.post.await_args.kwargs['json']
+        self.assertEqual(request['chat_id'], -100500)
+        self.assertEqual(request['text'], 'player создал тирлист «Рейтинг для чата»')
+        self.assertEqual(
+            request['reply_markup']['inline_keyboard'][0][0]['url'],
+            f'http://testserver/tierlists/{tier_list["id"]}',
+        )
