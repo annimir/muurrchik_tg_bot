@@ -1,5 +1,7 @@
+import json
 import unittest
 from datetime import date
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -714,6 +716,122 @@ class WebIntegrationTests(PostgresTestCase):
                 self.assertTrue(character['photo_file_id'].startswith('local:'))
                 photo = self.client.get(f'/media/characters/{character["id"]}')
                 self.assertEqual(photo.content, image)
+
+    def test_admin_tierlist_catalog_supports_json_images_and_new_games(self):
+        from services.tierlist_catalog import (
+            get_tierlist_character_record,
+            list_tierlist_characters,
+            reset_tierlist_catalog_cache,
+            tierlist_catalog_version,
+        )
+
+        queries.db("INSERT INTO games (code, name) VALUES ('genshin', 'Genshin Impact')").close()
+        reset_tierlist_catalog_cache()
+        csrf = self.admin_session()
+        queries.ensure_user(100, 'player')
+        response = self.client.post('/admin/games', data={
+            'name': 'Custom Game', 'csrf_token': csrf,
+        }, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+
+        character = {
+            'id': 'test_hero', 'name': 'Тестовый герой', 'game': 'custom_game',
+            'region': {'id': 'test_region', 'name': 'Тестовый регион'},
+            'element': {'id': 'test_element', 'name': 'Тестовая стихия'},
+            'gender': {'id': 'female', 'name': 'женский'},
+            'rarity': 3, 'release': None,
+            'image': '/static/tierlists/characters/furina.webp',
+            'availability': 'npc', 'affiliations': [],
+        }
+        new_page = self.client.get('/admin/tierlist-catalog/new')
+        self.assertEqual(new_page.status_code, 200)
+        self.assertIn('custom_game', new_page.text)
+        image = Path('web/static/tierlists/characters/furina.webp').read_bytes()
+        response = self.client.post(
+            '/admin/tierlist-catalog/new',
+            data={'character_json': json.dumps(character), 'csrf_token': csrf},
+            files={'photo': ('hero.webp', image, 'image/webp')},
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 303, response.text)
+        record = get_tierlist_character_record('test_hero')
+        self.assertIsNotNone(record)
+        self.assertTrue(record['data']['image'].startswith('/media/tierlists/'))
+        photo = self.client.get(record['data']['image'])
+        self.assertEqual(photo.status_code, 200)
+        self.assertEqual(photo.content, image)
+
+        listing = self.client.get('/admin/tierlist-catalog?q=тестовый&game=custom_game')
+        self.assertEqual(listing.status_code, 200)
+        self.assertIn('Тестовый герой', listing.text)
+        self.assertIn('3★', listing.text)
+        self.assertNotIn('>Фурина</strong>', listing.text)
+
+        character = record['data']
+        character['name'] = 'Обновлённый герой'
+        character['rarity'] = 5
+        response = self.client.post(
+            '/admin/tierlist-catalog/test_hero/edit',
+            data={
+                'character_json': json.dumps(character), 'version': record['lock_version'],
+                'csrf_token': csrf,
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 303, response.text)
+        self.assertEqual(
+            get_tierlist_character_record('test_hero')['data']['name'],
+            'Обновлённый герой',
+        )
+
+        characters = list_tierlist_characters()
+        version = tierlist_catalog_version(characters)
+        second = {
+            **character,
+            'id': 'second_hero', 'name': 'Второй герой',
+            'image': '/static/tierlists/characters/furina.webp',
+        }
+        response = self.client.post(
+            '/admin/tierlist-catalog/json',
+            data={
+                'characters_json': json.dumps([*characters, second]),
+                'version': version, 'csrf_token': csrf,
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 303, response.text)
+        self.assertIn(
+            'second_hero',
+            {item['id'] for item in list_tierlist_characters(['custom_game'])},
+        )
+        conflict = self.client.post('/admin/tierlist-catalog/json', data={
+            'characters_json': json.dumps([*characters, second]),
+            'version': version, 'csrf_token': csrf,
+        })
+        self.assertEqual(conflict.status_code, 409)
+        self.assertIn('уже изменён', conflict.text)
+        invalid = self.client.post('/admin/tierlist-catalog/json', data={
+            'characters_json': '[{', 'version': version, 'csrf_token': csrf,
+        })
+        self.assertEqual(invalid.status_code, 400)
+        self.assertIn('Ошибка JSON', invalid.text)
+
+        download = self.client.get('/admin/tierlist-catalog/json?download=1')
+        self.assertEqual(download.status_code, 200)
+        self.assertEqual(download.headers['content-type'], 'application/json')
+        self.assertIn('attachment', download.headers['content-disposition'])
+        new_tierlist = self.client.get('/tierlists/new')
+        self.assertEqual(new_tierlist.status_code, 200)
+        self.assertIn('value="custom_game"', new_tierlist.text)
+
+        for character_id in ('second_hero', 'test_hero'):
+            response = self.client.post(
+                f'/admin/tierlist-catalog/{character_id}/delete',
+                data={'csrf_token': csrf}, follow_redirects=False,
+            )
+            self.assertEqual(response.status_code, 303)
+        self.assertEqual(list_tierlist_characters(['custom_game']), [])
+        self.assertEqual(self.client.get(record['data']['image']).status_code, 404)
 
     def test_admin_games_crud(self):
         csrf = self.admin_session()
