@@ -264,6 +264,11 @@ async def media_embed(usage_id: int):
     return {'url': embed['url']}
 
 
+@router.get('/media/tierlists/{filename}', name='tierlist_character_image')
+async def tierlist_character_image(filename: str):
+    return get_media_store().get_local_response(f'local:{filename}')
+
+
 @router.get('/media/characters/{character_id}', name='character_photo')
 async def character_photo(character_id: int):
     character = get_public_character(character_id)

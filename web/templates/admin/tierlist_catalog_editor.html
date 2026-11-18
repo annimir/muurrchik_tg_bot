@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Новый персонаж' if is_new else 'Редактирование ' + character_id }} · Каталог тирлистов{% endblock %}
+{% block scripts %}<script src="/static/admin_tierlist_catalog.js" defer></script>{% endblock %}
+{% block content %}
+{% include 'admin/_nav.html' %}
+<section class="page-heading"><div><div class="eyebrow">Каталог тирлистов</div><h1>{{ 'Добавить персонажа' if is_new else character_id }}</h1><p>ID, игра, регион, стихия, пол, редкость, release и image обязательны. Поля availability и affiliations необязательны.</p></div><a class="button button-quiet" href="/admin/tierlist-catalog">К списку</a></section>
+{% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+<section class="panel">
+    <form class="tierlist-json-form" method="post" action="{{ '/admin/tierlist-catalog/new' if is_new else '/admin/tierlist-catalog/' + character_id + '/edit' }}" enctype="multipart/form-data" data-json-form>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        {% if not is_new %}<input type="hidden" name="version" value="{{ version }}">{% endif %}
+        <div class="json-editor-heading"><label for="tierlist-character-json">JSON персонажа</label><div class="json-editor-actions"><button class="button button-small button-quiet" type="button" data-json-check>Проверить</button><button class="button button-small button-secondary" type="button" data-json-format>Форматировать</button></div></div>
+        <textarea id="tierlist-character-json" class="json-editor" name="character_json" rows="22" spellcheck="false" data-json-editor>{{ character_json }}</textarea>
+        <p class="form-hint" data-json-status role="status" aria-live="polite">Доступные игры: {% for game in games %}<code>{{ game.code }}</code>{{ ', ' if not loop.last else '' }}{% endfor %}. Новую игру можно добавить <a class="text-link" href="/admin/games">в разделе «Игры»</a>.</p>
+        <div class="tierlist-image-editor">
+            {% if image %}<img class="tierlist-catalog-preview" src="{{ image }}" alt="Текущее изображение">{% endif %}
+            <label>Загрузить или заменить изображение<input type="file" name="photo" accept="image/png,image/jpeg,image/webp"><small>PNG, JPEG или WEBP до 10 МБ. Загруженный файл заменит поле image.</small></label>
+        </div>
+        <button class="button" type="submit">{{ 'Добавить персонажа' if is_new else 'Сохранить персонажа' }}</button>
+    </form>
+</section>
+{% if not is_new %}<section class="panel danger-zone"><h2>Скрыть из каталога</h2><p>Персонаж исчезнет из редактора тирлистов, но уже сохранённые раскладки не будут удалены принудительно.</p><form method="post" action="/admin/tierlist-catalog/{{ character_id }}/delete" data-confirm="Скрыть персонажа {{ character_id }} из каталога?"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button button-danger" type="submit">Скрыть персонажа</button></form></section>{% endif %}
+{% endblock %}

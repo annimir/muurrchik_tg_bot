@@ -194,6 +194,20 @@ BEGIN
     END IF;
 END $$;
 
+CREATE TABLE IF NOT EXISTS tier_list_catalog_character (
+    id           TEXT PRIMARY KEY,
+    game_code    TEXT NOT NULL REFERENCES games(code) ON DELETE RESTRICT,
+    data         JSONB NOT NULL,
+    position     INTEGER NOT NULL CHECK (position >= 0),
+    is_active    BOOLEAN NOT NULL DEFAULT TRUE,
+    lock_version INTEGER NOT NULL DEFAULT 1,
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_by   BIGINT
+);
+
+CREATE INDEX IF NOT EXISTS idx_tier_list_catalog_active
+    ON tier_list_catalog_character (is_active, game_code, position);
+
 CREATE TABLE IF NOT EXISTS tier_list (
     id           SERIAL PRIMARY KEY,
     user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

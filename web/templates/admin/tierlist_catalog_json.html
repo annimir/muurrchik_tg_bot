@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Общий JSON · Каталог тирлистов{% endblock %}
+{% block scripts %}<script src="/static/admin_tierlist_catalog.js" defer></script>{% endblock %}
+{% block content %}
+{% include 'admin/_nav.html' %}
+<section class="page-heading"><div><div class="eyebrow">Массовое редактирование</div><h1>JSON каталога</h1><p>Массив полностью заменяет активный каталог. Порядок объектов определяет порядок персонажей. Отсутствующие записи будут скрыты, а не удалены безвозвратно.</p></div><a class="button button-quiet" href="/admin/tierlist-catalog">К списку</a></section>
+{% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+<section class="panel">
+    <form class="tierlist-json-form" method="post" action="/admin/tierlist-catalog/json" data-json-form>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="version" value="{{ version }}">
+        <div class="json-editor-heading"><label for="tierlist-catalog-json">Все персонажи</label><div class="json-editor-actions"><a class="button button-small button-quiet" href="/admin/tierlist-catalog/json?download=1">Скачать JSON</a><button class="button button-small button-quiet" type="button" data-json-check>Проверить</button><button class="button button-small button-secondary" type="button" data-json-format>Форматировать</button></div></div>
+        <textarea id="tierlist-catalog-json" class="json-editor json-editor-catalog" name="characters_json" rows="30" spellcheck="false" data-json-editor>{{ characters_json }}</textarea>
+        <div class="json-editor-footer"><p class="form-hint" data-json-status role="status" aria-live="polite">Перед сохранением проверяются синтаксис, поля, уникальность ID и коды игр.</p><button class="button" type="submit">Сохранить весь каталог</button></div>
+    </form>
+</section>
+{% endblock %}

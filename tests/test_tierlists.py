@@ -9,14 +9,22 @@ from services.tierlist_catalog import get_tierlist_filter_options, list_tierlist
 from tests.postgres_support import TEST_POSTGRES_DSN, PostgresTestCase, queries
 
 
-class TierListCatalogTests(unittest.TestCase):
+@unittest.skipUnless(TEST_POSTGRES_DSN, 'Требуется TEST_POSTGRES_DSN')
+class TierListCatalogTests(PostgresTestCase):
+    def setUp(self):
+        super().setUp()
+        from services.tierlist_catalog import reset_tierlist_catalog_cache
+
+        reset_tierlist_catalog_cache()
+        queries.db("INSERT INTO games (code, name) VALUES ('genshin', 'Genshin Impact')").close()
+
     def test_catalog_has_unique_complete_characters_and_local_images(self):
         characters = list_tierlist_characters()
         self.assertGreater(len(characters), 100)
         self.assertEqual(len(characters), len({character['id'] for character in characters}))
         for character in characters:
             with self.subTest(character=character['id']):
-                self.assertEqual(character['game'], 'genshin')
+                self.assertTrue(character['game'])
                 self.assertIn(character.get('availability', 'playable'), {'playable', 'upcoming', 'npc'})
                 if character['rarity'] is not None:
                     self.assertIn(character['rarity'], {4, 5})
@@ -107,6 +115,9 @@ class TierListCatalogTests(unittest.TestCase):
 class TierListWebIntegrationTests(PostgresTestCase):
     def setUp(self):
         super().setUp()
+        from services.tierlist_catalog import reset_tierlist_catalog_cache
+
+        reset_tierlist_catalog_cache()
         queries.db("INSERT INTO games (code, name) VALUES ('genshin', 'Genshin Impact')").close()
         from web.app import create_app
         from web.auth import SESSION_COOKIE, create_admin_session

@@ -16,7 +16,7 @@
         <label>Игра<select data-filter="game"><option value="">Все игры</option>{% for game in games %}<option value="{{ game.code }}">{{ game.name }}</option>{% endfor %}</select></label>
         {% for key, label in [('region', 'Регион'), ('element', 'Стихия'), ('gender', 'Пол'), ('affiliation', 'Фракция')] %}<label>{{ label }}<select data-filter="{{ key }}"><option value="">Все</option>{% for option in filter_options[key] %}<option value="{{ option.id }}">{{ option.name }}</option>{% endfor %}</select></label>{% endfor %}
         <label>Тип<select data-filter="availability"><option value="">Все</option><option value="playable">Игровые</option><option value="upcoming">Скоро</option><option value="npc">NPC</option></select></label>
-        <label>Редкость<select data-filter="rarity"><option value="">Все</option><option value="5">5★</option><option value="4">4★</option></select></label>
+        <label>Редкость<select data-filter="rarity"><option value="">Все</option>{% for option in filter_options['rarity'] %}<option value="{{ option.id }}">{{ option.name }}</option>{% endfor %}</select></label>
         <button class="button button-small button-quiet" type="button" data-filter-reset>Сбросить</button>
     </div>
 </section>

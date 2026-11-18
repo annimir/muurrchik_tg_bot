@@ -70,7 +70,7 @@ class TelegramMediaStore:
 
     def delete_local(self, file_id):
         if file_id and file_id.startswith('local:'):
-            filename = Path(file_id).name
+            filename = Path(file_id.removeprefix('local:')).name
             (self.cache_dir / 'uploads' / filename).unlink(missing_ok=True)
 
     async def get_profile_photo_file_id(self, tg_id):

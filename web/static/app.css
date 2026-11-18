@@ -791,6 +791,28 @@ p.tier-description { display: block; color: var(--text); font-weight: 600; }
     .tier-filters label { flex-basis: calc(50% - 6px); }
 }
 
+.tierlist-catalog-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.tierlist-catalog-filter { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; }
+.tierlist-catalog-filter label { flex: 1 1 240px; }
+.tierlist-catalog-filter input, .tierlist-catalog-filter select { width: 100%; }
+.tierlist-catalog-thumb { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; background: var(--panel-solid); }
+.tierlist-catalog-id { display: block; margin-top: 4px; color: var(--muted); }
+.tierlist-catalog-table td { vertical-align: middle; }
+.tierlist-catalog-table td:last-child { white-space: nowrap; }
+.json-editor-heading, .json-editor-footer, .tierlist-image-editor { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.json-editor-heading { margin-bottom: 10px; }
+.json-editor-heading label { color: var(--gold-light); font-weight: 700; }
+.json-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.json-editor { min-height: 430px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .84rem; line-height: 1.5; tab-size: 2; white-space: pre; }
+.json-editor-catalog { min-height: 65vh; }
+.json-editor-footer { margin-top: 12px; }
+.form-hint { color: var(--muted); font-size: .85rem; }
+.form-hint.is-error { color: var(--danger); }
+.tierlist-image-editor { justify-content: flex-start; margin: 18px 0; }
+.tierlist-image-editor label { flex: 1 1 320px; }
+.tierlist-image-editor small { display: block; margin-top: 6px; color: var(--muted); }
+.tierlist-catalog-preview { width: 112px; height: 112px; object-fit: cover; border: 1px solid var(--line); border-radius: 8px; }
+
 .tierlist-catalog-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: -12px 0 28px; }
 .tierlist-catalog-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 10px; }
 .tierlist-filter { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
