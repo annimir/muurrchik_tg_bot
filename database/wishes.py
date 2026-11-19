@@ -237,9 +237,11 @@ def perform_wishes(event_id, user_id, banner_id, count=10):
                 ),
             ).close()
         rewards = []
-        if count == 10 and used == 0 and any(drop['rarity'] == 5 for drop in drops):
+        five_star_count = sum(drop['rarity'] == 5 for drop in drops)
+        if count == 10 and used == 0 and five_star_count:
             reward = record_wish_activity_tx(
                 tx, event_id, user_id, 'first_ten_five_star', 'wish_event', event_id,
+                progress_value=five_star_count,
             )
             if reward:
                 rewards.append(reward)

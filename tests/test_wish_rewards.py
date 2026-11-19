@@ -41,17 +41,21 @@ class WishRewardDatabaseTests(PostgresTestCase):
         first = self.record('daily_message', 'message-1')
         duplicate = self.record('daily_message', 'message-1')
         second_today = self.record('daily_message', 'message-2')
-        tomorrow = self.record(
-            'daily_message', 'message-3', self.now + timedelta(days=1),
-        )
+        tomorrow = self.now + timedelta(days=1)
+        early_level_two = self.record('daily_message', 'message-3', tomorrow)
+        level_two = None
+        for index in range(4, 8):
+            level_two = self.record('daily_message', f'message-{index}', tomorrow)
 
         self.assertEqual(first['amount'], 1)
         self.assertIsNone(duplicate)
         self.assertIsNone(second_today)
-        self.assertEqual(tomorrow['amount'], 1)
+        self.assertIsNone(early_level_two)
+        self.assertEqual(level_two['amount'], 2)
+        self.assertEqual(level_two['level'], 2)
         participant = self.wishes.get_participant(self.event['id'], self.user['id'])
-        self.assertEqual(participant['bonus_earned'], 2)
-        self.assertEqual(participant['remaining'], 302)
+        self.assertEqual(participant['bonus_earned'], 3)
+        self.assertEqual(participant['remaining'], 303)
 
     def test_five_unique_photos_grant_only_once_per_day(self):
         grants = [self.record('five_daily_photos', f'photo-{index}') for index in range(5)]
@@ -67,24 +71,52 @@ class WishRewardDatabaseTests(PostgresTestCase):
                 self.event['id'], self.user['id'],
             ) if rule['code'] == 'five_daily_photos'
         )
-        self.assertEqual(progress['progress'], 5)
+        self.assertEqual(progress['progress'], 6)
+        self.assertEqual(progress['level'], 1)
+        self.assertEqual(progress['target_level'], 2)
+        self.assertEqual(progress['threshold'], 10)
+        self.assertFalse(progress['completed'])
+
+    def test_photo_levels_increase_rewards_across_days(self):
+        rewards = []
+        for day, count in enumerate((5, 10, 20)):
+            now = self.now + timedelta(days=day)
+            for index in range(count):
+                result = self.record('five_daily_photos', f'day-{day}-photo-{index}', now)
+            rewards.append(result)
+
+        self.assertEqual([reward['amount'] for reward in rewards], [10, 15, 20])
+        self.assertEqual([reward['level'] for reward in rewards], [1, 2, 3])
+        progress = next(
+            rule for rule in self.rewards.get_wish_reward_progress(
+                self.event['id'], self.user['id'],
+            ) if rule['code'] == 'five_daily_photos'
+        )
         self.assertTrue(progress['completed'])
+        self.assertEqual(progress['level'], 3)
+        self.assertEqual(progress['earned'], 45)
 
     def test_help_has_daily_and_monthly_limits(self):
         first = self.record('help_completed', 'request-1')
         same_day = self.record('help_completed', 'request-2')
-        second = self.record('help_completed', 'request-3', self.now + timedelta(days=1))
-        third = self.record('help_completed', 'request-4', self.now + timedelta(days=2))
-        over_limit = self.record('help_completed', 'request-5', self.now + timedelta(days=3))
+        early_second = self.record('help_completed', 'request-3', self.now + timedelta(days=1))
+        second = self.record('help_completed', 'request-4', self.now + timedelta(days=1))
+        early_third = self.record('help_completed', 'request-5', self.now + timedelta(days=2))
+        early_third_again = self.record('help_completed', 'request-6', self.now + timedelta(days=2))
+        third = self.record('help_completed', 'request-7', self.now + timedelta(days=2))
+        over_limit = self.record('help_completed', 'request-8', self.now + timedelta(days=3))
 
         self.assertEqual(first['amount'], 81)
         self.assertIsNone(same_day)
-        self.assertEqual(second['amount'], 81)
-        self.assertEqual(third['amount'], 81)
+        self.assertIsNone(early_second)
+        self.assertEqual(second['amount'], 122)
+        self.assertIsNone(early_third)
+        self.assertIsNone(early_third_again)
+        self.assertEqual(third['amount'], 162)
         self.assertIsNone(over_limit)
         self.assertEqual(
             self.rewards.get_wish_reward_summary(self.event['id'], self.user['id'])['total'],
-            243,
+            365,
         )
 
     def test_new_tag_reward_requires_own_tag_from_today(self):
@@ -99,7 +131,7 @@ class WishRewardDatabaseTests(PostgresTestCase):
         self.assertIsNone(duplicate)
         self.assertIsNone(not_owner)
 
-    def test_first_ten_five_star_grants_fifty_and_updates_stats(self):
+    def test_first_ten_five_star_grants_level_rewards_and_updates_stats(self):
         self.rewards.update_wish_reward_rule(
             1000, 'first_ten_five_star', 50, 1, None, 1, True,
         )
@@ -114,14 +146,32 @@ class WishRewardDatabaseTests(PostgresTestCase):
             )
 
         self.assertEqual(result['drops'][0]['rarity'], 5)
-        self.assertEqual(result['rewards'][0]['amount'], 50)
-        self.assertEqual(result['remaining'], 340)
+        self.assertEqual(result['rewards'][0]['amount'], 100)
+        self.assertEqual(result['rewards'][0]['level'], 3)
+        self.assertEqual(result['remaining'], 390)
         participant = self.wishes.get_participant(self.event['id'], self.user['id'])
         self.assertEqual(participant['used'], 10)
-        self.assertEqual(participant['total_allowance'], 350)
+        self.assertEqual(participant['total_allowance'], 400)
         stats = self.wishes.get_wish_participant_stats(self.event['id'])[0]
         self.assertEqual(stats['used'], 10)
-        self.assertEqual(stats['bonus_earned'], 50)
+        self.assertEqual(stats['bonus_earned'], 100)
+
+    def test_first_ten_level_matches_five_star_count(self):
+        self.rewards.update_wish_reward_rule(
+            1000, 'first_ten_five_star', 50, 1, None, 1, True,
+        )
+        reward = self.rewards.record_wish_activity(
+            'first_ten_five_star', self.user['id'], 'wish_event', self.event['id'],
+            self.event['id'], self.now, progress_value=3,
+        )
+        duplicate = self.rewards.record_wish_activity(
+            'first_ten_five_star', self.user['id'], 'wish_event', self.event['id'],
+            self.event['id'], self.now, progress_value=3,
+        )
+
+        self.assertEqual(reward['amount'], 100)
+        self.assertEqual(reward['level'], 3)
+        self.assertIsNone(duplicate)
 
     def test_single_five_star_does_not_trigger_first_ten_reward(self):
         from services.wishes import perform_wishes as perform_wish_batch
@@ -169,8 +219,13 @@ class WishRewardDatabaseTests(PostgresTestCase):
         self.assertEqual(update.effective_message.reply_text.await_count, 0)
 
     def test_admin_updates_reward_rule(self):
+        levels = [
+            {'level': 1, 'reward': 2, 'threshold': 1},
+            {'level': 2, 'reward': 4, 'threshold': 3},
+            {'level': 3, 'reward': 6, 'threshold': 5},
+        ]
         self.rewards.update_wish_reward_rule(
-            1000, 'daily_message', 2, 1, 1, None, True,
+            1000, 'daily_message', 2, 1, 1, None, True, levels=levels,
         )
         try:
             rule = next(
@@ -178,12 +233,23 @@ class WishRewardDatabaseTests(PostgresTestCase):
                 if rule['code'] == 'daily_message'
             )
             self.assertEqual(rule['reward'], 2)
+            self.assertEqual(rule['levels'][1]['reward'], 4)
             self.assertEqual(self.record('daily_message', 'message-1')['amount'], 2)
             with self.assertRaises(ValueError):
                 self.rewards.update_wish_reward_rule(
-                    1000, 'daily_message', 0, 1, 1, None, True,
+                    1000, 'daily_message', 2, 1, 1, None, True,
+                    levels=[
+                        {'level': 1, 'reward': 2, 'threshold': 1},
+                        {'level': 2, 'reward': 1, 'threshold': 3},
+                        {'level': 3, 'reward': 6, 'threshold': 5},
+                    ],
                 )
         finally:
             self.rewards.update_wish_reward_rule(
                 1000, 'daily_message', 1, 1, 1, None, True,
+                levels=[
+                    {'level': 1, 'reward': 1, 'threshold': 1},
+                    {'level': 2, 'reward': 2, 'threshold': 5},
+                    {'level': 3, 'reward': 3, 'threshold': 10},
+                ],
             )

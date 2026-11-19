@@ -527,6 +527,44 @@ INSERT INTO wish_reward_rules (
     ('first_ten_five_star', 'Звёздный старт', 'Получить 5★ в своей первой молитве ×10 за ивент.', 50, 1, NULL, 1, 60)
 ON CONFLICT (code) DO NOTHING;
 
+CREATE TABLE IF NOT EXISTS wish_reward_rule_levels (
+    rule_code  TEXT NOT NULL REFERENCES wish_reward_rules(code) ON DELETE CASCADE,
+    level      SMALLINT NOT NULL CHECK (level BETWEEN 1 AND 3),
+    threshold  INTEGER NOT NULL CHECK (threshold > 0),
+    reward     INTEGER NOT NULL CHECK (reward > 0),
+    PRIMARY KEY (rule_code, level)
+);
+
+INSERT INTO wish_reward_rule_levels (rule_code, level, threshold, reward)
+SELECT code, 1, threshold, reward FROM wish_reward_rules
+ON CONFLICT (rule_code, level) DO NOTHING;
+
+INSERT INTO wish_reward_rule_levels (rule_code, level, threshold, reward)
+SELECT code, 2,
+    CASE code
+        WHEN 'daily_message' THEN 5
+        WHEN 'paimon_praise' THEN 3
+        WHEN 'five_daily_photos' THEN 10
+        WHEN 'new_tag' THEN 2
+        ELSE 2
+    END,
+    CEIL(reward * 1.5)::INTEGER
+FROM wish_reward_rules
+ON CONFLICT (rule_code, level) DO NOTHING;
+
+INSERT INTO wish_reward_rule_levels (rule_code, level, threshold, reward)
+SELECT code, 3,
+    CASE code
+        WHEN 'daily_message' THEN 10
+        WHEN 'paimon_praise' THEN 5
+        WHEN 'five_daily_photos' THEN 20
+        WHEN 'new_tag' THEN 3
+        ELSE 3
+    END,
+    GREATEST(reward * 2, 3)
+FROM wish_reward_rules
+ON CONFLICT (rule_code, level) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS wish_reward_activities (
     id              BIGSERIAL PRIMARY KEY,
     event_id        INTEGER NOT NULL REFERENCES wish_events(id) ON DELETE CASCADE,
@@ -544,3 +582,7 @@ CREATE INDEX IF NOT EXISTS idx_wish_reward_activities_progress
     ON wish_reward_activities (event_id, user_id, rule_code, activity_date);
 CREATE INDEX IF NOT EXISTS idx_wish_reward_activities_grants
     ON wish_reward_activities (event_id, user_id, created_at DESC) WHERE amount > 0;
+
+ALTER TABLE wish_reward_activities
+    ADD COLUMN IF NOT EXISTS level SMALLINT NOT NULL DEFAULT 0 CHECK (level BETWEEN 0 AND 3);
+UPDATE wish_reward_activities SET level = 1 WHERE amount > 0 AND level = 0;
