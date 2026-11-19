@@ -240,7 +240,10 @@ class WishWebIntegrationTests(PostgresTestCase):
         self.assertEqual(page.status_code, 200)
         self.assertIn('Задания Паймон', page.text)
         response = self.client.post('/admin/wishes/rewards/daily_message', data={
-            'reward': 2, 'threshold': 1, 'daily_limit': 1, 'monthly_limit': '',
+            'reward': 2, 'threshold': 1,
+            'level_2_reward': 4, 'level_2_threshold': 3,
+            'level_3_reward': 6, 'level_3_threshold': 5,
+            'daily_limit': 1, 'monthly_limit': '',
             'is_active': 'true', 'csrf_token': self.csrf,
         }, follow_redirects=False)
         self.assertEqual(response.status_code, 303)
@@ -250,8 +253,16 @@ class WishWebIntegrationTests(PostgresTestCase):
             )
             self.assertEqual(rule['reward'], 2)
             self.assertEqual(rule['daily_limit'], 1)
+            self.assertEqual(rule['levels'][2]['reward'], 6)
         finally:
-            update_wish_reward_rule(100, 'daily_message', 1, 1, 1, None, True)
+            update_wish_reward_rule(
+                100, 'daily_message', 1, 1, 1, None, True,
+                levels=[
+                    {'level': 1, 'reward': 1, 'threshold': 1},
+                    {'level': 2, 'reward': 2, 'threshold': 5},
+                    {'level': 3, 'reward': 3, 'threshold': 10},
+                ],
+            )
 
     def test_wish_images_have_correct_mime_type(self):
         response = self.client.get('/static/wishes/items/mitya.webp')

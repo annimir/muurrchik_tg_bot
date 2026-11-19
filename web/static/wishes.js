@@ -61,15 +61,21 @@ if (wishPullButtons.length) {
                 return;
             }
             card.classList.toggle('is-complete', rule.completed);
+            card.querySelector('[data-reward-level]').textContent = `Уровни: ${rule.level}/3`;
+            card.querySelectorAll('[data-reward-level-badge]').forEach((badge) => {
+                badge.classList.toggle('is-earned', Number(badge.dataset.rewardLevelBadge) <= rule.level);
+            });
             const progress = card.querySelector('progress');
             progress.max = rule.threshold;
             progress.value = rule.progress;
             card.querySelector('[data-reward-progress]').textContent = `${rule.progress}/${rule.threshold}`;
-            let status = rule.completed ? 'Награда получена' : 'Можно выполнить';
-            if (rule.monthly_reached) {
+            let status = `Следующий: уровень ${rule.target_level} · +${rule.reward}`;
+            if (rule.completed) {
+                status = 'Все уровни пройдены';
+            } else if (rule.monthly_reached) {
                 status = 'Месячный лимит исчерпан';
-            } else if (!rule.completed && rule.daily_limit) {
-                status = `Сегодня: до ${rule.daily_limit} наград(ы)`;
+            } else if (rule.daily_reached) {
+                status = `Уровень ${rule.level} получен · продолжение завтра`;
             }
             if (rule.monthly_limit) {
                 status += ` · За ивент получено: ${rule.earned}`;

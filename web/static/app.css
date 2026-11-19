@@ -698,12 +698,20 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
 .wish-reward-history { margin-top: 22px; }
 .wish-reward-history > div { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; padding: 9px 0; border-top: 1px solid var(--line); }
 .wish-reward-history small { color: var(--muted); }
+.wish-reward-levels { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.wish-reward-levels span { padding: 3px 7px; border-radius: 4px; color: var(--muted); background: rgba(184,194,207,.08); font-size: .75rem; }
+.wish-reward-levels span.is-earned { color: var(--teal); background: rgba(121,199,192,.13); }
 .wish-reward-admin-list { display: grid; gap: 12px; }
-.wish-reward-admin-form { display: grid; grid-template-columns: minmax(190px, 1.5fr) repeat(4, minmax(90px, .6fr)) auto auto; align-items: end; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
-.wish-reward-admin-form > div small { display: block; margin-top: 4px; color: var(--muted); }
-.wish-reward-admin-form .checkbox { padding-bottom: 10px; }
-@media (max-width: 1100px) { .wish-reward-admin-form { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; } .wish-reward-admin-form > div { grid-column: 1 / -1; } }
-@media (max-width: 620px) { .wish-reward-grid, .wish-reward-admin-form { grid-template-columns: 1fr; } .wish-reward-card p { min-height: 0; } .wish-reward-history > div { grid-template-columns: 1fr auto; } .wish-reward-history small { grid-column: 1 / -1; } }
+.wish-reward-admin-form { display: grid; gap: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; }
+.wish-reward-admin-title small { display: block; margin-top: 4px; color: var(--muted); }
+.wish-reward-level-inputs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.wish-reward-level-inputs fieldset { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px; }
+.wish-reward-level-inputs legend { padding: 0 5px; color: var(--gold-light); font-size: .85rem; }
+.wish-reward-level-inputs label { flex: 1 1 90px; }
+.wish-reward-admin-actions { display: grid; grid-template-columns: repeat(2, minmax(130px, 1fr)) auto auto; align-items: end; gap: 12px; }
+.wish-reward-admin-actions .checkbox { padding-bottom: 10px; }
+@media (max-width: 1100px) { .wish-reward-level-inputs { grid-template-columns: 1fr; } .wish-reward-admin-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .wish-reward-grid, .wish-reward-admin-actions { grid-template-columns: 1fr; } .wish-reward-card p { min-height: 0; } .wish-reward-history > div { grid-template-columns: 1fr auto; } .wish-reward-history small { grid-column: 1 / -1; } }
 @keyframes wish-card-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 620px) { .wish-result-card { flex-basis: 126px; height: 245px; padding-inline: 9px; } .wish-item-monogram { font-size: 2rem; } }
 

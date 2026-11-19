@@ -992,6 +992,10 @@ async def wish_reward_rule_action(
     code: str,
     reward: int = Form(...),
     threshold: int = Form(...),
+    level_2_reward: int = Form(...),
+    level_2_threshold: int = Form(...),
+    level_3_reward: int = Form(...),
+    level_3_threshold: int = Form(...),
     daily_limit: str = Form(''),
     monthly_limit: str = Form(''),
     is_active: bool = Form(False),
@@ -1004,6 +1008,11 @@ async def wish_reward_rule_action(
             int(daily_limit) if daily_limit.strip() else None,
             int(monthly_limit) if monthly_limit.strip() else None,
             is_active,
+            levels=[
+                {'level': 1, 'reward': reward, 'threshold': threshold},
+                {'level': 2, 'reward': level_2_reward, 'threshold': level_2_threshold},
+                {'level': 3, 'reward': level_3_reward, 'threshold': level_3_threshold},
+            ],
         )
     except ValueError as exc:
         return _wishes_admin_error(request, session, exc)
