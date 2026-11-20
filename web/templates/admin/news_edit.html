@@ -5,11 +5,18 @@
 <section class="page-heading"><div><div class="eyebrow">Новости</div><h1>{{ 'Добавить новость' if not post.id else 'Редактировать новость' }}</h1></div><a class="button button-quiet" href="/admin/news">К списку</a></section>
 {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
 <section class="panel">
-    <form class="admin-form" method="post" action="{{ '/admin/news/new' if not post.id else '/admin/news/' ~ post.id ~ '/edit' }}">
+    <form class="admin-form" method="post" action="{{ '/admin/news/new' if not post.id else '/admin/news/' ~ post.id ~ '/edit' }}" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <label class="form-wide">Заголовок<input name="title" required maxlength="120" value="{{ post.title }}"></label>
         <label class="form-wide">Краткое описание<textarea name="summary" rows="3" maxlength="300" required>{{ post.summary }}</textarea><small>Будет показано в ленте и в сообщении Telegram.</small></label>
-        <label class="form-wide">Полный текст<textarea name="content" rows="14" maxlength="20000" required>{{ post.content }}</textarea><small>Обычный текст с переносами строк, без HTML.</small></label>
+        <label class="form-wide">Теги<input name="tags" value="{{ post.tags|join(', ') }}" placeholder="тирлисты, обновление, событие"><small>Через запятую, не более 10 тегов.</small></label>
+        <label class="form-wide">Полный текст в Markdown<textarea name="content" rows="16" maxlength="20000" required>{{ post.content }}</textarea><small><code>**жирный**</code>, <code>*курсив*</code>, <code>__подчёркивание__</code>, <code>~~зачёркивание~~</code>, <code>`код`</code>, <code>[ссылка](https://...)</code>, заголовки, списки и цитаты. Вставленный HTML будет показан как текст.</small></label>
+        <div class="form-wide news-cover-editor">
+            {% if post.cover_image %}<img class="news-admin-cover" src="{{ post.cover_image }}" alt="Текущая обложка">{% endif %}
+            <label>Обложка новости<input type="file" name="photo" accept="image/png,image/jpeg,image/webp"><small>PNG, JPEG или WEBP до 10 МБ. На сайте и в Telegram будет использовано это изображение.</small></label>
+            <label>Описание обложки<input name="cover_alt" maxlength="200" value="{{ post.cover_alt or '' }}" placeholder="Что изображено"><small>Для доступности и альтернативного текста.</small></label>
+            {% if post.cover_image %}<label class="checkbox"><input type="checkbox" name="remove_cover" value="true"> Удалить текущую обложку</label>{% endif %}
+        </div>
         <label class="checkbox"><input type="checkbox" name="is_published" value="true" {{ 'checked' if post.is_published else '' }}> Опубликовать на сайте</label>
         {% if not post.telegram_message_id %}<label class="checkbox"><input type="checkbox" name="send_telegram" value="true" {{ 'checked' if send_telegram else '' }}> Отправить в Telegram от Паймон</label>{% else %}<p class="muted">В Telegram отправлено {{ post.telegram_sent_at|datetime_ru }}.</p>{% endif %}
         <button class="button" type="submit">Сохранить</button>

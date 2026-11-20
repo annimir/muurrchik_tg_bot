@@ -3,8 +3,9 @@
 {% block content %}
 <article class="panel news-detail">
     <a class="text-link" href="/news">← Все новости</a>
-    <header><div class="eyebrow">Новости сообщества</div><h1>{{ post.title }}</h1><time datetime="{{ post.published_at.isoformat() }}">Опубликовано {{ post.published_at|datetime_ru }}</time></header>
+    <header><div class="eyebrow">Новости сообщества</div><h1>{{ post.title }}</h1><div class="news-detail-meta"><time datetime="{{ post.published_at.isoformat() }}">Опубликовано {{ post.published_at|datetime_ru }}</time>{% if post.author_tag %}<span>Автор: <a class="text-link" href="/users/{{ post.author_id }}">{{ post.author_tag }}</a></span>{% endif %}</div>{% if post.tags %}<div class="badge-list">{% for tag in post.tags %}<a class="badge" href="/news?tag={{ tag|urlencode }}">#{{ tag }}</a>{% endfor %}</div>{% endif %}</header>
+    {% if post.cover_image %}<img class="news-detail-cover" src="{{ post.cover_image }}" alt="{{ post.cover_alt or post.title }}">{% endif %}
     <p class="news-detail-summary">{{ post.summary }}</p>
-    <div class="news-detail-content">{{ post.content }}</div>
+    <div class="news-detail-content">{{ content_html|safe }}</div>
 </article>
 {% endblock %}

@@ -603,3 +603,7 @@ CREATE TABLE IF NOT EXISTS news_posts (
 
 CREATE INDEX IF NOT EXISTS idx_news_posts_public
     ON news_posts (is_published, published_at DESC, id DESC);
+
+ALTER TABLE news_posts ADD COLUMN IF NOT EXISTS cover_image TEXT;
+ALTER TABLE news_posts ADD COLUMN IF NOT EXISTS cover_alt TEXT;
+ALTER TABLE news_posts ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT '{}';

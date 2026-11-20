@@ -4,23 +4,18 @@ import httpx
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from database.news import list_public_news
-from database.queries import get_user_titles
-from database.tierlists import attach_tier_list_previews, list_user_tier_lists
 from web.chat_insights import get_chat_insights
 from web.commands import get_paimon_command_count, get_paimon_command_groups
 from web.lore import get_lore
 from web.media import get_media_store
 from web.queries import (
     count_characters, count_media, count_users, get_public_character,
-    get_public_character_tags, get_public_media, get_public_stats, get_public_user,
-    get_public_user_characters, get_public_user_games, get_public_user_subscriptions,
-    get_user_avatar_data,
+    get_public_character_tags, get_public_media, get_public_stats, get_user_avatar_data,
     list_active_tags, list_characters, list_media, list_users, search_active_tags,
     update_user_avatar,
 )
 from web.rendering import templates
 from web.video_embeds import resolve_video_embed
-from database.assistance import get_helper_public_summary, list_helper_modes
 
 router = APIRouter()
 PAGE_SIZE = 24
@@ -193,22 +188,16 @@ async def users_fragment(q: str = '', page: int = Query(1, ge=1)):
 
 @router.get('/users/{user_id}', name='user_detail')
 async def user_detail(request: Request, user_id: int):
-    user = get_public_user(user_id)
-    if not user:
+    from web.profile import build_profile_context
+    from web.auth import read_admin_session
+
+    context = build_profile_context(user_id, read_admin_session(request))
+    if not context:
         raise HTTPException(status_code=404, detail='Игрок не найден')
     return templates.TemplateResponse(
         request=request,
         name='user_detail.html',
-        context={
-            'user': user, 'games': get_public_user_games(user_id),
-            'titles': get_user_titles(user_id),
-            'tier_lists': attach_tier_list_previews(list_user_tier_lists(user_id)),
-            'characters': get_public_user_characters(user_id),
-            'subscriptions': get_public_user_subscriptions(user_id),
-            'helper_profile': get_helper_public_summary(user_id),
-            'helper_modes': list_helper_modes(user_id, active_only=True),
-            'active_page': 'users',
-        },
+        context={**context, 'active_page': 'users'},
     )
 
 

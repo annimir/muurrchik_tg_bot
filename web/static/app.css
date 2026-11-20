@@ -91,6 +91,12 @@ img, video { display: block; max-width: 100%; }
 .main-nav a { padding: 8px 14px; color: var(--muted); border-bottom: 1px solid transparent; }
 .main-nav a.active, .main-nav a:hover { color: var(--gold-light); border-bottom-color: var(--gold); }
 .main-nav .admin-link { margin-left: 8px; border: 1px solid var(--line); border-radius: 6px; }
+.nav-group { position: relative; }
+.nav-group summary { padding: 8px 14px; color: var(--muted); cursor: pointer; list-style: none; border-bottom: 1px solid transparent; }
+.nav-group summary::-webkit-details-marker { display: none; }
+.nav-group summary::after { content: ' ▾'; font-size: .8em; }
+.nav-group summary.active, .nav-group summary:hover { color: var(--gold-light); border-bottom-color: var(--gold); }
+.nav-group-menu { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; display: grid; min-width: 180px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-solid); box-shadow: 0 14px 32px rgba(0,0,0,.3); }
 
 .page { width: min(1240px, calc(100% - 40px)); min-height: 65vh; margin: 0 auto; padding: 52px 0 72px; }
 .site-footer {
@@ -720,18 +726,36 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
 }
 
 .news-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.news-card { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.news-card { overflow: hidden; padding: 0; }
+.news-card-cover { display: block; }
+.news-card-cover img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.news-card-body { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; height: 100%; padding: 18px; }
+.news-card-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: .8rem; }
+.news-card-meta a { color: inherit; }
 .news-card time, .news-detail time { color: var(--muted); font-size: .82rem; }
 .news-card h2 { margin: 0; font-size: 1.3rem; }
 .news-card h2 a { color: var(--gold-light); }
 .news-card p { flex: 1; margin: 0; color: var(--muted); }
+.news-tag-filter { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; color: var(--muted); }
+.badge.is-selected { border-color: var(--teal); color: var(--teal); }
 .home-news { margin: 34px 0; }
 .news-detail { max-width: 900px; margin: 0 auto; }
-.news-detail header { margin: 22px 0; }
-.news-detail header h1 { margin: 8px 0 12px; }
+.news-detail header { display: grid; gap: 10px; margin: 22px 0; }
+.news-detail header h1 { margin: 0; }
+.news-detail-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.news-detail-cover { display: block; width: 100%; max-height: 560px; object-fit: cover; margin: 18px 0; border-radius: 8px; }
 .news-detail-summary { color: var(--gold-light); font-size: 1.15rem; font-weight: 600; }
-.news-detail-content { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.75; }
-.admin-news-summary { display: block; max-width: 420px; margin-top: 5px; color: var(--muted); }
+.news-detail-content { overflow-wrap: anywhere; line-height: 1.75; }
+.news-detail-content h2 { margin-top: 28px; font-size: 1.45rem; }
+.news-detail-content ul { padding-left: 24px; }
+.news-detail-content blockquote { margin: 18px 0; padding: 8px 16px; border-left: 3px solid var(--gold); color: var(--muted); background: rgba(216,188,114,.05); }
+.news-detail-content code { padding: 2px 5px; border-radius: 4px; background: rgba(184,194,207,.12); }
+.news-detail-content a { color: var(--teal); }
+.news-cover-editor { display: grid; gap: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; }
+.news-admin-cover { width: 240px; max-width: 100%; border-radius: 7px; }
+.admin-news-title { display: flex; align-items: flex-start; gap: 10px; }
+.news-admin-thumb { width: 64px; height: 48px; object-fit: cover; border-radius: 5px; }
+.admin-news-summary { display: block; max-width: 420px; margin: 5px 0; color: var(--muted); }
 .admin-news-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .account-actions, .account-quick-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .account-quick-actions { margin-bottom: 22px; }
