@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Новости сообщества{% endblock %}
+{% block content %}
+<section class="page-heading"><div><div class="eyebrow">Летопись продолжается</div><h1>Новости сообщества</h1><p>Обновления сайта, события и важные объявления.</p></div></section>
+{% if posts %}<div class="news-grid">{% for post in posts %}<article class="panel news-card"><time datetime="{{ post.published_at.isoformat() }}">{{ post.published_at|datetime_ru }}</time><h2><a href="/news/{{ post.id }}">{{ post.title }}</a></h2><p>{{ post.summary }}</p><a class="text-link" href="/news/{{ post.id }}">Читать полностью →</a></article>{% endfor %}</div>{% else %}<div class="empty-state"><h2>Новостей пока нет</h2><p>Скоро здесь появятся объявления от команды сообщества.</p></div>{% endif %}
+{% endblock %}

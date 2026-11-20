@@ -3,6 +3,7 @@ from math import ceil
 import httpx
 from fastapi import APIRouter, HTTPException, Query, Request
 
+from database.news import list_public_news
 from database.queries import get_user_titles
 from database.tierlists import attach_tier_list_previews, list_user_tier_lists
 from web.chat_insights import get_chat_insights
@@ -41,6 +42,7 @@ async def home(request: Request):
         name='home.html',
         context={
             'stats': get_public_stats(),
+            'latest_news': list_public_news(limit=3),
             'latest_media': list_media(limit=6),
             'active_page': 'home',
         },

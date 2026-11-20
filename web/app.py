@@ -6,7 +6,9 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from web.rendering import templates
-from web.routes import admin, public, tierlist_catalog_admin, tierlists, wishes
+from web.routes import (
+    account, admin, news, news_admin, public, tierlist_catalog_admin, tierlists, wishes,
+)
 
 mimetypes.add_type('image/webp', '.webp')
 
@@ -25,6 +27,9 @@ def create_app():
     app.include_router(wishes.router)
     app.include_router(tierlists.router)
     app.include_router(tierlist_catalog_admin.router)
+    app.include_router(account.router)
+    app.include_router(news.router)
+    app.include_router(news_admin.router)
 
     @app.middleware('http')
     async def security_headers(request: Request, call_next):

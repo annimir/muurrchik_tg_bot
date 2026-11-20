@@ -87,23 +87,31 @@ def _editor_context(tier_list, csrf_token):
     }
 
 
+def _login_target(next_page):
+    return '/account' if next_page == '/account' else '/tierlists/mine'
+
+
 @router.get('/tierlists/login', name='tierlists_login')
-async def tierlists_login(request: Request):
+async def tierlists_login(request: Request, next: str = '/tierlists/mine'):
+    target = _login_target(next)
     if read_admin_session(request):
-        return RedirectResponse('/tierlists/mine', status_code=303)
+        return RedirectResponse(target, status_code=303)
+    auth_url = f'{config.web_public_base_url}/tierlists/login/telegram'
+    if target == '/account':
+        auth_url += '?next=/account'
     return templates.TemplateResponse(
         request=request,
         name='tierlist_login.html',
         context={
             'bot_username': config.web_telegram_bot_username,
-            'auth_url': f'{config.web_public_base_url}/tierlists/login/telegram',
+            'auth_url': auth_url,
             'active_page': 'tierlists',
         },
     )
 
 
 @router.get('/tierlists/login/telegram', name='tierlists_login_telegram')
-async def tierlists_login_telegram(request: Request):
+async def tierlists_login_telegram(request: Request, next: str = '/tierlists/mine'):
     if not verify_telegram_login(request.query_params, config.bot_token):
         raise HTTPException(status_code=403, detail='Не удалось подтвердить вход через Telegram')
     tg_id = int(request.query_params['id'])
@@ -115,7 +123,7 @@ async def tierlists_login_telegram(request: Request):
         tag = request.query_params.get('username') or full_name or str(tg_id)
         ensure_user(tg_id, tag)
     token, _ = create_admin_session(tg_id)
-    response = RedirectResponse('/tierlists/mine', status_code=303)
+    response = RedirectResponse(_login_target(next), status_code=303)
     response.set_cookie(
         SESSION_COOKIE, token, max_age=config.web_session_ttl_seconds,
         httponly=True, secure=config.web_secure_cookies, samesite='lax', path='/',
