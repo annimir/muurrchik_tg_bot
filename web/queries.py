@@ -228,7 +228,7 @@ def count_users(search=None):
 def get_public_user(user_id):
     return db(
         '''
-        SELECT u.id, u.tag, u.chat_position, uc.bio,
+        SELECT u.id, u.tg_id, u.tag, u.chat_position, uc.bio,
             b.day AS birth_day, b.month AS birth_month, b.year AS birth_year,
             (SELECT COUNT(*) FROM character WHERE owner_user_id = u.id) AS character_count,
             (SELECT COUNT(*) FROM subscription WHERE user_id = u.id AND active = TRUE) AS subscription_count

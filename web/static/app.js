@@ -5,6 +5,14 @@ function configureVideo(video) {
 
 document.querySelectorAll('video').forEach(configureVideo);
 
+document.addEventListener('click', (event) => {
+    document.querySelectorAll('[data-nav-group][open]').forEach((group) => {
+        if (!group.contains(event.target)) {
+            group.open = false;
+        }
+    });
+});
+
 document.addEventListener('error', (event) => {
     if (event.target.matches('[data-avatar-image]')) {
         event.target.closest('.profile-initial')?.classList.add('avatar-missing');

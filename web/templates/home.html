@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% from '_media.html' import media_card %}
+{% from '_news_card.html' import news_card %}
 {% block title %}Летопись сообщества{% endblock %}
 {% block content %}
 <section class="hero">
@@ -17,7 +18,7 @@
     <div class="stat-card"><strong>{{ stats.users }}</strong><span>игроков</span></div>
     <div class="stat-card"><strong>{{ stats.characters }}</strong><span>персонажей</span></div>
 </section>
-{% if latest_news %}<section class="home-news"><div class="section-heading"><div><div class="eyebrow">Объявления</div><h2>Новости сообщества</h2></div><a href="/news">Все новости <span aria-hidden="true">→</span></a></div><div class="news-grid">{% for post in latest_news %}<article class="panel news-card"><time datetime="{{ post.published_at.isoformat() }}">{{ post.published_at|datetime_ru }}</time><h2><a href="/news/{{ post.id }}">{{ post.title }}</a></h2><p>{{ post.summary }}</p><a class="text-link" href="/news/{{ post.id }}">Читать полностью →</a></article>{% endfor %}</div></section>{% endif %}
+{% if latest_news %}<section class="home-news"><div class="section-heading"><div><div class="eyebrow">Объявления</div><h2>Новости сообщества</h2></div><a href="/news">Все новости <span aria-hidden="true">→</span></a></div><div class="news-grid">{% for post in latest_news %}{{ news_card(post) }}{% endfor %}</div></section>{% endif %}
 <section class="section-heading">
     <div><div class="eyebrow">Свежие страницы</div><h2>Недавно добавленное</h2></div>
     <a href="/media">Вся коллекция <span aria-hidden="true">→</span></a>

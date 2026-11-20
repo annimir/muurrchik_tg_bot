@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
 
 from database.news import (
@@ -6,6 +6,7 @@ from database.news import (
 )
 from services.news_notifications import send_news_to_telegram
 from web.auth import csrf_protect, require_admin
+from web.media import get_media_store
 from web.rendering import templates
 
 router = APIRouter(prefix='/admin/news')
@@ -27,7 +28,7 @@ def _list_context(session, error=None):
 def _form_context(session, post=None, error=None, send_telegram=False):
     post = post or {
         'title': '', 'summary': '', 'content': '', 'is_published': False,
-        'telegram_message_id': None,
+        'telegram_message_id': None, 'cover_image': None, 'cover_alt': '', 'tags': [],
     }
     return {
         'post': post,
@@ -36,6 +37,31 @@ def _form_context(session, post=None, error=None, send_telegram=False):
         'active_page': 'admin_news',
         'error': error,
     }
+
+
+def _tags(value):
+    return value.split(',')
+
+
+def _local_file_id(image):
+    if image and image.startswith('/media/news/'):
+        return f'local:{image.removeprefix("/media/news/")}'
+    return None
+
+
+def _delete_cover(image):
+    file_id = _local_file_id(image)
+    if file_id:
+        get_media_store().delete_local(file_id)
+
+
+async def _apply_cover(post, photo, remove_cover=False):
+    if photo and photo.filename:
+        saved = await get_media_store().save_upload(photo)
+        return f'/media/news/{saved.removeprefix("local:")}', saved
+    if remove_cover:
+        return '', None
+    return post.get('cover_image'), None
 
 
 async def _send_if_requested(post, send_telegram):
@@ -67,18 +93,30 @@ async def news_create(
     title: str = Form(...),
     summary: str = Form(...),
     content: str = Form(...),
+    cover_alt: str = Form(''),
+    tags: str = Form(''),
     is_published: bool = Form(False),
     send_telegram: bool = Form(False),
+    remove_cover: bool = Form(False),
+    photo: UploadFile | None = File(None),
     session=Depends(require_admin),
     _=Depends(csrf_protect),
 ):
     post = {
         'title': title, 'summary': summary, 'content': content,
-        'is_published': is_published, 'telegram_message_id': None,
+        'cover_alt': cover_alt, 'tags': _tags(tags),
+        'is_published': is_published, 'telegram_message_id': None, 'cover_image': None,
     }
+    saved_photo = None
     try:
-        saved = create_news(session['tg_id'], title, summary, content, is_published)
+        post['cover_image'], saved_photo = await _apply_cover(post, photo, remove_cover)
+        saved = create_news(
+            session['tg_id'], title, summary, content, is_published,
+            post['cover_image'], cover_alt, post['tags'],
+        )
     except ValueError as exc:
+        if saved_photo:
+            get_media_store().delete_local(saved_photo)
         return templates.TemplateResponse(
             request=request,
             name='admin/news_edit.html',
@@ -108,24 +146,42 @@ async def news_update(
     title: str = Form(...),
     summary: str = Form(...),
     content: str = Form(...),
+    cover_alt: str = Form(''),
+    tags: str = Form(''),
     is_published: bool = Form(False),
     send_telegram: bool = Form(False),
+    remove_cover: bool = Form(False),
+    photo: UploadFile | None = File(None),
     session=Depends(require_admin),
     _=Depends(csrf_protect),
 ):
+    current = get_admin_news(news_id)
+    if not current:
+        raise HTTPException(status_code=404, detail='Новость не найдена')
     post = {
         'title': title, 'summary': summary, 'content': content,
-        'is_published': is_published, 'telegram_message_id': None,
+        'cover_alt': cover_alt, 'tags': _tags(tags),
+        'is_published': is_published, 'telegram_message_id': current['telegram_message_id'],
+        'cover_image': current['cover_image'],
     }
+    saved_photo = None
     try:
-        saved = update_news(session['tg_id'], news_id, title, summary, content, is_published)
+        post['cover_image'], saved_photo = await _apply_cover(post, photo, remove_cover)
+        saved = update_news(
+            session['tg_id'], news_id, title, summary, content, is_published,
+            post['cover_image'], cover_alt, post['tags'],
+        )
     except ValueError as exc:
+        if saved_photo:
+            get_media_store().delete_local(saved_photo)
         return templates.TemplateResponse(
             request=request,
             name='admin/news_edit.html',
             context=_form_context(session, post, str(exc), send_telegram),
             status_code=400,
         )
+    if current['cover_image'] != saved['cover_image']:
+        _delete_cover(current['cover_image'])
     sent = await _send_if_requested(saved, send_telegram)
     return RedirectResponse(
         '/admin/news' if sent else '/admin/news?error=telegram', status_code=303,
@@ -138,10 +194,14 @@ async def news_delete(
     session=Depends(require_admin),
     _=Depends(csrf_protect),
 ):
+    post = get_admin_news(news_id)
     try:
         delete_news(session['tg_id'], news_id)
     except ValueError:
         pass
+    else:
+        if post:
+            _delete_cover(post['cover_image'])
     return RedirectResponse('/admin/news', status_code=303)
 
 

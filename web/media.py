@@ -59,14 +59,17 @@ class TelegramMediaStore:
         (uploads_dir / filename).write_bytes(data)
         return f'local:{filename}'
 
-    def get_local_response(self, file_id):
+    def get_local_path(self, file_id):
         filename = file_id.removeprefix('local:')
         if not re.fullmatch(r'[a-f0-9]{32}\.(jpg|png|webp)', filename):
             raise HTTPException(status_code=404, detail='Фото не найдено')
         path = self.cache_dir / 'uploads' / filename
         if not path.is_file():
             raise HTTPException(status_code=404, detail='Фото не найдено')
-        return self._file_response(path)
+        return path
+
+    def get_local_response(self, file_id):
+        return self._file_response(self.get_local_path(file_id))
 
     def delete_local(self, file_id):
         if file_id and file_id.startswith('local:'):
