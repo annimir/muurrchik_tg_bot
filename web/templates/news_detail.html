@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}{{ post.title }}{% endblock %}
+{% block content %}
+<article class="panel news-detail">
+    <a class="text-link" href="/news">← Все новости</a>
+    <header><div class="eyebrow">Новости сообщества</div><h1>{{ post.title }}</h1><time datetime="{{ post.published_at.isoformat() }}">Опубликовано {{ post.published_at|datetime_ru }}</time></header>
+    <p class="news-detail-summary">{{ post.summary }}</p>
+    <div class="news-detail-content">{{ post.content }}</div>
+</article>
+{% endblock %}

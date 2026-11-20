@@ -719,6 +719,36 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
     *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
 }
 
+.news-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.news-card { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.news-card time, .news-detail time { color: var(--muted); font-size: .82rem; }
+.news-card h2 { margin: 0; font-size: 1.3rem; }
+.news-card h2 a { color: var(--gold-light); }
+.news-card p { flex: 1; margin: 0; color: var(--muted); }
+.home-news { margin: 34px 0; }
+.news-detail { max-width: 900px; margin: 0 auto; }
+.news-detail header { margin: 22px 0; }
+.news-detail header h1 { margin: 8px 0 12px; }
+.news-detail-summary { color: var(--gold-light); font-size: 1.15rem; font-weight: 600; }
+.news-detail-content { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.75; }
+.admin-news-summary { display: block; max-width: 420px; margin-top: 5px; color: var(--muted); }
+.admin-news-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.account-actions, .account-quick-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.account-quick-actions { margin-bottom: 22px; }
+.account-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 28px; }
+.account-grid .panel-wide { grid-column: 1 / -1; }
+.account-reward-list { display: grid; gap: 6px; }
+.account-reward-row { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(220px, .8fr); align-items: center; gap: 16px; padding: 10px 0; border-top: 1px solid var(--line); }
+.account-reward-row:first-child { border-top: 0; }
+.account-reward-row small { display: block; margin-top: 4px; color: var(--muted); }
+.account-reward-progress { display: flex; align-items: center; gap: 10px; }
+.account-reward-progress progress { width: 100%; accent-color: var(--teal); }
+.account-reward-progress span { flex: 0 0 auto; color: var(--muted); font-size: .82rem; }
+.account-history > div { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 9px 0; border-top: 1px solid var(--line); }
+.account-history small { grid-column: 1 / -1; color: var(--muted); }
+@media (max-width: 1000px) { .news-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .news-grid, .account-grid, .account-reward-row { grid-template-columns: 1fr; } .account-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
 .tierlist-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
 .tierlist-heading h1 { overflow-wrap: anywhere; }
 .tierlist-export { display: grid; flex: 0 0 auto; justify-items: end; gap: 8px; }

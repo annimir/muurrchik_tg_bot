@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Новая новость' if not post.id else post.title }} · Админка{% endblock %}
+{% block content %}
+{% include 'admin/_nav.html' %}
+<section class="page-heading"><div><div class="eyebrow">Новости</div><h1>{{ 'Добавить новость' if not post.id else 'Редактировать новость' }}</h1></div><a class="button button-quiet" href="/admin/news">К списку</a></section>
+{% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+<section class="panel">
+    <form class="admin-form" method="post" action="{{ '/admin/news/new' if not post.id else '/admin/news/' ~ post.id ~ '/edit' }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label class="form-wide">Заголовок<input name="title" required maxlength="120" value="{{ post.title }}"></label>
+        <label class="form-wide">Краткое описание<textarea name="summary" rows="3" maxlength="300" required>{{ post.summary }}</textarea><small>Будет показано в ленте и в сообщении Telegram.</small></label>
+        <label class="form-wide">Полный текст<textarea name="content" rows="14" maxlength="20000" required>{{ post.content }}</textarea><small>Обычный текст с переносами строк, без HTML.</small></label>
+        <label class="checkbox"><input type="checkbox" name="is_published" value="true" {{ 'checked' if post.is_published else '' }}> Опубликовать на сайте</label>
+        {% if not post.telegram_message_id %}<label class="checkbox"><input type="checkbox" name="send_telegram" value="true" {{ 'checked' if send_telegram else '' }}> Отправить в Telegram от Паймон</label>{% else %}<p class="muted">В Telegram отправлено {{ post.telegram_sent_at|datetime_ru }}.</p>{% endif %}
+        <button class="button" type="submit">Сохранить</button>
+    </form>
+</section>
+{% endblock %}

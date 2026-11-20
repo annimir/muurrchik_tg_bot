@@ -586,3 +586,20 @@ CREATE INDEX IF NOT EXISTS idx_wish_reward_activities_grants
 ALTER TABLE wish_reward_activities
     ADD COLUMN IF NOT EXISTS level SMALLINT NOT NULL DEFAULT 0 CHECK (level BETWEEN 0 AND 3);
 UPDATE wish_reward_activities SET level = 1 WHERE amount > 0 AND level = 0;
+
+CREATE TABLE IF NOT EXISTS news_posts (
+    id                   SERIAL PRIMARY KEY,
+    title                VARCHAR(120) NOT NULL CHECK (length(btrim(title)) > 0),
+    summary              VARCHAR(300) NOT NULL CHECK (length(btrim(summary)) > 0),
+    content              TEXT NOT NULL CHECK (length(btrim(content)) > 0),
+    is_published         BOOLEAN NOT NULL DEFAULT FALSE,
+    published_at         TIMESTAMPTZ,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by           BIGINT,
+    telegram_message_id  BIGINT,
+    telegram_sent_at     TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_news_posts_public
+    ON news_posts (is_published, published_at DESC, id DESC);
