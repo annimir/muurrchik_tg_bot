@@ -98,6 +98,33 @@ class AccountNewsIntegrationTests(PostgresTestCase):
         self.assertEqual(login.headers['location'], '/account')
         self.assertEqual(self.client.get('/account').status_code, 200)
 
+    def test_profile_places_role_under_name_and_subscriptions_after_characters(self):
+        queries.db(
+            "UPDATE users SET chat_position = 'Хранитель архива' WHERE id = %s",
+            (self.user['id'],),
+        ).close()
+        queries.create_character_row(
+            self.user['id'], 'Фурина', None, None, 'Описание', True,
+        )
+        tag = queries.create_tag('adventure')
+        queries.subscribe_tag(self.user['tg_id'], tag['id'])
+
+        response = self.client.get('/account')
+
+        self.assertEqual(response.status_code, 200, response.text)
+        nickname = response.text.index('<h1>player</h1>')
+        position = response.text.index('account-profile-position')
+        facts = response.text.index('account-profile-facts')
+        self.assertLess(nickname, position)
+        self.assertLess(position, facts)
+        self.assertIn('Хранитель архива', response.text)
+        self.assertNotIn('<dt>Должность в чате</dt>', response.text)
+        self.assertLess(
+            response.text.index('id="characters"'),
+            response.text.index('id="subscriptions"'),
+        )
+        self.assertIn('adventure', response.text)
+
     def test_news_admin_public_home_and_telegram_action(self):
         response = self.client.post('/admin/news/new', data={
             'title': 'Черновик обновления', 'summary': 'Кратко об изменениях',

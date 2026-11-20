@@ -758,9 +758,21 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
 .admin-news-summary { display: block; max-width: 420px; margin: 5px 0; color: var(--muted); }
 .admin-news-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .account-actions, .account-quick-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
-.account-quick-actions { margin-bottom: 22px; }
-.account-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 28px; }
-.account-grid .panel-wide { grid-column: 1 / -1; }
+.account-profile-hero { justify-content: space-between; padding: 24px 28px; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-shadow: var(--shadow); }
+.account-profile-identity { display: flex; align-items: center; min-width: 0; gap: 24px; }
+.account-profile-heading { min-width: 0; }
+.account-profile-heading h1 { margin: 4px 0 10px; font-size: clamp(2rem, 4vw, 3.2rem); overflow-wrap: anywhere; }
+.account-profile-position { display: inline-flex; margin-bottom: 8px; font-size: .78rem; letter-spacing: .03em; text-transform: none; }
+.account-profile-facts { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 0; }
+.account-quick-actions { justify-content: flex-end; max-width: 390px; margin: 0; }
+.account-quick-actions form { margin: 0; }
+.account-stats { margin: 0 0 16px; }
+.account-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); align-items: start; gap: 16px; }
+.account-main-column, .account-side-column { display: grid; align-content: start; min-width: 0; gap: 16px; }
+.account-main-column .panel, .account-side-column .panel { min-width: 0; margin-bottom: 0; }
+.account-profile-group { padding-top: 14px; margin-top: 18px; border-top: 1px solid var(--line); }
+.account-profile-group h3 { margin: 0 0 10px; font-size: 1.05rem; }
+.account-profile-group p { margin-bottom: 0; }
 .account-reward-list { display: grid; gap: 6px; }
 .account-reward-row { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(220px, .8fr); align-items: center; gap: 16px; padding: 10px 0; border-top: 1px solid var(--line); }
 .account-reward-row:first-child { border-top: 0; }
@@ -770,8 +782,10 @@ th { color: var(--gold); font-size: .78rem; letter-spacing: .08em; text-transfor
 .account-reward-progress span { flex: 0 0 auto; color: var(--muted); font-size: .82rem; }
 .account-history > div { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 9px 0; border-top: 1px solid var(--line); }
 .account-history small { grid-column: 1 / -1; color: var(--muted); }
-@media (max-width: 1000px) { .news-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 700px) { .news-grid, .account-grid, .account-reward-row { grid-template-columns: 1fr; } .account-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { .account-layout { grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr); } .account-main-column .tierlist-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1000px) { .news-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .account-layout { grid-template-columns: 1fr; } .account-profile-hero { align-items: flex-start; flex-direction: column; } .account-quick-actions { justify-content: flex-start; max-width: none; } }
+@media (max-width: 700px) { .news-grid, .account-reward-row, .account-main-column .tierlist-grid { grid-template-columns: 1fr; } .account-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .account-profile-hero { padding: 20px; } .account-profile-identity { gap: 16px; } .account-profile-identity .profile-initial-large { width: 84px; height: 84px; font-size: 36px; } }
+@media (max-width: 480px) { .account-profile-identity { align-items: flex-start; flex-direction: column; } .account-quick-actions .button, .account-quick-actions form, .account-quick-actions form .button { width: 100%; } .account-characters .character-card { padding: 16px; gap: 12px; } .account-characters .character-portrait { width: 76px; height: 94px; } .account-characters .character-info { min-width: 120px; } }
 
 .tierlist-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
 .tierlist-heading h1 { overflow-wrap: anywhere; }
