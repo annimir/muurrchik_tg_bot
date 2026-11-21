@@ -18,17 +18,24 @@
     <div class="calendar-scroll" tabindex="0" aria-label="Календарь на {{ month_name }} {{ year }}">
         <div class="calendar-grid">
             {% for weekday in weekdays %}<div class="calendar-weekday">{{ weekday }}</div>{% endfor %}
-            {% for week in weeks %}{% for day in week %}
-                {% if day %}
-                <div class="calendar-day{% if day.is_today %} is-today{% endif %}">
-                    <span class="calendar-day-number">{{ day.number }}</span>
-                    <div class="calendar-day-events">
-                        {% for event in day.events[:3] %}<div class="calendar-event calendar-event-{{ event.kind }}" title="{{ event.title }} · {{ event.subtitle }}">{% if event.url %}<a href="{{ event.url }}" {% if event.external %}target="_blank" rel="noopener noreferrer"{% endif %}>{{ event.title }}</a>{% else %}<span>{{ event.title }}</span>{% endif %}</div>{% endfor %}
-                        {% if day.events|length > 3 %}<a class="calendar-more" href="#agenda">Ещё {{ day.events|length - 3 }}</a>{% endif %}
+            {% for week in weeks %}
+            <div class="calendar-week" style="--event-rows: {{ week.event_rows }}">
+                {% for day in week.days %}
+                    {% if day %}
+                    <div class="calendar-day{% if day.is_today %} is-today{% endif %}" style="grid-column: {{ loop.index }}">
+                        <span class="calendar-day-number">{{ day.number }}</span>
+                        <div class="calendar-day-events">
+                            {% for event in day.events[:3] %}<div class="calendar-event calendar-event-{{ event.kind }}" title="{{ event.title }} · {{ event.subtitle }}">{% if event.url %}<a href="{{ event.url }}">{{ event.title }}</a>{% else %}<span>{{ event.title }}</span>{% endif %}</div>{% endfor %}
+                            {% if day.events|length > 3 %}<a class="calendar-more" href="#agenda">Ещё {{ day.events|length - 3 }}</a>{% endif %}
+                        </div>
                     </div>
+                    {% else %}<div class="calendar-day is-empty" style="grid-column: {{ loop.index }}" aria-hidden="true"></div>{% endif %}
+                {% endfor %}
+                <div class="calendar-event-bars">
+                    {% for event in week.event_bars %}<div class="calendar-event calendar-event-bar calendar-event-{{ event.kind }}" style="grid-column: {{ event.column }} / span {{ event.span }}; grid-row: {{ event.row }}" title="{{ event.title }} · {{ event.subtitle }}">{% if event.url %}<a href="{{ event.url }}" target="_blank" rel="noopener noreferrer">{{ event.title }}</a>{% else %}<span>{{ event.title }}</span>{% endif %}</div>{% endfor %}
                 </div>
-                {% else %}<div class="calendar-day is-empty" aria-hidden="true"></div>{% endif %}
-            {% endfor %}{% endfor %}
+            </div>
+            {% endfor %}
         </div>
     </div>
 </section>

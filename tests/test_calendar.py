@@ -122,8 +122,26 @@ class CalendarIntegrationTests(PostgresTestCase):
         february = self.client.get('/calendar?year=2026&month=2')
         self.assertEqual(february.status_code, 200, february.text)
         self.assertIn('Переходящий ивент', february.text)
-        self.assertEqual(february.text.count('class="calendar-event calendar-event-event"'), 2)
+        self.assertEqual(february.text.count('calendar-event-bar calendar-event-event'), 2)
         self.assertIn('30.01–02.02.2026', february.text)
+
+        from web.calendar import build_calendar_page
+
+        queries.set_birthday(100, 'player', 15, 11)
+        create_calendar_event(
+            100, 'genshin', 'Длинный ивент', '', 'event',
+            date(2026, 11, 10), date(2026, 11, 20),
+        )
+        page = build_calendar_page(2026, 11, today=date(2026, 11, 15))
+        bars = [bar for week in page['weeks'] for bar in week['event_bars']]
+        self.assertEqual(
+            [(bar['column'], bar['span'], bar['title']) for bar in bars],
+            [(2, 6, 'Длинный ивент'), (1, 5, 'Длинный ивент')],
+        )
+        birthday_cell = page['weeks'][2]['days'][6]
+        self.assertEqual(
+            [event['kind'] for event in birthday_cell['events']], ['player_birthday'],
+        )
 
         for data in (
             {
