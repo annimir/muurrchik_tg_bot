@@ -83,19 +83,13 @@ def build_calendar_page(year, month, game_code='', event_type='', today=None):
     events_by_day = {}
     agenda = []
     for event in game_events:
-        item = {
+        agenda.append({
             'id': f'game-{event["id"]}', 'kind': event['event_type'], 'title': event['title'],
             'subtitle': event['game_name'], 'description': event['description'],
             'url': event['url'], 'external': True,
             'date_label': _date_range(event['start_date'], event['end_date']),
             'occurrence_date': max(event['start_date'], month_start),
-        }
-        agenda.append(item)
-        occurrence = max(event['start_date'], month_start)
-        last_occurrence = min(event['end_date'], next_month - timedelta(days=1))
-        while occurrence <= last_occurrence:
-            events_by_day.setdefault(occurrence, []).append(item)
-            occurrence += timedelta(days=1)
+        })
 
     for kind, rows in (('player_birthday', players), ('character_birthday', characters)):
         for row in rows:
@@ -117,7 +111,35 @@ def build_calendar_page(year, month, game_code='', event_type='', today=None):
                 'date': day, 'number': day_number, 'is_today': day == today,
                 'events': events_by_day.get(day, []),
             })
-        weeks.append(cells)
+        first_day = next(day_number for day_number in week if day_number)
+        week_start = date(year, month, first_day) - timedelta(days=week.index(first_day))
+        week_end = week_start + timedelta(days=6)
+        event_bars = []
+        lane_ends = []
+        for event in game_events:
+            bar_start = max(event['start_date'], week_start)
+            bar_end = min(event['end_date'], week_end)
+            if bar_start > bar_end:
+                continue
+            column = bar_start.weekday() + 1
+            end_column = bar_end.weekday() + 1
+            lane = next(
+                (index for index, end in enumerate(lane_ends) if end < column),
+                len(lane_ends),
+            )
+            if lane == len(lane_ends):
+                lane_ends.append(end_column)
+            else:
+                lane_ends[lane] = end_column
+            event_bars.append({
+                'id': f'game-{event["id"]}', 'kind': event['event_type'],
+                'title': event['title'], 'subtitle': event['game_name'],
+                'url': event['url'], 'external': True, 'column': column,
+                'span': end_column - column + 1, 'row': lane + 1,
+            })
+        weeks.append({
+            'days': cells, 'event_bars': event_bars, 'event_rows': len(lane_ends),
+        })
 
     kind_order = {kind: index for index, kind in enumerate(EVENT_TYPE_LABELS)}
     agenda.sort(key=lambda item: (
