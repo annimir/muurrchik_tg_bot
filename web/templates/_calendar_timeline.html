@@ -1,0 +1,14 @@
+<div class="timeline-grid" style="--timeline-days: {{ day_count }}">
+    <div class="timeline-corner">Категории</div>
+    {% for day in days %}<div class="timeline-day{% if day.is_today %} is-today{% endif %}{% if day.is_weekend %} is-weekend{% endif %}{% if day.is_month_start %} is-month-start{% endif %}" style="grid-column: {{ loop.index + 1 }}" data-timeline-date="{{ day.date.isoformat() }}"><span>{{ day.weekday }}</span><strong>{{ day.number }}</strong><small>{{ '%02d'|format(day.date.month) }}.{{ day.date.year }}</small></div>{% endfor %}
+    {% for row in rows %}
+    <div class="timeline-row" style="--event-rows: {{ row.event_rows }}" data-timeline-row="{{ row.label }}">
+        <div class="timeline-row-label"><strong>{{ row.label }}</strong><small>{{ row.subtitle }}</small></div>
+        {% for day in days %}<div class="timeline-cell{% if day.is_today %} is-today{% endif %}{% if day.is_weekend %} is-weekend{% endif %}{% if day.is_month_start %} is-month-start{% endif %}" style="grid-column: {{ loop.index + 1 }}"></div>{% endfor %}
+        <div class="timeline-bars">
+            {% for event in row.bars %}<div class="timeline-bar calendar-event-{{ event.kind }}" style="grid-column: {{ event.column }} / span {{ event.span }}; grid-row: {{ event.row }}" title="{{ event.title }} · {{ event.date_label }}">{% if event.url %}<a href="{{ event.url }}" {% if event.external %}target="_blank" rel="noopener noreferrer"{% endif %}>{% if event.continues_before %}← {% endif %}{{ event.title }}{% if event.continues_after %} →{% endif %}</a>{% else %}<span>{{ event.title }}</span>{% endif %}</div>{% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% if not rows %}<p class="muted timeline-empty">В загруженном диапазоне нет событий с выбранными фильтрами.</p>{% endif %}
