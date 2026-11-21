@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, timedelta
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -9,6 +10,7 @@ from database.calendar import (
 )
 from web.auth import csrf_protect, require_admin
 from web.calendar import build_calendar_page
+from web.calendar_timeline import build_calendar_timeline
 from web.queries import list_games
 from web.rendering import templates
 
@@ -18,9 +20,26 @@ router = APIRouter()
 @router.get('/calendar', name='calendar_page')
 async def calendar_page(
     request: Request, year: int | None = None, month: int | None = None,
-    game: str = '', type: str = '', month_value: str = '',
+    game: str = '', type: str = '', month_value: str = '', view: str = 'month', week: str = '',
 ):
     today = date.today()
+    selected_game = game.strip()
+    selected_type = type.strip()
+    if view == 'week':
+        try:
+            anchor = date.fromisoformat(week) if week else today
+            week_start = anchor - timedelta(days=anchor.weekday())
+            context = build_calendar_timeline(
+                week_start - timedelta(days=7), week_start + timedelta(days=13),
+                selected_game, selected_type, today=today, anchor_date=week_start,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return templates.TemplateResponse(
+            request=request, name='calendar_timeline.html', context=context,
+        )
+    if view != 'month':
+        raise HTTPException(status_code=400, detail='Неизвестный режим календаря')
     if month_value:
         try:
             year_text, month_text = month_value.split('-')
@@ -34,10 +53,31 @@ async def calendar_page(
     if not 1 <= month <= 12:
         raise HTTPException(status_code=400, detail='Месяц должен быть от 1 до 12')
     try:
-        context = build_calendar_page(year, month, game.strip(), type.strip(), today=today)
+        context = build_calendar_page(year, month, selected_game, selected_type, today=today)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    week_params = {'view': 'week', 'week': f'{year:04d}-{month:02d}-01'}
+    if selected_game:
+        week_params['game'] = selected_game
+    if selected_type:
+        week_params['type'] = selected_type
+    context['week_url'] = f'/calendar?{urlencode(week_params)}'
     return templates.TemplateResponse(request=request, name='calendar.html', context=context)
+
+
+@router.get('/calendar/timeline', name='calendar_timeline_fragment')
+async def calendar_timeline_fragment(
+    start: date, end: date, game: str = '', type: str = '',
+):
+    try:
+        context = build_calendar_timeline(start, end, game.strip(), type.strip())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        'html': templates.get_template('_calendar_timeline.html').render(**context),
+        'start': start.isoformat(), 'end': end.isoformat(),
+        'range_label': context['range_label'], 'category_count': len(context['rows']),
+    }
 
 
 def _admin_context(session, event=None, error=None):

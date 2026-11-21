@@ -112,6 +112,81 @@ class CalendarIntegrationTests(PostgresTestCase):
         self.assertNotIn('agenda-player_birthday-', hidden.text)
         self.assertNotIn('agenda-character_birthday-', hidden.text)
 
+    def test_week_timeline_groups_categories_and_loads_fragments(self):
+        from database.calendar import create_calendar_event
+        from web.calendar_timeline import build_calendar_timeline
+
+        queries.db("INSERT INTO games (code, name) VALUES ('zzz', 'Zenless Zone Zero')").close()
+        queries.set_birthday(100, 'player', 15, 11)
+        queries.create_character_row(
+            self.user['id'], 'Фурина', date(2000, 11, 16), None, None, True,
+        )
+        create_calendar_event(
+            100, 'genshin', 'Длинный ивент', '', 'event',
+            date(2026, 11, 10), date(2026, 11, 20),
+        )
+        create_calendar_event(
+            100, 'hsr', 'Баннер версии', '', 'banner',
+            date(2026, 11, 18), date(2026, 11, 25),
+        )
+
+        response = self.client.get('/calendar?view=week&week=2026-11-16')
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn('/static/calendar_timeline.js', response.text)
+        self.assertIn('data-start="2026-11-09"', response.text)
+        self.assertIn('data-end="2026-11-29"', response.text)
+        self.assertIn('data-anchor="2026-11-16"', response.text)
+        self.assertIn('href="/calendar?view=week', self.client.get('/calendar').text)
+
+        page = build_calendar_timeline(
+            date(2026, 11, 9), date(2026, 11, 29),
+            today=date(2026, 11, 21), anchor_date=date(2026, 11, 16),
+        )
+        self.assertEqual(page['day_count'], 21)
+        self.assertEqual(
+            [row['label'] for row in page['rows']],
+            ['Дни рождения', 'Genshin Impact', 'Honkai: Star Rail'],
+        )
+        self.assertEqual(len(page['rows'][0]['bars']), 2)
+        self.assertEqual(
+            (page['rows'][1]['bars'][0]['column'], page['rows'][1]['bars'][0]['span']),
+            (3, 11),
+        )
+        self.assertEqual(
+            (page['rows'][2]['bars'][0]['column'], page['rows'][2]['bars'][0]['span']),
+            (11, 8),
+        )
+
+        fragment = self.client.get(
+            '/calendar/timeline?start=2026-11-02&end=2026-11-29',
+        )
+        self.assertEqual(fragment.status_code, 200, fragment.text)
+        payload = fragment.json()
+        self.assertEqual(payload['start'], '2026-11-02')
+        self.assertEqual(payload['end'], '2026-11-29')
+        self.assertEqual(payload['html'].count('data-timeline-date='), 28)
+        self.assertIn('data-timeline-row="Дни рождения"', payload['html'])
+        self.assertNotIn('data-timeline-row="Zenless Zone Zero"', payload['html'])
+
+        banners = build_calendar_timeline(
+            date(2026, 11, 9), date(2026, 11, 29), event_type='banner',
+        )
+        self.assertEqual([row['label'] for row in banners['rows']], ['Honkai: Star Rail'])
+        players = build_calendar_timeline(
+            date(2026, 11, 9), date(2026, 11, 29), event_type='player_birthday',
+        )
+        self.assertEqual([row['label'] for row in players['rows']], ['Дни рождения'])
+        self.assertEqual(len(players['rows'][0]['bars']), 1)
+
+        self.assertEqual(self.client.get('/calendar?view=unknown').status_code, 400)
+        self.assertEqual(self.client.get('/calendar?view=week&week=invalid').status_code, 400)
+        self.assertEqual(self.client.get(
+            '/calendar/timeline?start=2026-11-29&end=2026-11-02',
+        ).status_code, 400)
+        self.assertEqual(self.client.get(
+            '/calendar/timeline?start=2025-01-01&end=2026-12-31',
+        ).status_code, 400)
+
     def test_multiday_event_crosses_month_and_input_is_validated(self):
         from database.calendar import create_calendar_event
 
