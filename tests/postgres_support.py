@@ -33,7 +33,7 @@ class PostgresTestCase(unittest.IsolatedAsyncioTestCase):
             '''
             TRUNCATE users, tag, games, positions, affiliations, admins, chats,
             youtube_publications, youtube_api_usage, admin_audit_log, wish_events,
-            news_posts
+            news_posts, calendar_event
             RESTART IDENTITY CASCADE
             '''
         ).close()

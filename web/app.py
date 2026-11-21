@@ -7,7 +7,8 @@ from fastapi.staticfiles import StaticFiles
 
 from web.rendering import templates
 from web.routes import (
-    account, admin, news, news_admin, public, tierlist_catalog_admin, tierlists, wishes,
+    account, admin, calendar, news, news_admin, public, tierlist_catalog_admin,
+    tierlists, wishes,
 )
 
 mimetypes.add_type('image/webp', '.webp')
@@ -30,6 +31,7 @@ def create_app():
     app.include_router(account.router)
     app.include_router(news.router)
     app.include_router(news_admin.router)
+    app.include_router(calendar.router)
 
     @app.middleware('http')
     async def security_headers(request: Request, call_next):

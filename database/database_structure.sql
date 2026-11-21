@@ -178,6 +178,23 @@ INSERT INTO games (code, name) VALUES
     ('wuthering_waves', 'Wuthering Waves')
 ON CONFLICT (code) DO NOTHING;
 
+CREATE TABLE IF NOT EXISTS calendar_event (
+    id           SERIAL PRIMARY KEY,
+    game_code    TEXT NOT NULL REFERENCES games(code) ON DELETE CASCADE,
+    title        VARCHAR(120) NOT NULL CHECK (length(btrim(title)) > 0),
+    description  VARCHAR(1000) NOT NULL DEFAULT '',
+    event_type   TEXT NOT NULL CHECK (event_type IN ('event', 'banner')),
+    start_date   DATE NOT NULL,
+    end_date     DATE NOT NULL CHECK (end_date >= start_date),
+    url          TEXT,
+    created_by   BIGINT,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_calendar_event_dates
+    ON calendar_event (game_code, start_date, end_date);
+
 DO $$
 BEGIN
     IF NOT EXISTS (
