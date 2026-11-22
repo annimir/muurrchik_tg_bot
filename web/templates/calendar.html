@@ -2,7 +2,7 @@
 {% block title %}Календарь событий{% endblock %}
 {% block content %}
 <section class="page-heading"><div class="eyebrow">Сообщество и игры</div><h1>Календарь событий</h1><p>Игровые ивенты, баннеры и дни рождения игроков и персонажей.</p></section>
-<nav class="calendar-view-switch" aria-label="Режим календаря"><a class="is-active" href="/calendar" aria-current="page">Месяц</a><a href="{{ week_url }}">Неделя</a></nav>
+<nav class="calendar-view-switch" aria-label="Режим календаря"><a class="is-active" href="/calendar" aria-current="page">Месяц</a><a href="{{ week_url }}">Неделя</a><a href="{{ day_url }}">День</a></nav>
 <section class="panel calendar-panel">
     <div class="calendar-toolbar">
         <div class="calendar-navigation"><a class="button button-small button-quiet" href="{{ previous_url }}" aria-label="Предыдущий месяц">←</a><a class="button button-small button-secondary" href="{{ today_url }}">Текущий месяц</a><a class="button button-small button-quiet" href="{{ next_url }}" aria-label="Следующий месяц">→</a></div>

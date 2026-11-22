@@ -20,18 +20,34 @@ router = APIRouter()
 @router.get('/calendar', name='calendar_page')
 async def calendar_page(
     request: Request, year: int | None = None, month: int | None = None,
-    game: str = '', type: str = '', month_value: str = '', view: str = 'month', week: str = '',
+    game: str = '', type: str = '', month_value: str = '', view: str = 'month',
+    week: str = '', day: str = '',
 ):
     today = date.today()
     selected_game = game.strip()
     selected_type = type.strip()
-    if view == 'week':
+    if view in {'week', 'day'}:
         try:
-            anchor = date.fromisoformat(week) if week else today
-            week_start = anchor - timedelta(days=anchor.weekday())
+            if view == 'week':
+                anchor = date.fromisoformat(week) if week else today
+                anchor -= timedelta(days=anchor.weekday())
+                range_start = anchor - timedelta(days=7)
+                range_end = anchor + timedelta(days=13)
+            else:
+                anchor = date.fromisoformat(day) if day else today
+                range_start = anchor - timedelta(days=7)
+                range_end = anchor + timedelta(days=7)
             context = build_calendar_timeline(
-                week_start - timedelta(days=7), week_start + timedelta(days=13),
-                selected_game, selected_type, today=today, anchor_date=week_start,
+                range_start, range_end, selected_game, selected_type,
+                today=today, anchor_date=anchor,
+            )
+            context.update(
+                view_mode=view,
+                view_title='Недельная лента' if view == 'week' else 'Дневная лента',
+                current_period_url=(
+                    context['current_week_url'] if view == 'week' else context['current_day_url']
+                ),
+                current_period_label='Текущая неделя' if view == 'week' else 'Текущий день',
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -56,12 +72,16 @@ async def calendar_page(
         context = build_calendar_page(year, month, selected_game, selected_type, today=today)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    week_params = {'view': 'week', 'week': f'{year:04d}-{month:02d}-01'}
-    if selected_game:
-        week_params['game'] = selected_game
-    if selected_type:
-        week_params['type'] = selected_type
+    day_value = f'{year:04d}-{month:02d}-01'
+    week_params = {'view': 'week', 'week': day_value}
+    day_params = {'view': 'day', 'day': day_value}
+    for params in (week_params, day_params):
+        if selected_game:
+            params['game'] = selected_game
+        if selected_type:
+            params['type'] = selected_type
     context['week_url'] = f'/calendar?{urlencode(week_params)}'
+    context['day_url'] = f'/calendar?{urlencode(day_params)}'
     return templates.TemplateResponse(request=request, name='calendar.html', context=context)
 
 

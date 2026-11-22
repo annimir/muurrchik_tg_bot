@@ -986,7 +986,8 @@ p.tier-description { display: block; color: var(--text); font-weight: 600; }
 .timeline-day.is-month-start, .timeline-cell.is-month-start { border-left: 2px solid var(--gold); }
 .timeline-row { display: grid; position: relative; grid-column: 1 / -1; grid-template-columns: var(--timeline-label-width) repeat(var(--timeline-days), var(--timeline-day-width)); }
 .timeline-row-label { display: grid; position: sticky; z-index: 5; left: 0; align-content: center; grid-column: 1; grid-row: 1; height: 80px; padding: 12px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--panel-solid); }
-.timeline-row-game .timeline-row-label { border-left: 4px solid var(--game-color); }
+.timeline-row-game .timeline-row-label { height: 216px; border-left: 4px solid var(--game-color); }
+.timeline-row-game .timeline-cell, .timeline-row-game .timeline-bars { height: 216px; }
 .timeline-row-label strong { color: var(--gold-light); font: 400 1.05rem Georgia, serif; overflow-wrap: anywhere; }
 .timeline-row-label small { color: var(--muted); font-size: .72rem; }
 .timeline-cell { grid-row: 1; height: 80px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }

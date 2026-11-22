@@ -1,20 +1,20 @@
 {% extends 'base.html' %}
-{% block title %}Недельная лента · Календарь{% endblock %}
+{% block title %}{{ view_title }} · Календарь{% endblock %}
 {% block scripts %}<script src="/static/calendar_timeline.js" defer></script>{% endblock %}
 {% block content %}
 <section class="page-heading"><div class="eyebrow">Сообщество и игры</div><h1>Календарь событий</h1><p>Непрерывная лента ивентов, баннеров и дней рождения.</p></section>
-<nav class="calendar-view-switch" aria-label="Режим календаря"><a href="{{ month_url }}">Месяц</a><a class="is-active" href="{{ current_week_url }}" aria-current="page">Неделя</a></nav>
+<nav class="calendar-view-switch" aria-label="Режим календаря"><a href="{{ month_url }}">Месяц</a><a class="{{ 'is-active' if view_mode == 'week' else '' }}" href="{{ current_week_url }}" {% if view_mode == 'week' %}aria-current="page"{% endif %}>Неделя</a><a class="{{ 'is-active' if view_mode == 'day' else '' }}" href="{{ current_day_url }}" {% if view_mode == 'day' %}aria-current="page"{% endif %}>День</a></nav>
 <section class="panel calendar-panel">
-    <div class="calendar-toolbar"><a class="button button-small button-secondary" href="{{ current_week_url }}">Текущая неделя</a><h2>Недельная лента</h2></div>
+    <div class="calendar-toolbar"><a class="button button-small button-secondary" href="{{ current_period_url }}">{{ current_period_label }}</a><h2>{{ view_title }}</h2></div>
     <form class="calendar-filters calendar-week-filters" method="get" action="/calendar">
-        <input type="hidden" name="view" value="week">
+        <input type="hidden" name="view" value="{{ view_mode }}">
         <label>Игра<select name="game"><option value="">Все игры</option>{% for game in games %}<option value="{{ game.code }}" {% if selected_game == game.code %}selected{% endif %}>{{ game.name }}</option>{% endfor %}</select></label>
         <label>Тип события<select name="type"><option value="">Все события</option>{% for value, label in event_types %}<option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
         <button class="button" type="submit">Показать</button>
     </form>
-    <p class="muted calendar-filter-note">Прокручивайте диаграмму влево и вправо: соседние недели загрузятся автоматически. Пустые игровые категории скрыты.</p>
+    <p class="muted calendar-filter-note">Прокручивайте диаграмму влево и вправо: соседние {{ 'недели' if view_mode == 'week' else 'дни' }} загрузятся автоматически. Показаны все игры, включая категории без событий.</p>
     <div class="timeline-meta"><strong data-timeline-range>{{ range_label }}</strong><span>Категорий: <span data-timeline-category-count>{{ rows|length }}</span></span></div>
-    <div class="calendar-timeline" data-calendar-timeline data-start="{{ range_start.isoformat() }}" data-end="{{ range_end.isoformat() }}" data-anchor="{{ anchor_date.isoformat() }}" data-game="{{ selected_game }}" data-type="{{ selected_type }}" aria-busy="false">
+    <div class="calendar-timeline" data-calendar-timeline data-mode="{{ view_mode }}" data-start="{{ range_start.isoformat() }}" data-end="{{ range_end.isoformat() }}" data-anchor="{{ anchor_date.isoformat() }}" data-game="{{ selected_game }}" data-type="{{ selected_type }}" aria-busy="false">
         <div class="calendar-timeline-scroll" data-timeline-scroll tabindex="0" aria-label="Временная лента событий">
             <div data-timeline-content>{% include '_calendar_timeline.html' %}</div>
         </div>
