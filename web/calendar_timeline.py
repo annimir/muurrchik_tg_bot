@@ -39,7 +39,7 @@ def _allocate_lane(lane_ends, start_index, end_index, height, start_lane=0):
     while True:
         while len(lane_ends) < lane + height:
             lane_ends.append(-1)
-        if all(end < start_index for end in lane_ends[lane:lane + height]):
+        if all(end <= start_index for end in lane_ends[lane:lane + height]):
             break
         lane += 1
     for index in range(lane, lane + height):
@@ -64,10 +64,18 @@ def _row(label, subtitle, events, range_start, range_end):
         start_index = (bar_start - range_start).days
         end_index = (bar_end - range_start).days
         height = event.get('line_count', 1)
-        lane = _allocate_lane(
-            lane_ends, start_index, end_index, height,
-            activity_lane if is_activity else 0,
-        )
+        special_banner = event['kind'] == 'banner' and 'молитва хроник' in event['title'].casefold()
+        if special_banner:
+            lane = len(lane_ends)
+            while len(lane_ends) < lane + height:
+                lane_ends.append(-1)
+            for index in range(lane, lane + height):
+                lane_ends[index] = end_index
+        else:
+            lane = _allocate_lane(
+                lane_ends, start_index, end_index, height,
+                activity_lane if is_activity else 0,
+            )
         bars.append({
             'id': event['id'], 'kind': event['kind'], 'title': event['title'],
             'subtitle': event['subtitle'], 'url': event['url'],
@@ -79,9 +87,26 @@ def _row(label, subtitle, events, range_start, range_end):
             'continues_before': event['start_date'] < range_start,
             'continues_after': event['end_date'] > range_end,
         })
+    event_rows = len(lane_ends)
+    if event_rows > 10:
+        visible = [bar for bar in bars if bar['row'] + bar['row_span'] <= 10]
+        overflow = [bar for bar in bars if bar['row'] + bar['row_span'] > 10]
+        bars = visible
+        if overflow:
+            bars.append({
+                'id': f'more-{label}', 'kind': 'more',
+                'title': f'Ещё событий: {len(overflow)}', 'subtitle': label,
+                'url': None, 'external': False, 'column': 2,
+                'span': (range_end - range_start).days + 1, 'row': 10, 'row_span': 1,
+                'date_label': ', '.join(bar['title'] for bar in overflow),
+                'game_color': None, 'timeline_color': '#b8c2cf',
+                'cycle_id': None, 'cycle_summary': None,
+                'continues_before': False, 'continues_after': False,
+            })
+        event_rows = 10
     return {
         'label': label, 'subtitle': subtitle, 'bars': bars,
-        'event_rows': len(lane_ends), 'event_count': len(events),
+        'event_rows': event_rows, 'event_count': len(events),
     }
 
 

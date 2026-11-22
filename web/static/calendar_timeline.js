@@ -138,7 +138,13 @@
         const anchor = content.querySelector(`[data-timeline-date="${root.dataset.anchor}"]`);
         const days = [...content.querySelectorAll('[data-timeline-date]')];
         const anchorIndex = days.indexOf(anchor);
-        if (anchor && anchorIndex >= 0) scroll.scrollLeft = anchorIndex * anchor.offsetWidth;
+        const labelWidth = content.querySelector('.timeline-corner')?.offsetWidth || 0;
+        const visibleWidth = scroll.clientWidth - labelWidth;
+        if (anchor && anchorIndex >= 0) {
+            scroll.scrollLeft = Math.max(
+                0, anchorIndex * anchor.offsetWidth - (visibleWidth - anchor.offsetWidth) / 2,
+            );
+        }
         scheduleBarLabels();
     });
 })();
