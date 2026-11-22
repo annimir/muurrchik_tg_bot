@@ -168,11 +168,11 @@ class CalendarIntegrationTests(PostgresTestCase):
         self.assertEqual(len(page['rows'][0]['bars']), 2)
         self.assertEqual(
             (page['rows'][1]['bars'][0]['column'], page['rows'][1]['bars'][0]['span']),
-            (3, 11),
+            (2, 11),
         )
         self.assertEqual(
             (page['rows'][2]['bars'][0]['column'], page['rows'][2]['bars'][0]['span']),
-            (11, 8),
+            (10, 8),
         )
         self.assertEqual(page['rows'][3]['event_count'], 0)
 

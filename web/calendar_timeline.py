@@ -79,7 +79,7 @@ def _row(label, subtitle, events, range_start, range_end):
         bars.append({
             'id': event['id'], 'kind': event['kind'], 'title': event['title'],
             'subtitle': event['subtitle'], 'url': event['url'],
-            'external': event['external'], 'column': start_index + 2,
+            'external': event['external'], 'column': start_index + 1,
             'span': end_index - start_index + 1, 'row': lane + 1, 'row_span': height,
             'date_label': event['date_label'], 'game_color': event.get('game_color'),
             'timeline_color': event.get('timeline_color'),
@@ -96,7 +96,7 @@ def _row(label, subtitle, events, range_start, range_end):
             bars.append({
                 'id': f'more-{label}', 'kind': 'more',
                 'title': f'Ещё событий: {len(overflow)}', 'subtitle': label,
-                'url': None, 'external': False, 'column': 2,
+                'url': None, 'external': False, 'column': 1,
                 'span': (range_end - range_start).days + 1, 'row': 10, 'row_span': 1,
                 'date_label': ', '.join(bar['title'] for bar in overflow),
                 'game_color': None, 'timeline_color': '#b8c2cf',
