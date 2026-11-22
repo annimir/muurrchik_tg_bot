@@ -52,7 +52,7 @@
         const oldScrollLeft = scroll.scrollLeft;
         const oldScrollTop = scroll.scrollTop;
         const params = new URLSearchParams({
-            start, end, game: root.dataset.game, type: root.dataset.type,
+            start, end, view: root.dataset.mode, game: root.dataset.game, type: root.dataset.type,
         });
         loading = true;
         root.setAttribute('aria-busy', 'true');

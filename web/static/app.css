@@ -1023,3 +1023,10 @@ p.tier-description { display: block; color: var(--text); font-weight: 600; }
 .cycle-elements { display: flex; flex-wrap: wrap; gap: 10px 18px; }
 .cycle-admin-form > .button { width: fit-content; }
 @media (max-width: 600px) { .cycle-admin-form { grid-template-columns: 1fr; } .cycle-details-dialog { padding: 20px; } }
+
+.timeline-bar-colored { border-color: var(--timeline-color); color: var(--timeline-color); background: color-mix(in srgb, var(--timeline-color) 18%, transparent); }
+.timeline-bar-double { border-top: 2px solid var(--timeline-color); border-bottom: 2px solid var(--timeline-color); }
+.timeline-row-compact .timeline-row-label { height: max(40px, calc(var(--event-rows) * 28px + 12px)); padding: 8px 14px; border-left: 3px solid var(--timeline-color, var(--line)); }
+.timeline-row-compact .timeline-cell, .timeline-row-compact .timeline-bars { height: max(40px, calc(var(--event-rows) * 28px + 12px)); }
+.timeline-row-compact .timeline-bars { padding-top: 7px; }
+.timeline-cell.is-today { box-shadow: inset 2px 0 0 var(--teal); }

@@ -4,14 +4,19 @@ from urllib.parse import urlencode
 from database.calendar import (
     list_calendar_events, list_character_birthdays, list_player_birthdays,
 )
-from database.calendar_activity import list_activity_cycles, list_calendar_activities
+from database.calendar_activity import list_activity_cycles
+from web.calendar import EVENT_TYPE_LABELS, WEEKDAYS, _birthday_event, _date_range, game_color
 from web.calendar_activity import cycle_summary
-from web.calendar import (
-    EVENT_TYPE_LABELS, WEEKDAYS, _birthday_event, _date_range, game_color,
-)
 from web.queries import list_games
 
 MAX_TIMELINE_DAYS = 367
+TIMELINE_COLORS = {
+    'banner': '#e5a3b5',
+    'event': '#d8bc72',
+    'onslaught': '#d98164',
+    'theater': '#a89be8',
+    'abyss': '#73b9e6',
+}
 
 
 def _url(view, game_code, event_type, week=None, day=None, year=None, month=None):
@@ -29,30 +34,47 @@ def _url(view, game_code, event_type, week=None, day=None, year=None, month=None
     return f'/calendar?{urlencode(params)}'
 
 
+def _allocate_lane(lane_ends, start_index, end_index, height, start_lane=0):
+    lane = start_lane
+    while True:
+        while len(lane_ends) < lane + height:
+            lane_ends.append(-1)
+        if all(end < start_index for end in lane_ends[lane:lane + height]):
+            break
+        lane += 1
+    for index in range(lane, lane + height):
+        lane_ends[index] = end_index
+    return lane
+
+
 def _row(label, subtitle, events, range_start, range_end):
     bars = []
     lane_ends = []
-    for event in sorted(
-        events, key=lambda item: (item['start_date'], item['end_date'], item['title'].casefold()),
-    ):
+    activity_lane = None
+    ordered = sorted(events, key=lambda item: (
+        item.get('is_activity', False), item['start_date'], item['end_date'],
+        item['title'].casefold(),
+    ))
+    for event in ordered:
+        is_activity = event.get('is_activity', False)
+        if is_activity and activity_lane is None:
+            activity_lane = len(lane_ends)
         bar_start = max(event['start_date'], range_start)
         bar_end = min(event['end_date'], range_end)
         start_index = (bar_start - range_start).days
         end_index = (bar_end - range_start).days
-        lane = next(
-            (index for index, end in enumerate(lane_ends) if end < start_index),
-            len(lane_ends),
+        height = event.get('line_count', 1)
+        lane = _allocate_lane(
+            lane_ends, start_index, end_index, height,
+            activity_lane if is_activity else 0,
         )
-        if lane == len(lane_ends):
-            lane_ends.append(end_index)
-        else:
-            lane_ends[lane] = end_index
         bars.append({
             'id': event['id'], 'kind': event['kind'], 'title': event['title'],
             'subtitle': event['subtitle'], 'url': event['url'],
             'external': event['external'], 'column': start_index + 2,
-            'span': end_index - start_index + 1, 'row': lane + 1,
+            'span': end_index - start_index + 1, 'row': lane + 1, 'row_span': height,
             'date_label': event['date_label'], 'game_color': event.get('game_color'),
+            'timeline_color': event.get('timeline_color'),
             'cycle_id': event.get('cycle_id'), 'cycle_summary': event.get('cycle_summary'),
             'continues_before': event['start_date'] < range_start,
             'continues_after': event['end_date'] > range_end,
@@ -76,16 +98,39 @@ def _birthdays(range_start, range_end, event_type):
                 item = _birthday_event(row, year, kind)
                 occurrence = item['occurrence_date']
                 if range_start <= occurrence <= range_end:
-                    item.update(
-                        start_date=occurrence, end_date=occurrence,
-                        subtitle=item['subtitle'],
-                    )
+                    item.update(start_date=occurrence, end_date=occurrence)
                     events.append(item)
     return events
 
 
+def _game_items(game, events, cycles):
+    color = game_color(game['code'])
+    items = [{
+        'id': f'game-{event["id"]}', 'kind': event['event_type'],
+        'title': event['title'], 'subtitle': game['name'], 'game_name': game['name'],
+        'url': event['url'], 'external': True,
+        'start_date': event['start_date'], 'end_date': event['end_date'],
+        'date_label': _date_range(event['start_date'], event['end_date']),
+        'game_color': color, 'timeline_color': TIMELINE_COLORS[event['event_type']],
+        'line_count': 2 if event['event_type'] == 'banner' else 1,
+    } for event in events]
+    for cycle in cycles:
+        items.append({
+            'id': f'cycle-{cycle["id"]}', 'kind': 'activity',
+            'title': cycle['activity_name'], 'subtitle': game['name'], 'game_name': game['name'],
+            'url': None, 'external': False,
+            'start_date': cycle['start_date'], 'end_date': cycle['end_date'],
+            'date_label': _date_range(cycle['start_date'], cycle['end_date']),
+            'game_color': color, 'timeline_color': TIMELINE_COLORS[cycle['activity_code']],
+            'cycle_id': cycle['id'], 'cycle_summary': cycle_summary(cycle),
+            'activity_code': cycle['activity_code'], 'is_activity': True, 'line_count': 1,
+        })
+    return items
+
+
 def build_calendar_timeline(
     range_start, range_end, game_code='', event_type='', today=None, anchor_date=None,
+    compact=False,
 ):
     if range_end < range_start:
         raise ValueError('Дата окончания не может быть раньше даты начала')
@@ -105,10 +150,10 @@ def build_calendar_timeline(
     game_events = list_calendar_events(
         range_start, range_end + timedelta(days=1), game_code, game_event_type,
     ) if include_game_events else []
-
     activity_cycles = list_activity_cycles(
         range_start, range_end + timedelta(days=1), game_code,
     ) if include_game_events else []
+
     rows = []
     if event_type in {'', 'player_birthday', 'character_birthday'}:
         birthdays = _birthdays(range_start, range_end, event_type)
@@ -117,39 +162,30 @@ def build_calendar_timeline(
     visible_games = [
         game for game in games if not game_code or game['code'] == game_code
     ] if include_game_events else []
+    compact_items = []
     for game in visible_games:
         related = [event for event in game_events if event['game_code'] == game['code']]
-        color = game_color(game['code'])
-        items = [{
-            'id': f'game-{event["id"]}', 'kind': event['event_type'],
-            'title': event['title'], 'subtitle': game['name'], 'url': event['url'],
-            'external': True, 'start_date': event['start_date'], 'end_date': event['end_date'],
-            'date_label': _date_range(event['start_date'], event['end_date']),
-            'game_color': color,
-        } for event in related]
+        related_cycles = [
+            cycle for cycle in activity_cycles if cycle['game_code'] == game['code']
+        ]
+        items = _game_items(game, related, related_cycles)
+        if compact:
+            compact_items.extend(items)
+            continue
         row = _row(game['name'], f'Событий: {len(items)}', items, range_start, range_end)
         row['game_code'] = game['code']
-        row['game_color'] = color
+        row['game_color'] = game_color(game['code'])
         rows.append(row)
-        for activity in list_calendar_activities(game['code']):
-            related_cycles = [
-                cycle for cycle in activity_cycles if cycle['activity_id'] == activity['id']
-            ]
-            cycle_items = [{
-                'id': f'cycle-{cycle["id"]}', 'kind': 'activity',
-                'title': activity['name'], 'subtitle': game['name'], 'url': None,
-                'external': False, 'start_date': cycle['start_date'], 'end_date': cycle['end_date'],
-                'date_label': _date_range(cycle['start_date'], cycle['end_date']),
-                'game_color': color, 'cycle_id': cycle['id'],
-                'cycle_summary': cycle_summary(cycle),
-            } for cycle in related_cycles]
-            activity_row = _row(
-                activity['name'], game['name'], cycle_items, range_start, range_end,
-            )
-            activity_row.update(
-                game_code=game['code'], game_color=color, is_activity=True,
-            )
-            rows.append(activity_row)
+
+    if compact:
+        compact_items.sort(key=lambda item: (
+            item.get('is_activity', False), item['start_date'], item['end_date'],
+            item['title'].casefold(),
+        ))
+        for item in compact_items:
+            row = _row(item['game_name'], item['title'], [item], range_start, range_end)
+            row.update(compact=True, timeline_color=item['timeline_color'])
+            rows.append(row)
 
     days = []
     for index in range(day_count):
