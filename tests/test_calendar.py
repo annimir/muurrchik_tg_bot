@@ -135,13 +135,25 @@ class CalendarIntegrationTests(PostgresTestCase):
         response = self.client.get('/calendar?view=week&week=2026-11-16')
         self.assertEqual(response.status_code, 200, response.text)
         self.assertIn('/static/calendar_timeline.js', response.text)
+        self.assertIn('data-mode="week"', response.text)
         self.assertIn('data-start="2026-11-09"', response.text)
         self.assertIn('data-end="2026-11-29"', response.text)
         self.assertIn('data-anchor="2026-11-16"', response.text)
         self.assertIn('timeline-bar-label', response.text)
         self.assertIn('--game-color: #d8bc72', response.text)
         self.assertIn('--game-color: #a89be8', response.text)
-        self.assertIn('href="/calendar?view=week', self.client.get('/calendar').text)
+        month = self.client.get('/calendar').text
+        self.assertIn('href="/calendar?view=week', month)
+        self.assertIn('href="/calendar?view=day', month)
+
+        day = self.client.get('/calendar?view=day&day=2026-11-16')
+        self.assertEqual(day.status_code, 200, day.text)
+        self.assertIn('Дневная лента', day.text)
+        self.assertIn('data-mode="day"', day.text)
+        self.assertIn('data-start="2026-11-09"', day.text)
+        self.assertIn('data-end="2026-11-23"', day.text)
+        self.assertIn('data-anchor="2026-11-16"', day.text)
+        self.assertEqual(day.text.count('data-timeline-date='), 15)
 
         page = build_calendar_timeline(
             date(2026, 11, 9), date(2026, 11, 29),
@@ -150,7 +162,7 @@ class CalendarIntegrationTests(PostgresTestCase):
         self.assertEqual(page['day_count'], 21)
         self.assertEqual(
             [row['label'] for row in page['rows']],
-            ['Дни рождения', 'Genshin Impact', 'Honkai: Star Rail'],
+            ['Дни рождения', 'Genshin Impact', 'Honkai: Star Rail', 'Zenless Zone Zero'],
         )
         self.assertEqual(len(page['rows'][0]['bars']), 2)
         self.assertEqual(
@@ -161,6 +173,7 @@ class CalendarIntegrationTests(PostgresTestCase):
             (page['rows'][2]['bars'][0]['column'], page['rows'][2]['bars'][0]['span']),
             (11, 8),
         )
+        self.assertEqual(page['rows'][3]['event_count'], 0)
 
         fragment = self.client.get(
             '/calendar/timeline?start=2026-11-02&end=2026-11-29',
@@ -170,13 +183,24 @@ class CalendarIntegrationTests(PostgresTestCase):
         self.assertEqual(payload['start'], '2026-11-02')
         self.assertEqual(payload['end'], '2026-11-29')
         self.assertEqual(payload['html'].count('data-timeline-date='), 28)
+        self.assertEqual(payload['category_count'], 4)
         self.assertIn('data-timeline-row="Дни рождения"', payload['html'])
-        self.assertNotIn('data-timeline-row="Zenless Zone Zero"', payload['html'])
+        self.assertIn('data-timeline-row="Zenless Zone Zero"', payload['html'])
 
+        filtered = build_calendar_timeline(
+            date(2026, 11, 9), date(2026, 11, 29), game_code='genshin',
+        )
+        self.assertEqual(
+            [row['label'] for row in filtered['rows']], ['Дни рождения', 'Genshin Impact'],
+        )
         banners = build_calendar_timeline(
             date(2026, 11, 9), date(2026, 11, 29), event_type='banner',
         )
-        self.assertEqual([row['label'] for row in banners['rows']], ['Honkai: Star Rail'])
+        self.assertEqual(
+            [row['label'] for row in banners['rows']],
+            ['Genshin Impact', 'Honkai: Star Rail', 'Zenless Zone Zero'],
+        )
+        self.assertEqual(banners['rows'][0]['event_count'], 0)
         players = build_calendar_timeline(
             date(2026, 11, 9), date(2026, 11, 29), event_type='player_birthday',
         )
@@ -185,6 +209,7 @@ class CalendarIntegrationTests(PostgresTestCase):
 
         self.assertEqual(self.client.get('/calendar?view=unknown').status_code, 400)
         self.assertEqual(self.client.get('/calendar?view=week&week=invalid').status_code, 400)
+        self.assertEqual(self.client.get('/calendar?view=day&day=invalid').status_code, 400)
         self.assertEqual(self.client.get(
             '/calendar/timeline?start=2026-11-29&end=2026-11-02',
         ).status_code, 400)

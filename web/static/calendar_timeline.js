@@ -39,12 +39,15 @@
         (new Date(`${end}T00:00:00Z`) - new Date(`${start}T00:00:00Z`)) / 86400000,
     ) + 1;
 
-    const loadWeek = async (direction) => {
-        if (loading || loadedDays(root.dataset.start, root.dataset.end) + 7 > maxDays) return;
+    const step = root.dataset.mode === 'day' ? 1 : 7;
+    const periodName = root.dataset.mode === 'day' ? 'день' : 'неделю';
+    const loadingName = root.dataset.mode === 'day' ? 'соседний день' : 'соседнюю неделю';
+    const loadPeriod = async (direction) => {
+        if (loading || loadedDays(root.dataset.start, root.dataset.end) + step > maxDays) return;
         const oldStart = root.dataset.start;
         const oldEnd = root.dataset.end;
-        const start = direction === 'previous' ? shiftDate(oldStart, -7) : oldStart;
-        const end = direction === 'next' ? shiftDate(oldEnd, 7) : oldEnd;
+        const start = direction === 'previous' ? shiftDate(oldStart, -step) : oldStart;
+        const end = direction === 'next' ? shiftDate(oldEnd, step) : oldEnd;
         const oldScrollWidth = scroll.scrollWidth;
         const oldScrollLeft = scroll.scrollLeft;
         const oldScrollTop = scroll.scrollTop;
@@ -53,7 +56,7 @@
         });
         loading = true;
         root.setAttribute('aria-busy', 'true');
-        status.textContent = 'Загружаем соседнюю неделю…';
+        status.textContent = `Загружаем ${loadingName}…`;
         try {
             const response = await fetch(`/calendar/timeline?${params}`, {
                 headers: {'X-Requested-With': 'XMLHttpRequest'}, credentials: 'same-origin',
@@ -72,7 +75,7 @@
             scheduleBarLabels();
             status.textContent = '';
         } catch (error) {
-            status.textContent = 'Не удалось загрузить неделю. Прокрутите ещё раз для повтора.';
+            status.textContent = `Не удалось загрузить ${periodName}. Прокрутите ещё раз для повтора.`;
         } finally {
             loading = false;
             root.setAttribute('aria-busy', 'false');
@@ -83,9 +86,9 @@
         scheduleBarLabels();
         if (loading) return;
         if (scroll.scrollLeft < 80) {
-            loadWeek('previous');
+            loadPeriod('previous');
         } else if (scroll.scrollWidth - scroll.clientWidth - scroll.scrollLeft < 80) {
-            loadWeek('next');
+            loadPeriod('next');
         }
     });
 

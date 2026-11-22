@@ -12,10 +12,12 @@ from web.queries import list_games
 MAX_TIMELINE_DAYS = 367
 
 
-def _url(view, game_code, event_type, week=None, year=None, month=None):
+def _url(view, game_code, event_type, week=None, day=None, year=None, month=None):
     params = {'view': view}
     if week:
         params['week'] = week.isoformat()
+    if day:
+        params['day'] = day.isoformat()
     if year is not None and month is not None:
         params.update(year=year, month=month)
     if game_code:
@@ -106,10 +108,11 @@ def build_calendar_timeline(
         birthdays = _birthdays(range_start, range_end, event_type)
         rows.append(_row('Дни рождения', 'Игроки и персонажи', birthdays, range_start, range_end))
 
-    for game in games:
+    visible_games = [
+        game for game in games if not game_code or game['code'] == game_code
+    ] if include_game_events else []
+    for game in visible_games:
         related = [event for event in game_events if event['game_code'] == game['code']]
-        if not related:
-            continue
         color = game_color(game['code'])
         items = [{
             'id': f'game-{event["id"]}', 'kind': event['event_type'],
@@ -140,5 +143,6 @@ def build_calendar_timeline(
             'month', game_code, event_type, year=anchor_date.year, month=anchor_date.month,
         ),
         'current_week_url': _url('week', game_code, event_type),
+        'current_day_url': _url('day', game_code, event_type),
         'active_page': 'calendar',
     }
