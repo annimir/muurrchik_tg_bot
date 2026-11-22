@@ -12,7 +12,7 @@
         <label>Тип события<select name="type"><option value="">Все события</option>{% for value, label in event_types %}<option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
         <button class="button" type="submit">Показать</button>
     </form>
-    <p class="muted calendar-filter-note">Прокручивайте диаграмму влево и вправо: соседние {{ 'недели' if view_mode == 'week' else 'дни' }} загрузятся автоматически. Показаны все игры, включая категории без событий.</p>
+    <p class="muted calendar-filter-note">Прокручивайте диаграмму влево и вправо: соседние {{ 'недели' if view_mode == 'week' else 'дни' }} загрузятся автоматически. {{ 'Показаны все игры, включая категории без событий.' if view_mode == 'week' else 'События показаны компактной хронологической лентой без пустых игровых категорий.' }}</p>
     <div class="timeline-meta"><strong data-timeline-range>{{ range_label }}</strong><span>Категорий: <span data-timeline-category-count>{{ rows|length }}</span></span></div>
     <div class="calendar-timeline" data-calendar-timeline data-mode="{{ view_mode }}" data-start="{{ range_start.isoformat() }}" data-end="{{ range_end.isoformat() }}" data-anchor="{{ anchor_date.isoformat() }}" data-game="{{ selected_game }}" data-type="{{ selected_type }}" aria-busy="false">
         <div class="calendar-timeline-scroll" data-timeline-scroll tabindex="0" aria-label="Временная лента событий">

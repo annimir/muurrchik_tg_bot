@@ -35,11 +35,11 @@ async def calendar_page(
                 range_end = anchor + timedelta(days=13)
             else:
                 anchor = date.fromisoformat(day) if day else today
-                range_start = anchor - timedelta(days=7)
-                range_end = anchor + timedelta(days=7)
+                range_start = anchor - timedelta(days=15)
+                range_end = anchor + timedelta(days=15)
             context = build_calendar_timeline(
                 range_start, range_end, selected_game, selected_type,
-                today=today, anchor_date=anchor,
+                today=today, anchor_date=anchor, compact=view == 'day',
             )
             context.update(
                 view_mode=view,
@@ -87,10 +87,14 @@ async def calendar_page(
 
 @router.get('/calendar/timeline', name='calendar_timeline_fragment')
 async def calendar_timeline_fragment(
-    start: date, end: date, game: str = '', type: str = '',
+    start: date, end: date, game: str = '', type: str = '', view: str = 'week',
 ):
+    if view not in {'week', 'day'}:
+        raise HTTPException(status_code=400, detail='Неизвестный режим календаря')
     try:
-        context = build_calendar_timeline(start, end, game.strip(), type.strip())
+        context = build_calendar_timeline(
+            start, end, game.strip(), type.strip(), compact=view == 'day',
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {

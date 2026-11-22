@@ -150,10 +150,11 @@ class CalendarIntegrationTests(PostgresTestCase):
         self.assertEqual(day.status_code, 200, day.text)
         self.assertIn('Дневная лента', day.text)
         self.assertIn('data-mode="day"', day.text)
-        self.assertIn('data-start="2026-11-09"', day.text)
-        self.assertIn('data-end="2026-11-23"', day.text)
+        self.assertIn('data-start="2026-11-01"', day.text)
+        self.assertIn('data-end="2026-12-01"', day.text)
         self.assertIn('data-anchor="2026-11-16"', day.text)
-        self.assertEqual(day.text.count('data-timeline-date='), 15)
+        self.assertEqual(day.text.count('data-timeline-date='), 31)
+        self.assertIn('timeline-row-compact', day.text)
 
         page = build_calendar_timeline(
             date(2026, 11, 9), date(2026, 11, 29),
@@ -272,12 +273,20 @@ class CalendarIntegrationTests(PostgresTestCase):
         timeline = build_calendar_timeline(
             date(2026, 11, 1), date(2026, 12, 31), game_code='genshin',
         )
-        activity_rows = [row for row in timeline['rows'] if row.get('is_activity')]
+        game_row = next(row for row in timeline['rows'] if row['label'] == 'Genshin Impact')
+        cycle_bars = [bar for bar in game_row['bars'] if bar['cycle_id']]
+        self.assertEqual(len(cycle_bars), 3)
+        self.assertEqual([bar['row'] for bar in cycle_bars], [1, 2, 3])
         self.assertEqual(
-            {row['label'] for row in activity_rows},
-            {'Театр Воображариума', 'Витая Бездна', 'Мрачный натиск'},
+            {bar['title']: bar['timeline_color'] for bar in cycle_bars},
+            {'Театр Воображариума': '#a89be8', 'Витая Бездна': '#73b9e6', 'Мрачный натиск': '#d98164'},
         )
-        self.assertTrue(all(row['bars'][0]['cycle_id'] for row in activity_rows))
+        compact = build_calendar_timeline(
+            date(2026, 11, 1), date(2026, 12, 31), game_code='genshin', compact=True,
+        )
+        compact_rows = [row for row in compact['rows'] if row.get('compact')]
+        self.assertEqual(len(compact_rows), 3)
+        self.assertTrue(all(row['bars'][0]['cycle_id'] for row in compact_rows))
         month = build_calendar_page(2026, 11)
         self.assertTrue(any(item.get('cycle_id') for item in month['agenda']))
 
