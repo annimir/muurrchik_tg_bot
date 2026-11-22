@@ -940,8 +940,9 @@ p.tier-description { display: block; color: var(--text); font-weight: 600; }
 .calendar-day.is-today .calendar-day-number { color: var(--teal); font-weight: 700; }
 .calendar-day-events { display: grid; gap: 4px; padding-top: calc(var(--event-rows) * 26px); }
 .calendar-event { padding: 3px 5px; border-left: 3px solid; border-radius: 3px; font-size: .72rem; line-height: 1.3; overflow-wrap: anywhere; }
-.calendar-event-event { border-color: var(--gold); color: var(--gold-light); background: rgba(216,188,114,.1); }
-.calendar-event-banner { border-color: var(--teal); color: var(--teal); background: rgba(121,199,192,.1); }
+.calendar-event-event, .calendar-event-banner { border-color: var(--game-color, var(--gold)); color: var(--game-color, var(--gold-light)); background: color-mix(in srgb, var(--game-color, var(--gold)) 14%, transparent); }
+.calendar-event-banner { border-left-style: double; }
+.calendar-game-legend { padding: 2px 7px; border-left: 3px solid var(--game-color); border-radius: 3px; color: var(--game-color); background: color-mix(in srgb, var(--game-color) 10%, transparent); font-size: .78rem; }
 .calendar-event-player_birthday { border-color: #e5a3b5; color: #efc1ce; background: rgba(229,163,181,.09); }
 .calendar-event-character_birthday { border-color: #9caee8; color: #bdc9f1; background: rgba(156,174,232,.1); }
 .calendar-event-bars { display: grid; z-index: 2; grid-column: 1 / -1; grid-row: 1; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: 22px; align-content: start; gap: 4px 0; padding-top: 31px; pointer-events: none; }
@@ -972,7 +973,8 @@ p.tier-description { display: block; color: var(--text); font-weight: 600; }
 .calendar-week-filters { grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto; }
 .timeline-meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 16px 0 10px; color: var(--muted); }
 .timeline-meta strong { color: var(--gold-light); }
-.calendar-timeline-scroll { --timeline-label-width: 170px; --timeline-day-width: 180px; overflow: auto; overflow-anchor: none; border: 1px solid var(--line); border-radius: 6px; }
+.calendar-timeline-scroll { --timeline-label-width: 170px; --timeline-day-width: 180px; height: clamp(300px, 45vh, 440px); overflow: auto; overflow-anchor: none; scrollbar-gutter: stable; border: 1px solid var(--line); border-radius: 6px; cursor: grab; }
+.calendar-timeline-scroll.is-dragging { cursor: grabbing; user-select: none; }
 .timeline-grid { display: grid; width: max-content; min-width: 100%; grid-template-columns: var(--timeline-label-width) repeat(var(--timeline-days), var(--timeline-day-width)); background: rgba(7,17,30,.22); }
 .timeline-corner { position: sticky; z-index: 6; left: 0; grid-column: 1; grid-row: 1; padding: 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--gold); background: var(--panel-solid); font-size: .78rem; }
 .timeline-day { display: grid; grid-row: 1; grid-template-columns: 1fr auto; align-items: center; gap: 0 8px; min-height: 64px; padding: 8px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--night-soft); }
@@ -983,14 +985,15 @@ p.tier-description { display: block; color: var(--text); font-weight: 600; }
 .timeline-day.is-today { box-shadow: inset 0 0 0 2px var(--teal); }
 .timeline-day.is-month-start, .timeline-cell.is-month-start { border-left: 2px solid var(--gold); }
 .timeline-row { display: grid; position: relative; grid-column: 1 / -1; grid-template-columns: var(--timeline-label-width) repeat(var(--timeline-days), var(--timeline-day-width)); }
-.timeline-row-label { display: grid; position: sticky; z-index: 5; left: 0; align-content: center; grid-column: 1; grid-row: 1; min-height: calc(52px + var(--event-rows) * 28px); padding: 12px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--panel-solid); }
+.timeline-row-label { display: grid; position: sticky; z-index: 5; left: 0; align-content: center; grid-column: 1; grid-row: 1; height: 80px; padding: 12px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--panel-solid); }
+.timeline-row-game .timeline-row-label { border-left: 4px solid var(--game-color); }
 .timeline-row-label strong { color: var(--gold-light); font: 400 1.05rem Georgia, serif; overflow-wrap: anywhere; }
 .timeline-row-label small { color: var(--muted); font-size: .72rem; }
-.timeline-cell { grid-row: 1; min-height: calc(52px + var(--event-rows) * 28px); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.timeline-cell { grid-row: 1; height: 80px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .timeline-cell.is-today { background: rgba(121,199,192,.08); }
-.timeline-bars { display: grid; z-index: 2; grid-column: 2 / -1; grid-row: 1; grid-template-columns: repeat(var(--timeline-days), var(--timeline-day-width)); grid-auto-rows: 24px; align-content: start; gap: 4px 0; padding-top: 12px; pointer-events: none; }
-.timeline-bar { min-width: 0; margin: 0 4px; padding: 3px 7px; overflow: hidden; border-left: 3px solid; border-radius: 4px; font-size: .76rem; line-height: 1.35; pointer-events: auto; white-space: nowrap; text-overflow: ellipsis; }
-.timeline-bar a, .timeline-bar span { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.timeline-bars { display: grid; z-index: 2; grid-column: 2 / -1; grid-row: 1; grid-template-columns: repeat(var(--timeline-days), var(--timeline-day-width)); grid-auto-rows: 24px; align-content: start; gap: 4px 0; height: 80px; padding-top: 12px; overflow-y: auto; scrollbar-width: thin; }
+.timeline-bar { min-width: 0; margin: 0 4px; padding: 3px 7px; overflow: hidden; border-left: 3px solid; border-radius: 4px; font-size: .76rem; line-height: 1.35; white-space: nowrap; text-overflow: ellipsis; }
+.timeline-bar .timeline-bar-label { display: block; width: fit-content; max-width: calc(100% - 4px); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; will-change: transform; }
 .timeline-status { min-height: 25px; padding-top: 6px; color: var(--muted); font-size: .82rem; }
 .timeline-empty { padding: 24px; }
 @media (max-width: 700px) { .calendar-week-filters { grid-template-columns: 1fr; } .calendar-timeline-scroll { --timeline-label-width: 130px; --timeline-day-width: 150px; } .timeline-row-label { padding: 10px; } .timeline-row-label strong { font-size: .95rem; } }
