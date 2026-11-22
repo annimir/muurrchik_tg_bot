@@ -5,6 +5,8 @@ from urllib.parse import urlencode
 from database.calendar import (
     list_calendar_events, list_character_birthdays, list_player_birthdays,
 )
+from database.calendar_activity import list_activity_cycles
+from web.calendar_activity import cycle_summary
 from web.queries import list_games
 
 EVENT_TYPE_LABELS = {
@@ -93,6 +95,15 @@ def build_calendar_page(year, month, game_code='', event_type='', today=None):
     game_events = list_calendar_events(
         month_start, next_month, game_code, game_event_type,
     ) if include_game_events else []
+    if include_game_events:
+        for cycle in list_activity_cycles(month_start, next_month, game_code):
+            game_events.append({
+                'id': cycle['id'], 'game_code': cycle['game_code'],
+                'game_name': cycle['game_name'], 'title': cycle['activity_name'],
+                'description': cycle['activity_description'], 'event_type': 'activity',
+                'start_date': cycle['start_date'], 'end_date': cycle['end_date'], 'url': None,
+                'cycle_id': cycle['id'], 'cycle_summary': cycle_summary(cycle),
+            })
     players = list_player_birthdays() if event_type in {'', 'player_birthday'} else []
     characters = list_character_birthdays() if event_type in {'', 'character_birthday'} else []
 
@@ -100,9 +111,12 @@ def build_calendar_page(year, month, game_code='', event_type='', today=None):
     agenda = []
     for event in game_events:
         agenda.append({
-            'id': f'game-{event["id"]}', 'kind': event['event_type'], 'title': event['title'],
+            'id': f'cycle-{event["id"]}' if event.get('cycle_id') else f'game-{event["id"]}',
+            'kind': event['event_type'], 'title': event['title'],
             'subtitle': event['game_name'], 'description': event['description'],
-            'url': event['url'], 'external': True, 'game_color': game_color(event['game_code']),
+            'url': event['url'], 'external': not event.get('cycle_id'),
+            'game_color': game_color(event['game_code']),
+            'cycle_id': event.get('cycle_id'), 'cycle_summary': event.get('cycle_summary'),
             'date_label': _date_range(event['start_date'], event['end_date']),
             'occurrence_date': max(event['start_date'], month_start),
         })
@@ -148,11 +162,12 @@ def build_calendar_page(year, month, game_code='', event_type='', today=None):
             else:
                 lane_ends[lane] = end_column
             event_bars.append({
-                'id': f'game-{event["id"]}', 'kind': event['event_type'],
-                'title': event['title'], 'subtitle': event['game_name'],
-                'url': event['url'], 'external': True, 'column': column,
+                'id': f'cycle-{event["id"]}' if event.get('cycle_id') else f'game-{event["id"]}',
+                'kind': event['event_type'], 'title': event['title'], 'subtitle': event['game_name'],
+                'url': event['url'], 'external': not event.get('cycle_id'), 'column': column,
                 'span': end_column - column + 1, 'row': lane + 1,
                 'game_color': game_color(event['game_code']),
+                'cycle_id': event.get('cycle_id'), 'cycle_summary': event.get('cycle_summary'),
             })
         weeks.append({
             'days': cells, 'event_bars': event_bars, 'event_rows': len(lane_ends),
@@ -160,7 +175,8 @@ def build_calendar_page(year, month, game_code='', event_type='', today=None):
 
     kind_order = {kind: index for index, kind in enumerate(EVENT_TYPE_LABELS)}
     agenda.sort(key=lambda item: (
-        item['occurrence_date'], kind_order[item['kind']], item['title'].casefold(),
+        item['occurrence_date'], kind_order.get(item['kind'], len(kind_order)),
+        item['title'].casefold(),
     ))
     active_game_codes = {event['game_code'] for event in game_events}
     calendar_games = [

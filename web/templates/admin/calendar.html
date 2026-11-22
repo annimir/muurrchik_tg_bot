@@ -2,7 +2,7 @@
 {% block title %}Календарь · Админка{% endblock %}
 {% block content %}
 {% include 'admin/_nav.html' %}
-<section class="page-heading"><div><div class="eyebrow">Содержимое сайта</div><h1>Календарь</h1><p>Управление игровыми ивентами и баннерами. Дни рождения подставляются автоматически.</p></div><a class="button button-secondary" href="/calendar">Открыть календарь</a></section>
+<section class="page-heading"><div><div class="eyebrow">Содержимое сайта</div><h1>Календарь</h1><p>Управление игровыми ивентами и баннерами. Дни рождения подставляются автоматически.</p></div><div class="hero-actions"><a class="button" href="/admin/calendar/cycles">Циклы активностей</a><a class="button button-secondary" href="/calendar">Открыть календарь</a></div></section>
 {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
 <section class="panel">
     <div class="section-heading"><h2>{{ 'Изменить событие' if editing else 'Добавить событие' }}</h2>{% if editing %}<a href="/admin/calendar">Отменить редактирование</a>{% endif %}</div>

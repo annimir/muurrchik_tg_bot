@@ -217,6 +217,88 @@ class CalendarIntegrationTests(PostgresTestCase):
             '/calendar/timeline?start=2025-01-01&end=2026-12-31',
         ).status_code, 400)
 
+    def test_activity_cycles_schedules_details_and_admin(self):
+        from database.calendar_activity import (
+            create_activity_cycle, delete_activity_cycle, list_calendar_activities,
+            seed_calendar_activities, update_activity_cycle,
+        )
+        from services.tierlist_catalog import (
+            get_tierlist_filter_options, list_tierlist_characters, reset_tierlist_catalog_cache,
+        )
+        from web.calendar import build_calendar_page
+        from web.calendar_timeline import build_calendar_timeline
+
+        queries.db(
+            "INSERT INTO games (code, name) VALUES "
+            "('zzz', 'Zenless Zone Zero'), ('endfield', 'Arknights: Endfield'), "
+            "('hi3', 'Honkai Impact 3rd'), ('wuthering_waves', 'Wuthering Waves')"
+        ).close()
+        reset_tierlist_catalog_cache()
+        seed_calendar_activities()
+        activities = {
+            activity['code']: activity for activity in list_calendar_activities('genshin')
+        }
+        elements = [
+            option['id'] for option in get_tierlist_filter_options(['genshin'])['element'][:3]
+        ]
+        character = next(
+            item for item in list_tierlist_characters(['genshin'])
+            if item.get('availability', 'playable') == 'playable'
+        )
+        theater = create_activity_cycle(
+            100, activities['theater']['id'],
+            {'elements': elements, 'invited_characters': [character['id']]},
+            cycle_month='2026-11',
+        )
+        self.assertEqual((theater['start_date'], theater['end_date']), (date(2026, 11, 1), date(2026, 11, 30)))
+        abyss = create_activity_cycle(
+            100, activities['abyss']['id'],
+            {'first_half': 'Бонус первой половины', 'second_half': 'Бонус второй половины'},
+            cycle_month='2026-11',
+        )
+        self.assertEqual((abyss['start_date'], abyss['end_date']), (date(2026, 11, 16), date(2026, 12, 15)))
+        onslaught = create_activity_cycle(
+            100, activities['onslaught']['id'], {'bosses': ['Босс 1', 'Босс 2', 'Босс 3']},
+            patch_start='2026-11-10',
+        )
+        self.assertEqual((onslaught['start_date'], onslaught['end_date']), (date(2026, 11, 17), date(2026, 12, 21)))
+        onslaught = update_activity_cycle(
+            100, onslaught['id'], activities['onslaught']['id'],
+            {'bosses': ['Босс 1', 'Босс 2', 'Босс 3']},
+            start_date='2026-11-20', end_date='2026-12-24',
+        )
+        self.assertEqual(onslaught['start_date'], date(2026, 11, 20))
+
+        timeline = build_calendar_timeline(
+            date(2026, 11, 1), date(2026, 12, 31), game_code='genshin',
+        )
+        activity_rows = [row for row in timeline['rows'] if row.get('is_activity')]
+        self.assertEqual(
+            {row['label'] for row in activity_rows},
+            {'Театр Воображариума', 'Витая Бездна', 'Мрачный натиск'},
+        )
+        self.assertTrue(all(row['bars'][0]['cycle_id'] for row in activity_rows))
+        month = build_calendar_page(2026, 11)
+        self.assertTrue(any(item.get('cycle_id') for item in month['agenda']))
+
+        theater_details = self.client.get(f'/calendar/cycles/{theater["id"]}')
+        self.assertEqual(theater_details.status_code, 200, theater_details.text)
+        self.assertIn(character['name'], theater_details.json()['html'])
+        self.assertIn('Босс 3', self.client.get(f'/calendar/cycles/{onslaught["id"]}').json()['html'])
+        self.assertIn('Бонус второй половины', self.client.get(f'/calendar/cycles/{abyss["id"]}').json()['html'])
+
+        admin = self.client.get('/admin/calendar/cycles')
+        self.assertEqual(admin.status_code, 200, admin.text)
+        created = self.client.post('/admin/calendar/cycles', data={
+            'activity_id': activities['theater']['id'], 'cycle_month': '2026-12',
+            'elements': elements, 'invited_characters': [character['id']],
+            'csrf_token': self.csrf,
+        }, follow_redirects=False)
+        self.assertEqual(created.status_code, 303, created.text)
+        self.assertIn('01.12.2026', self.client.get('/admin/calendar/cycles').text)
+        delete_activity_cycle(100, theater['id'])
+        self.assertEqual(self.client.get(f'/calendar/cycles/{theater["id"]}').status_code, 404)
+
     def test_multiday_event_crosses_month_and_input_is_validated(self):
         from database.calendar import create_calendar_event
 

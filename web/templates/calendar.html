@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Календарь событий{% endblock %}
+{% block scripts %}<script src="/static/calendar_cycles.js" defer></script>{% endblock %}
 {% block content %}
 <section class="page-heading"><div class="eyebrow">Сообщество и игры</div><h1>Календарь событий</h1><p>Игровые ивенты, баннеры и дни рождения игроков и персонажей.</p></section>
 <nav class="calendar-view-switch" aria-label="Режим календаря"><a class="is-active" href="/calendar" aria-current="page">Месяц</a><a href="{{ week_url }}">Неделя</a><a href="{{ day_url }}">День</a></nav>
@@ -30,10 +31,10 @@
                             {% if day.events|length > 3 %}<a class="calendar-more" href="#agenda">Ещё {{ day.events|length - 3 }}</a>{% endif %}
                         </div>
                     </div>
-                    {% else %}<div class="calendar-day is-empty" style="grid-column: {{ loop.index }}" aria-hidden="true"></div>{% endif %}
+                    {% else %}<div class="calendar-day is-empty" aria-hidden="true"></div>{% endif %}
                 {% endfor %}
                 <div class="calendar-event-bars">
-                    {% for event in week.event_bars %}<div class="calendar-event calendar-event-bar calendar-event-{{ event.kind }}" style="grid-column: {{ event.column }} / span {{ event.span }}; grid-row: {{ event.row }}; --game-color: {{ event.game_color }}" title="{{ event.title }} · {{ event.subtitle }}">{% if event.url %}<a href="{{ event.url }}" target="_blank" rel="noopener noreferrer">{{ event.title }}</a>{% else %}<span>{{ event.title }}</span>{% endif %}</div>{% endfor %}
+                    {% for event in week.event_bars %}<div class="calendar-event calendar-event-bar calendar-event-{{ event.kind }}" style="grid-column: {{ event.column }} / span {{ event.span }}; grid-row: {{ event.row }}; --game-color: {{ event.game_color }}" title="{{ event.title }} · {{ event.subtitle }}">{% if event.cycle_id %}<button type="button" data-cycle-id="{{ event.cycle_id }}" title="{{ event.cycle_summary }}">{{ event.title }}</button>{% elif event.url %}<a href="{{ event.url }}" target="_blank" rel="noopener noreferrer">{{ event.title }}</a>{% else %}<span>{{ event.title }}</span>{% endif %}</div>{% endfor %}
                 </div>
             </div>
             {% endfor %}
@@ -47,8 +48,8 @@
         <article class="panel calendar-agenda-item" id="agenda-{{ event.id }}">
             <time class="calendar-agenda-date" datetime="{{ event.occurrence_date.isoformat() }}"><strong>{{ '%02d'|format(event.occurrence_date.day) }}</strong><span>{{ '%02d'|format(event.occurrence_date.month) }}.{{ event.occurrence_date.year }}</span></time>
             <div class="calendar-agenda-content">
-                <span class="calendar-type calendar-event-{{ event.kind }}"{% if event.game_color %} style="--game-color: {{ event.game_color }}"{% endif %}>{{ type_labels[event.kind] }}</span>
-                <h3>{% if event.url %}<a href="{{ event.url }}" {% if event.external %}target="_blank" rel="noopener noreferrer"{% endif %}>{{ event.title }}</a>{% else %}{{ event.title }}{% endif %}</h3>
+                <span class="calendar-type calendar-event-{{ event.kind }}"{% if event.game_color %} style="--game-color: {{ event.game_color }}"{% endif %}>{{ 'Цикл' if event.kind == 'activity' else type_labels[event.kind] }}</span>
+                <h3>{% if event.cycle_id %}<button class="cycle-agenda-button" type="button" data-cycle-id="{{ event.cycle_id }}">{{ event.title }}</button>{% elif event.url %}<a href="{{ event.url }}" {% if event.external %}target="_blank" rel="noopener noreferrer"{% endif %}>{{ event.title }}</a>{% else %}{{ event.title }}{% endif %}</h3>
                 <p class="calendar-agenda-meta">{{ event.subtitle }} · {{ event.date_label }}</p>
                 {% if event.description %}<p class="preline">{{ event.description }}</p>{% endif %}
             </div>
@@ -56,4 +57,5 @@
         {% endfor %}
     </div>{% else %}<div class="panel empty-state"><p>В этом месяце событий с выбранными фильтрами нет.</p></div>{% endif %}
 </section>
+{% include '_calendar_cycle_dialog.html' %}
 {% endblock %}

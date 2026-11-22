@@ -195,6 +195,42 @@ CREATE TABLE IF NOT EXISTS calendar_event (
 CREATE INDEX IF NOT EXISTS idx_calendar_event_dates
     ON calendar_event (game_code, start_date, end_date);
 
+CREATE TABLE IF NOT EXISTS calendar_activity (
+    id            SERIAL PRIMARY KEY,
+    game_code     TEXT NOT NULL REFERENCES games(code) ON DELETE CASCADE,
+    code          TEXT NOT NULL,
+    name          VARCHAR(120) NOT NULL,
+    description   VARCHAR(500) NOT NULL DEFAULT '',
+    schedule_rule TEXT NOT NULL CHECK (schedule_rule IN ('month_start', 'month_16', 'patch_day8')),
+    is_active     BOOLEAN NOT NULL DEFAULT TRUE,
+    UNIQUE (game_code, code)
+);
+
+CREATE TABLE IF NOT EXISTS calendar_activity_cycle (
+    id          SERIAL PRIMARY KEY,
+    activity_id INTEGER NOT NULL REFERENCES calendar_activity(id) ON DELETE CASCADE,
+    start_date  DATE NOT NULL,
+    end_date    DATE NOT NULL CHECK (end_date >= start_date),
+    details     JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_by  BIGINT,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (activity_id, start_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_calendar_activity_cycle_dates
+    ON calendar_activity_cycle (start_date, end_date);
+
+INSERT INTO calendar_activity (game_code, code, name, description, schedule_rule)
+SELECT 'genshin', values.code, values.name, values.description, values.schedule_rule
+FROM (VALUES
+    ('theater', 'Театр Воображариума', 'Ежемесячный Театр Воображариума', 'month_start'),
+    ('abyss', 'Витая Бездна', 'Ежемесячный цикл Витой Бездны', 'month_16'),
+    ('onslaught', 'Мрачный натиск', 'Натиск начинается на восьмой день патча', 'patch_day8')
+) AS values(code, name, description, schedule_rule)
+WHERE EXISTS (SELECT 1 FROM games WHERE code = 'genshin')
+ON CONFLICT (game_code, code) DO NOTHING;
+
 DO $$
 BEGIN
     IF NOT EXISTS (
