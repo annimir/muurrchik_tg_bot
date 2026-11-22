@@ -973,7 +973,7 @@ p.tier-description { display: block; color: var(--text); font-weight: 600; }
 .calendar-week-filters { grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto; }
 .timeline-meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 16px 0 10px; color: var(--muted); }
 .timeline-meta strong { color: var(--gold-light); }
-.calendar-timeline-scroll { --timeline-label-width: 170px; --timeline-day-width: 180px; height: clamp(300px, 45vh, 440px); overflow: auto; overflow-anchor: none; scrollbar-gutter: stable; border: 1px solid var(--line); border-radius: 6px; cursor: grab; }
+.calendar-timeline-scroll { --timeline-label-width: 170px; --timeline-day-width: 180px; height: auto; overflow-x: auto; overflow-y: hidden; overflow-anchor: none; border: 1px solid var(--line); border-radius: 6px; cursor: grab; }
 .calendar-timeline-scroll.is-dragging { cursor: grabbing; user-select: none; }
 .timeline-grid { display: grid; width: max-content; min-width: 100%; grid-template-columns: var(--timeline-label-width) repeat(var(--timeline-days), var(--timeline-day-width)); background: rgba(7,17,30,.22); }
 .timeline-corner { position: sticky; z-index: 6; left: 0; grid-column: 1; grid-row: 1; padding: 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--gold); background: var(--panel-solid); font-size: .78rem; }
@@ -986,13 +986,14 @@ p.tier-description { display: block; color: var(--text); font-weight: 600; }
 .timeline-day.is-month-start, .timeline-cell.is-month-start { border-left: 2px solid var(--gold); }
 .timeline-row { display: grid; position: relative; grid-column: 1 / -1; grid-template-columns: var(--timeline-label-width) repeat(var(--timeline-days), var(--timeline-day-width)); }
 .timeline-row-label { display: grid; position: sticky; z-index: 5; left: 0; align-content: center; grid-column: 1; grid-row: 1; height: 80px; padding: 12px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--panel-solid); }
-.timeline-row-game .timeline-row-label { height: 216px; border-left: 4px solid var(--game-color); }
-.timeline-row-game .timeline-cell, .timeline-row-game .timeline-bars { height: 216px; }
+.timeline-row-game .timeline-row-label { height: max(216px, calc(var(--event-rows) * 28px + 20px)); border-left: 4px solid var(--game-color); }
+.timeline-row-game .timeline-cell, .timeline-row-game .timeline-bars { height: max(216px, calc(var(--event-rows) * 28px + 20px)); }
+.timeline-row-birthdays .timeline-row-label, .timeline-row-birthdays .timeline-cell, .timeline-row-birthdays .timeline-bars { height: max(80px, calc(var(--event-rows) * 28px + 20px)); }
 .timeline-row-label strong { color: var(--gold-light); font: 400 1.05rem Georgia, serif; overflow-wrap: anywhere; }
 .timeline-row-label small { color: var(--muted); font-size: .72rem; }
 .timeline-cell { grid-row: 1; height: 80px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .timeline-cell.is-today { background: rgba(121,199,192,.08); }
-.timeline-bars { display: grid; z-index: 2; grid-column: 2 / -1; grid-row: 1; grid-template-columns: repeat(var(--timeline-days), var(--timeline-day-width)); grid-auto-rows: 24px; align-content: start; gap: 4px 0; height: 80px; padding-top: 12px; overflow-y: auto; scrollbar-width: thin; }
+.timeline-bars { display: grid; z-index: 2; grid-column: 2 / -1; grid-row: 1; grid-template-columns: repeat(var(--timeline-days), var(--timeline-day-width)); grid-auto-rows: 24px; align-content: start; gap: 4px 0; height: 80px; padding-top: 12px; overflow-y: visible; }
 .timeline-bar { min-width: 0; margin: 0 4px; padding: 3px 7px; overflow: hidden; border-left: 3px solid; border-radius: 4px; font-size: .76rem; line-height: 1.35; white-space: nowrap; text-overflow: ellipsis; }
 .timeline-bar .timeline-bar-label { display: block; width: fit-content; max-width: calc(100% - 4px); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; will-change: transform; }
 .timeline-status { min-height: 25px; padding-top: 6px; color: var(--muted); font-size: .82rem; }
