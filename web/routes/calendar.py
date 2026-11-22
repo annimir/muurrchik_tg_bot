@@ -30,9 +30,9 @@ async def calendar_page(
         try:
             if view == 'week':
                 anchor = date.fromisoformat(week) if week else today
-                anchor -= timedelta(days=anchor.weekday())
-                range_start = anchor - timedelta(days=7)
-                range_end = anchor + timedelta(days=13)
+                week_start = anchor - timedelta(days=anchor.weekday())
+                range_start = week_start - timedelta(days=7)
+                range_end = week_start + timedelta(days=13)
             else:
                 anchor = date.fromisoformat(day) if day else today
                 range_start = anchor - timedelta(days=15)

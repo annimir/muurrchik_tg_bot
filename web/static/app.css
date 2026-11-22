@@ -945,7 +945,7 @@ p.tier-description { display: block; color: var(--text); font-weight: 600; }
 .calendar-game-legend { padding: 2px 7px; border-left: 3px solid var(--game-color); border-radius: 3px; color: var(--game-color); background: color-mix(in srgb, var(--game-color) 10%, transparent); font-size: .78rem; }
 .calendar-event-player_birthday { border-color: #e5a3b5; color: #efc1ce; background: rgba(229,163,181,.09); }
 .calendar-event-character_birthday { border-color: #9caee8; color: #bdc9f1; background: rgba(156,174,232,.1); }
-.calendar-event-bars { display: grid; z-index: 2; grid-column: 1 / -1; grid-row: 1; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: 22px; align-content: start; gap: 4px 0; padding-top: 31px; pointer-events: none; }
+.calendar-event-bars { display: grid; position: absolute; inset: 0; z-index: 2; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: 22px; align-content: start; gap: 4px 0; padding-top: 31px; pointer-events: none; }
 .calendar-event-bar { min-width: 0; margin: 0 3px; overflow: hidden; pointer-events: auto; overflow-wrap: normal; white-space: nowrap; text-overflow: ellipsis; }
 .calendar-event-bar a, .calendar-event-bar span { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .calendar-more { color: var(--teal); font-size: .72rem; }
@@ -1026,7 +1026,8 @@ p.tier-description { display: block; color: var(--text); font-weight: 600; }
 
 .timeline-bar-colored { border-color: var(--timeline-color); color: var(--timeline-color); background: color-mix(in srgb, var(--timeline-color) 18%, transparent); }
 .timeline-bar-double { border-top: 2px solid var(--timeline-color); border-bottom: 2px solid var(--timeline-color); }
-.timeline-row-compact .timeline-row-label { height: max(40px, calc(var(--event-rows) * 28px + 12px)); padding: 8px 14px; border-left: 3px solid var(--timeline-color, var(--line)); }
-.timeline-row-compact .timeline-cell, .timeline-row-compact .timeline-bars { height: max(40px, calc(var(--event-rows) * 28px + 12px)); }
+.timeline-row-compact .timeline-row-label { height: max(72px, calc(var(--event-rows) * 28px + 32px)); padding: 10px 14px; border-left: 3px solid var(--timeline-color, var(--line)); }
+.timeline-row-compact .timeline-cell, .timeline-row-compact .timeline-bars { height: max(72px, calc(var(--event-rows) * 28px + 32px)); }
+.timeline-row-compact .timeline-row-label strong, .timeline-row-compact .timeline-row-label small { line-height: 1.3; overflow-wrap: anywhere; }
 .timeline-row-compact .timeline-bars { padding-top: 7px; }
 .timeline-cell.is-today { box-shadow: inset 2px 0 0 var(--teal); }

@@ -308,6 +308,42 @@ class CalendarIntegrationTests(PostgresTestCase):
         delete_activity_cycle(100, theater['id'])
         self.assertEqual(self.client.get(f'/calendar/cycles/{theater["id"]}').status_code, 404)
 
+    def test_banner_pairs_special_banner_and_ten_row_limit(self):
+        from web.calendar_timeline import _row
+
+        def event(title, start, end, kind='banner'):
+            return {
+                'id': title, 'kind': kind, 'title': title, 'subtitle': 'Genshin Impact',
+                'url': None, 'external': False, 'start_date': start, 'end_date': end,
+                'date_label': '', 'game_color': None, 'timeline_color': '#e5a3b5',
+                'line_count': 2 if kind == 'banner' else 1,
+            }
+
+        range_start, range_end = date(2026, 11, 1), date(2026, 12, 31)
+        events = [
+            event('Мириады возможностей', date(2026, 11, 4), date(2026, 11, 24)),
+            event('Песнь водам мира', date(2026, 11, 4), date(2026, 11, 24)),
+            event('Гармония изобилия', date(2026, 11, 24), date(2026, 12, 15)),
+            event('Молитва хроник Натлана', date(2026, 11, 24), date(2026, 12, 15)),
+            event('Энциклопедия я-хо-хо', date(2026, 11, 24), date(2026, 12, 15)),
+        ]
+        row = _row('Genshin Impact', '', events, range_start, range_end)
+        rows = {bar['title']: bar['row'] for bar in row['bars']}
+        self.assertEqual(rows['Мириады возможностей'], rows['Гармония изобилия'])
+        self.assertEqual(rows['Песнь водам мира'], rows['Энциклопедия я-хо-хо'])
+        self.assertNotIn(
+            rows['Молитва хроник Натлана'],
+            {rows['Гармония изобилия'], rows['Энциклопедия я-хо-хо']},
+        )
+
+        crowded = _row(
+            'Genshin Impact', '',
+            [event(f'Ивент {index}', range_start, range_end, 'event') for index in range(11)],
+            range_start, range_end,
+        )
+        self.assertEqual(crowded['event_rows'], 10)
+        self.assertEqual(crowded['bars'][-1]['title'], 'Ещё событий: 2')
+
     def test_multiday_event_crosses_month_and_input_is_validated(self):
         from database.calendar import create_calendar_event
 
