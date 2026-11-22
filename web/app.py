@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from web.rendering import templates
 from web.routes import (
-    account, admin, calendar, news, news_admin, public, tierlist_catalog_admin,
+    account, admin, calendar, calendar_activity, news, news_admin, public, tierlist_catalog_admin,
     tierlists, wishes,
 )
 
@@ -32,6 +32,7 @@ def create_app():
     app.include_router(news.router)
     app.include_router(news_admin.router)
     app.include_router(calendar.router)
+    app.include_router(calendar_activity.router)
 
     @app.middleware('http')
     async def security_headers(request: Request, call_next):

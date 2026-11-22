@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}{{ view_title }} · Календарь{% endblock %}
-{% block scripts %}<script src="/static/calendar_timeline.js" defer></script>{% endblock %}
+{% block scripts %}<script src="/static/calendar_timeline.js" defer></script><script src="/static/calendar_cycles.js" defer></script>{% endblock %}
 {% block content %}
 <section class="page-heading"><div class="eyebrow">Сообщество и игры</div><h1>Календарь событий</h1><p>Непрерывная лента ивентов, баннеров и дней рождения.</p></section>
 <nav class="calendar-view-switch" aria-label="Режим календаря"><a href="{{ month_url }}">Месяц</a><a class="{{ 'is-active' if view_mode == 'week' else '' }}" href="{{ current_week_url }}" {% if view_mode == 'week' %}aria-current="page"{% endif %}>Неделя</a><a class="{{ 'is-active' if view_mode == 'day' else '' }}" href="{{ current_day_url }}" {% if view_mode == 'day' %}aria-current="page"{% endif %}>День</a></nav>
@@ -21,4 +21,5 @@
         <div class="timeline-status" data-timeline-status role="status" aria-live="polite"></div>
     </div>
 </section>
+{% include '_calendar_cycle_dialog.html' %}
 {% endblock %}

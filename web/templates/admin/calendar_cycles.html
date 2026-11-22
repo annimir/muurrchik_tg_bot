@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Циклы активностей · Админка{% endblock %}
+{% block scripts %}<script src="/static/admin_calendar_cycles.js" defer></script>{% endblock %}
+{% block content %}
+{% include 'admin/_nav.html' %}
+<section class="page-heading"><div><div class="eyebrow">Календарь</div><h1>Циклы активностей</h1><p>Ежемесячные циклы Бездны, Театра и Натиска с автоматическим расчётом дат.</p></div><a class="button button-secondary" href="/admin/calendar">Обычные события</a></section>
+{% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+<section class="panel">
+    <div class="section-heading"><h2>{{ 'Изменить цикл' if editing else 'Добавить цикл' }}</h2>{% if editing %}<a href="/admin/calendar/cycles">Отменить редактирование</a>{% endif %}</div>
+    <form class="cycle-admin-form" method="post" action="{{ '/admin/calendar/cycles/' ~ cycle.id ~ '/edit' if editing else '/admin/calendar/cycles' }}" data-cycle-form>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>Активность<select name="activity_id" data-cycle-activity required>{% for activity in activities %}<option value="{{ activity.id }}" data-code="{{ activity.code }}" data-rule="{{ activity.schedule_rule }}" {% if cycle.activity_id|string == activity.id|string %}selected{% endif %}>{{ activity.game_code }} · {{ activity.name }}</option>{% endfor %}</select></label>
+        <label data-cycle-month-field>Месяц цикла<input type="month" name="cycle_month" value="{{ cycle.cycle_month }}"></label>
+        <label data-cycle-patch-field hidden>Дата начала патча<input type="date" name="patch_start" value="{{ cycle.patch_start }}"></label>
+        <label>Дата начала<input type="date" name="start_date" value="{{ cycle.start_date.isoformat() if cycle.start_date is not string else cycle.start_date }}" data-cycle-start></label>
+        <label>Дата окончания<input type="date" name="end_date" value="{{ cycle.end_date.isoformat() if cycle.end_date is not string else cycle.end_date }}" data-cycle-end></label>
+        <p class="muted cycle-date-hint">Оставьте даты пустыми для автоматического расчёта или укажите собственный период.</p>
+        <fieldset data-cycle-fields="onslaught" hidden><legend>Три босса Натиска</legend><label>Босс 1<input name="boss1" value="{{ cycle.details.bosses[0] if cycle.details.bosses is defined else '' }}"></label><label>Босс 2<input name="boss2" value="{{ cycle.details.bosses[1] if cycle.details.bosses is defined else '' }}"></label><label>Босс 3<input name="boss3" value="{{ cycle.details.bosses[2] if cycle.details.bosses is defined else '' }}"></label></fieldset>
+        <fieldset data-cycle-fields="theater" hidden><legend>Параметры Театра</legend><div class="cycle-elements">{% for element in elements %}<label><input type="checkbox" name="elements" value="{{ element.id }}" {% if cycle.details.elements is defined and element.id in cycle.details.elements %}checked{% endif %}> {{ element.name }}</label>{% endfor %}</div><label>Приглашённые персонажи<select name="invited_characters" multiple size="10">{% for character in characters %}<option value="{{ character.id }}" {% if cycle.details.invited_characters is defined and character.id in cycle.details.invited_characters %}selected{% endif %}>{{ character.name }}</option>{% endfor %}</select></label></fieldset>
+        <fieldset data-cycle-fields="abyss" hidden><legend>Бонусы 12-го этажа</legend><label>Первая половина<textarea name="first_half" rows="3">{{ cycle.details.first_half if cycle.details.first_half is defined else '' }}</textarea></label><label>Вторая половина<textarea name="second_half" rows="3">{{ cycle.details.second_half if cycle.details.second_half is defined else '' }}</textarea></label></fieldset>
+        <button class="button" type="submit">{{ 'Сохранить изменения' if editing else 'Добавить цикл' }}</button>
+    </form>
+</section>
+<section class="panel"><div class="section-heading"><h2>Созданные циклы</h2><span>{{ cycles|length }}</span></div>
+{% if cycles %}<div class="table-wrap"><table><thead><tr><th>Период</th><th>Активность</th><th>Игра</th><th>Действия</th></tr></thead><tbody>{% for item in cycles %}<tr><td>{{ item.start_date|date_ru }} — {{ item.end_date|date_ru }}</td><td>{{ item.activity_name }}</td><td>{{ item.game_name }}</td><td><div class="admin-news-actions"><a class="button button-small button-quiet" href="/admin/calendar/cycles/{{ item.id }}/edit">Изменить</a><form method="post" action="/admin/calendar/cycles/{{ item.id }}/delete" data-confirm="Удалить цикл «{{ item.activity_name }}»?"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button button-small button-danger" type="submit">Удалить</button></form></div></td></tr>{% endfor %}</tbody></table></div>{% else %}<p>Циклов пока нет.</p>{% endif %}</section>
+{% endblock %}

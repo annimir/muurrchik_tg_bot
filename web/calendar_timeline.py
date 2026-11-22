@@ -4,6 +4,8 @@ from urllib.parse import urlencode
 from database.calendar import (
     list_calendar_events, list_character_birthdays, list_player_birthdays,
 )
+from database.calendar_activity import list_activity_cycles, list_calendar_activities
+from web.calendar_activity import cycle_summary
 from web.calendar import (
     EVENT_TYPE_LABELS, WEEKDAYS, _birthday_event, _date_range, game_color,
 )
@@ -51,6 +53,7 @@ def _row(label, subtitle, events, range_start, range_end):
             'external': event['external'], 'column': start_index + 2,
             'span': end_index - start_index + 1, 'row': lane + 1,
             'date_label': event['date_label'], 'game_color': event.get('game_color'),
+            'cycle_id': event.get('cycle_id'), 'cycle_summary': event.get('cycle_summary'),
             'continues_before': event['start_date'] < range_start,
             'continues_after': event['end_date'] > range_end,
         })
@@ -103,6 +106,9 @@ def build_calendar_timeline(
         range_start, range_end + timedelta(days=1), game_code, game_event_type,
     ) if include_game_events else []
 
+    activity_cycles = list_activity_cycles(
+        range_start, range_end + timedelta(days=1), game_code,
+    ) if include_game_events else []
     rows = []
     if event_type in {'', 'player_birthday', 'character_birthday'}:
         birthdays = _birthdays(range_start, range_end, event_type)
@@ -125,6 +131,25 @@ def build_calendar_timeline(
         row['game_code'] = game['code']
         row['game_color'] = color
         rows.append(row)
+        for activity in list_calendar_activities(game['code']):
+            related_cycles = [
+                cycle for cycle in activity_cycles if cycle['activity_id'] == activity['id']
+            ]
+            cycle_items = [{
+                'id': f'cycle-{cycle["id"]}', 'kind': 'activity',
+                'title': activity['name'], 'subtitle': game['name'], 'url': None,
+                'external': False, 'start_date': cycle['start_date'], 'end_date': cycle['end_date'],
+                'date_label': _date_range(cycle['start_date'], cycle['end_date']),
+                'game_color': color, 'cycle_id': cycle['id'],
+                'cycle_summary': cycle_summary(cycle),
+            } for cycle in related_cycles]
+            activity_row = _row(
+                activity['name'], game['name'], cycle_items, range_start, range_end,
+            )
+            activity_row.update(
+                game_code=game['code'], game_color=color, is_activity=True,
+            )
+            rows.append(activity_row)
 
     days = []
     for index in range(day_count):
