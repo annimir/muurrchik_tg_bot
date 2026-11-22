@@ -15,7 +15,7 @@
         <button class="button" type="submit">Показать</button>
     </form>
     <p class="muted calendar-filter-note">Фильтр по игре применяется к ивентам и баннерам. Дни рождения отображаются независимо от выбранной игры.</p>
-    <div class="calendar-legend">{% for value, label in event_types %}<span class="calendar-legend-item calendar-event-{{ value }}">{{ label }}</span>{% endfor %}</div>
+    <div class="calendar-legend"><span class="calendar-legend-item calendar-event-player_birthday">Дни рождения игроков</span><span class="calendar-legend-item calendar-event-character_birthday">Дни рождения персонажей</span>{% for game in calendar_games %}<span class="calendar-game-legend" style="--game-color: {{ game.color }}">{{ game.name }}</span>{% endfor %}</div>
     <div class="calendar-scroll" tabindex="0" aria-label="Календарь на {{ month_name }} {{ year }}">
         <div class="calendar-grid">
             {% for weekday in weekdays %}<div class="calendar-weekday">{{ weekday }}</div>{% endfor %}
@@ -33,7 +33,7 @@
                     {% else %}<div class="calendar-day is-empty" style="grid-column: {{ loop.index }}" aria-hidden="true"></div>{% endif %}
                 {% endfor %}
                 <div class="calendar-event-bars">
-                    {% for event in week.event_bars %}<div class="calendar-event calendar-event-bar calendar-event-{{ event.kind }}" style="grid-column: {{ event.column }} / span {{ event.span }}; grid-row: {{ event.row }}" title="{{ event.title }} · {{ event.subtitle }}">{% if event.url %}<a href="{{ event.url }}" target="_blank" rel="noopener noreferrer">{{ event.title }}</a>{% else %}<span>{{ event.title }}</span>{% endif %}</div>{% endfor %}
+                    {% for event in week.event_bars %}<div class="calendar-event calendar-event-bar calendar-event-{{ event.kind }}" style="grid-column: {{ event.column }} / span {{ event.span }}; grid-row: {{ event.row }}; --game-color: {{ event.game_color }}" title="{{ event.title }} · {{ event.subtitle }}">{% if event.url %}<a href="{{ event.url }}" target="_blank" rel="noopener noreferrer">{{ event.title }}</a>{% else %}<span>{{ event.title }}</span>{% endif %}</div>{% endfor %}
                 </div>
             </div>
             {% endfor %}
@@ -47,7 +47,7 @@
         <article class="panel calendar-agenda-item" id="agenda-{{ event.id }}">
             <time class="calendar-agenda-date" datetime="{{ event.occurrence_date.isoformat() }}"><strong>{{ '%02d'|format(event.occurrence_date.day) }}</strong><span>{{ '%02d'|format(event.occurrence_date.month) }}.{{ event.occurrence_date.year }}</span></time>
             <div class="calendar-agenda-content">
-                <span class="calendar-type calendar-event-{{ event.kind }}">{{ type_labels[event.kind] }}</span>
+                <span class="calendar-type calendar-event-{{ event.kind }}"{% if event.game_color %} style="--game-color: {{ event.game_color }}"{% endif %}>{{ type_labels[event.kind] }}</span>
                 <h3>{% if event.url %}<a href="{{ event.url }}" {% if event.external %}target="_blank" rel="noopener noreferrer"{% endif %}>{{ event.title }}</a>{% else %}{{ event.title }}{% endif %}</h3>
                 <p class="calendar-agenda-meta">{{ event.subtitle }} · {{ event.date_label }}</p>
                 {% if event.description %}<p class="preline">{{ event.description }}</p>{% endif %}

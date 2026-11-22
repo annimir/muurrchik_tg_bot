@@ -46,6 +46,8 @@ class CalendarIntegrationTests(PostgresTestCase):
         self.assertEqual(calendar.status_code, 200, calendar.text)
         for text in ('Витая бездна', 'Баннер новой версии', 'player', 'Фурина', 'Ноябрь'):
             self.assertIn(text, calendar.text)
+        self.assertIn('--game-color: #d8bc72', calendar.text)
+        self.assertIn('--game-color: #a89be8', calendar.text)
         self.assertIn('href="/calendar"', self.client.get('/').text)
 
         genshin = self.client.get('/calendar?year=2026&month=11&game=genshin')
@@ -136,6 +138,9 @@ class CalendarIntegrationTests(PostgresTestCase):
         self.assertIn('data-start="2026-11-09"', response.text)
         self.assertIn('data-end="2026-11-29"', response.text)
         self.assertIn('data-anchor="2026-11-16"', response.text)
+        self.assertIn('timeline-bar-label', response.text)
+        self.assertIn('--game-color: #d8bc72', response.text)
+        self.assertIn('--game-color: #a89be8', response.text)
         self.assertIn('href="/calendar?view=week', self.client.get('/calendar').text)
 
         page = build_calendar_timeline(

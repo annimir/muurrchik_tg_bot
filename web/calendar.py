@@ -18,6 +18,22 @@ MONTH_NAMES = (
     'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
 )
 WEEKDAYS = ('Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс')
+GAME_COLORS = {
+    'genshin': '#d8bc72',
+    'hsr': '#a89be8',
+    'zzz': '#79c7c0',
+    'endfield': '#e0a365',
+    'hi3': '#e5a3d0',
+    'wuthering_waves': '#73b9e6',
+}
+FALLBACK_GAME_COLORS = ('#d58fa6', '#8fb8e8', '#9bc98f', '#d8a36f', '#b39add', '#75c7b5')
+
+
+def game_color(game_code):
+    if game_code in GAME_COLORS:
+        return GAME_COLORS[game_code]
+    color_index = sum((index + 1) * value for index, value in enumerate(game_code.encode()))
+    return FALLBACK_GAME_COLORS[color_index % len(FALLBACK_GAME_COLORS)]
 
 
 def _url(year, month, game_code, event_type):
@@ -86,7 +102,7 @@ def build_calendar_page(year, month, game_code='', event_type='', today=None):
         agenda.append({
             'id': f'game-{event["id"]}', 'kind': event['event_type'], 'title': event['title'],
             'subtitle': event['game_name'], 'description': event['description'],
-            'url': event['url'], 'external': True,
+            'url': event['url'], 'external': True, 'game_color': game_color(event['game_code']),
             'date_label': _date_range(event['start_date'], event['end_date']),
             'occurrence_date': max(event['start_date'], month_start),
         })
@@ -136,6 +152,7 @@ def build_calendar_page(year, month, game_code='', event_type='', today=None):
                 'title': event['title'], 'subtitle': event['game_name'],
                 'url': event['url'], 'external': True, 'column': column,
                 'span': end_column - column + 1, 'row': lane + 1,
+                'game_color': game_color(event['game_code']),
             })
         weeks.append({
             'days': cells, 'event_bars': event_bars, 'event_rows': len(lane_ends),
@@ -145,10 +162,15 @@ def build_calendar_page(year, month, game_code='', event_type='', today=None):
     agenda.sort(key=lambda item: (
         item['occurrence_date'], kind_order[item['kind']], item['title'].casefold(),
     ))
+    active_game_codes = {event['game_code'] for event in game_events}
+    calendar_games = [
+        {'code': game['code'], 'name': game['name'], 'color': game_color(game['code'])}
+        for game in games if game['code'] in active_game_codes
+    ]
     return {
         'games': games, 'selected_game': game_code, 'selected_type': event_type,
         'event_types': EVENT_TYPE_LABELS.items(), 'type_labels': EVENT_TYPE_LABELS,
-        'weekdays': WEEKDAYS, 'weeks': weeks,
+        'calendar_games': calendar_games, 'weekdays': WEEKDAYS, 'weeks': weeks,
         'agenda': agenda, 'month_name': MONTH_NAMES[month], 'year': year,
         'month_value': f'{year:04d}-{month:02d}',
         'previous_url': _url(previous_month.year, previous_month.month, game_code, event_type),

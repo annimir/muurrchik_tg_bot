@@ -4,7 +4,9 @@ from urllib.parse import urlencode
 from database.calendar import (
     list_calendar_events, list_character_birthdays, list_player_birthdays,
 )
-from web.calendar import EVENT_TYPE_LABELS, WEEKDAYS, _birthday_event, _date_range
+from web.calendar import (
+    EVENT_TYPE_LABELS, WEEKDAYS, _birthday_event, _date_range, game_color,
+)
 from web.queries import list_games
 
 MAX_TIMELINE_DAYS = 367
@@ -46,7 +48,7 @@ def _row(label, subtitle, events, range_start, range_end):
             'subtitle': event['subtitle'], 'url': event['url'],
             'external': event['external'], 'column': start_index + 2,
             'span': end_index - start_index + 1, 'row': lane + 1,
-            'date_label': event['date_label'],
+            'date_label': event['date_label'], 'game_color': event.get('game_color'),
             'continues_before': event['start_date'] < range_start,
             'continues_after': event['end_date'] > range_end,
         })
@@ -108,14 +110,17 @@ def build_calendar_timeline(
         related = [event for event in game_events if event['game_code'] == game['code']]
         if not related:
             continue
+        color = game_color(game['code'])
         items = [{
             'id': f'game-{event["id"]}', 'kind': event['event_type'],
             'title': event['title'], 'subtitle': game['name'], 'url': event['url'],
             'external': True, 'start_date': event['start_date'], 'end_date': event['end_date'],
             'date_label': _date_range(event['start_date'], event['end_date']),
+            'game_color': color,
         } for event in related]
         row = _row(game['name'], f'Событий: {len(items)}', items, range_start, range_end)
         row['game_code'] = game['code']
+        row['game_color'] = color
         rows.append(row)
 
     days = []
