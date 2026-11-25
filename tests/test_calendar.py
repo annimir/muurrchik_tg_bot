@@ -308,6 +308,29 @@ class CalendarIntegrationTests(PostgresTestCase):
         delete_activity_cycle(100, theater['id'])
         self.assertEqual(self.client.get(f'/calendar/cycles/{theater["id"]}').status_code, 404)
 
+    def test_developer_stream_admin_and_calendar(self):
+        from database.calendar import get_calendar_event
+        from web.calendar_timeline import build_calendar_timeline
+
+        response = self._create_event('Стрим будущего обновления', 'genshin', 'stream')
+        self.assertEqual(response.status_code, 303, response.text)
+        self.assertEqual(get_calendar_event(1)['event_type'], 'stream')
+        self.assertIn('Стрим разработчиков', self.client.get('/admin/calendar').text)
+
+        calendar = self.client.get('/calendar?year=2026&month=11&type=stream')
+        self.assertEqual(calendar.status_code, 200, calendar.text)
+        self.assertIn('Стрим будущего обновления', calendar.text)
+        self.assertIn('https://example.com/event', calendar.text)
+        self.assertNotIn('Баннер новой версии', calendar.text)
+
+        timeline = build_calendar_timeline(
+            date(2026, 11, 1), date(2026, 12, 31), game_code='genshin', compact=True,
+        )
+        stream_row = next(row for row in timeline['rows'] if row.get('compact'))
+        self.assertEqual(stream_row['bars'][0]['timeline_color'], '#8fc98f')
+        self.assertEqual(stream_row['bars'][0]['row_span'], 1)
+        self.assertEqual(stream_row['bars'][0]['url'], 'https://example.com/event')
+
     def test_banner_pairs_special_banner_and_ten_row_limit(self):
         from web.calendar_timeline import _row
 

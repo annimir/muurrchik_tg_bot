@@ -12,6 +12,7 @@ from web.queries import list_games
 EVENT_TYPE_LABELS = {
     'event': 'Ивент',
     'banner': 'Баннер',
+    'stream': 'Стрим разработчиков',
     'player_birthday': 'День рождения игрока',
     'character_birthday': 'День рождения персонажа',
 }
@@ -90,12 +91,12 @@ def build_calendar_page(year, month, game_code='', event_type='', today=None):
     next_month = date(year + (month == 12), month % 12 + 1, 1)
     previous_month = date(year - (month == 1), 12 if month == 1 else month - 1, 1)
 
-    game_event_type = event_type if event_type in {'event', 'banner'} else ''
-    include_game_events = not event_type or event_type in {'event', 'banner'}
+    game_event_type = event_type if event_type in {'event', 'banner', 'stream'} else ''
+    include_game_events = not event_type or event_type in {'event', 'banner', 'stream'}
     game_events = list_calendar_events(
         month_start, next_month, game_code, game_event_type,
     ) if include_game_events else []
-    if include_game_events:
+    if not event_type or event_type in {'event', 'banner'}:
         for cycle in list_activity_cycles(month_start, next_month, game_code):
             game_events.append({
                 'id': cycle['id'], 'game_code': cycle['game_code'],

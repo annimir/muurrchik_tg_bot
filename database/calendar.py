@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 from database.queries import db
 
-EVENT_TYPES = {'event', 'banner'}
+EVENT_TYPES = {'event', 'banner', 'stream'}
 
 
 def _date_value(value, label):
@@ -27,7 +27,7 @@ def _values(game_code, title, description, event_type, start_date, end_date, url
     if len(description) > 1000:
         raise ValueError('Описание должно содержать не более 1000 символов')
     if event_type not in EVENT_TYPES:
-        raise ValueError('Выберите тип события: ивент или баннер')
+        raise ValueError('Выберите тип события: ивент, баннер или стрим')
     if end_date < start_date:
         raise ValueError('Дата окончания не может быть раньше даты начала')
     if len(url) > 500:

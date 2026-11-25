@@ -13,6 +13,7 @@ MAX_TIMELINE_DAYS = 367
 TIMELINE_COLORS = {
     'banner': '#e5a3b5',
     'event': '#d8bc72',
+    'stream': '#8fc98f',
     'onslaught': '#d98164',
     'theater': '#a89be8',
     'abyss': '#73b9e6',
@@ -170,14 +171,14 @@ def build_calendar_timeline(
     today = today or date.today()
     anchor_date = anchor_date or range_start
 
-    game_event_type = event_type if event_type in {'event', 'banner'} else ''
-    include_game_events = not event_type or event_type in {'event', 'banner'}
+    game_event_type = event_type if event_type in {'event', 'banner', 'stream'} else ''
+    include_game_events = not event_type or event_type in {'event', 'banner', 'stream'}
     game_events = list_calendar_events(
         range_start, range_end + timedelta(days=1), game_code, game_event_type,
     ) if include_game_events else []
     activity_cycles = list_activity_cycles(
         range_start, range_end + timedelta(days=1), game_code,
-    ) if include_game_events else []
+    ) if not event_type or event_type in {'event', 'banner'} else []
 
     rows = []
     if event_type in {'', 'player_birthday', 'character_birthday'}:
